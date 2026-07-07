@@ -33,6 +33,30 @@ function isLocked(status: MonthlyBillingRow["invoice_status"]) {
   return status === "paid" || status === "scanning";
 }
 
+function fullInviteUrl(url: string) {
+  if (url.startsWith("http")) return url;
+  if (typeof window === "undefined") return url;
+  return new URL(url, window.location.origin).href;
+}
+
+async function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  const ok = document.execCommand("copy");
+  document.body.removeChild(textarea);
+  if (!ok) throw new Error("คัดลอกไม่สำเร็จ");
+}
+
 export function MonthlyBillingSkin({
   billingMonth,
   rows,
@@ -43,6 +67,8 @@ export function MonthlyBillingSkin({
   const [meters, setMeters] = useState<
     Record<string, { water: string; electric: string }>
   >({});
+  const [copiedTenantId, setCopiedTenantId] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   useEffect(() => {
     setMeters(
@@ -134,14 +160,28 @@ export function MonthlyBillingSkin({
                 </span>
               </div>
               {row.invite_url && (
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => void navigator.clipboard.writeText(row.invite_url)}
-                  className="mt-2 text-green-700 underline disabled:opacity-50"
-                >
-                  คัดลอกลิงก์เชิญลูกบ้าน
-                </button>
+                <div className="mt-2 space-y-2">
+                  <p className="break-all text-zinc-600">
+                    {fullInviteUrl(row.invite_url)}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCopyError(null);
+                      void copyText(fullInviteUrl(row.invite_url))
+                        .then(() => {
+                          setCopiedTenantId(row.tenant_id);
+                          window.setTimeout(() => setCopiedTenantId(null), 2000);
+                        })
+                        .catch(() => setCopyError("คัดลอกไม่สำเร็จ — กดค้างที่ลิงก์ด้านบนแล้วคัดลอกเอง"));
+                    }}
+                    className="w-full rounded-md border border-green-300 bg-green-50 py-2 text-sm font-medium text-green-800"
+                  >
+                    {copiedTenantId === row.tenant_id
+                      ? "คัดลอกแล้ว ✓"
+                      : "คัดลอกลิงก์เชิญลูกบ้าน"}
+                  </button>
+                </div>
               )}
             </div>
 
@@ -192,6 +232,12 @@ export function MonthlyBillingSkin({
           </article>
         );
       })}
+
+      {copyError && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          {copyError}
+        </p>
+      )}
 
       {rows.length > 0 && (
         <button

@@ -33,7 +33,6 @@ function TenantBoardContent() {
     error: authError,
     lineUserId,
     profile,
-    isInClient,
     statusMessage,
   } = useLineAuth();
 
@@ -43,14 +42,13 @@ function TenantBoardContent() {
     null;
 
   const authReady = !authLoading;
-  const useDevFallback = authReady && !isInClient && !!devTenantId;
-  const boardEnabled =
-    authReady && ((isInClient && !!lineUserId) || useDevFallback);
+  const useDevFallback = authReady && !lineUserId && !!devTenantId;
+  const boardEnabled = authReady && (!!lineUserId || useDevFallback);
 
   const { board, isLoading, error, needsLink, reload, patchInvoice } =
     useTenantBoard({
       enabled: boardEnabled,
-      lineUserId: isInClient ? lineUserId : null,
+      lineUserId: useDevFallback ? null : lineUserId,
       tenantId: useDevFallback ? devTenantId : null,
     });
 
@@ -75,7 +73,7 @@ function TenantBoardContent() {
 
   if (authLoading) return <AuthLoading message={statusMessage} />;
 
-  if (isInClient && authError && !lineUserId) {
+  if (authError && !lineUserId) {
     return (
       <MobileFrame>
         <div className="flex min-h-[420px] items-center justify-center p-6 text-center text-sm text-zinc-600">
@@ -85,21 +83,18 @@ function TenantBoardContent() {
     );
   }
 
-  if (authReady && isInClient && !lineUserId) {
-    return (
-      <MobileFrame>
-        <div className="flex min-h-[420px] items-center justify-center p-6 text-center text-sm text-zinc-600">
-          กำลังเข้าสู่ระบบ LINE...
-        </div>
-      </MobileFrame>
-    );
-  }
-
   if (authReady && !lineUserId && !useDevFallback) {
     return (
       <MobileFrame>
         <div className="flex min-h-[420px] flex-col items-center justify-center gap-2 p-6 text-center text-sm text-zinc-600">
-          <p>เปิดลิงก์จากแอป LINE</p>
+          {inviteFromUrl ? (
+            <>
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+              <p>กำลังเข้าสู่ระบบ LINE...</p>
+            </>
+          ) : (
+            <p>เปิดลิงก์จากแอป LINE</p>
+          )}
         </div>
       </MobileFrame>
     );
@@ -109,7 +104,10 @@ function TenantBoardContent() {
     return <AuthLoading message="กำลังโหลดข้อมูล..." />;
   }
 
-  if (needsLink && lineUserId) {
+  const showInvite =
+    !!lineUserId && !board && (needsLink || Boolean(inviteFromUrl));
+
+  if (showInvite) {
     return (
       <MobileFrame>
         <InviteCodeSkin
