@@ -1,5 +1,6 @@
 import {
   buildDemoPromptMessages,
+  buildDemoWelcomeMessages,
   buildDemoWelcomeTextMessages,
   isDemoTriggerMessage,
 } from "@/services/line/demoFunnelService";
@@ -19,6 +20,24 @@ type LineWebhookEvent = {
 type LineWebhookPayload = {
   events?: LineWebhookEvent[];
 };
+
+async function deliverDemoWelcome(
+  replyToken: string,
+  lineUserId: string | undefined,
+) {
+  try {
+    await replyLineMessages(replyToken, buildDemoWelcomeMessages());
+    return;
+  } catch (flexError) {
+    console.error("[lineWebhook] flex demo failed", flexError);
+  }
+
+  await deliverMessages(
+    replyToken,
+    lineUserId,
+    buildDemoWelcomeTextMessages(),
+  );
+}
 
 async function deliverMessages(
   replyToken: string,
@@ -73,11 +92,7 @@ export async function handleLineWebhook(payload: LineWebhookPayload) {
 
       const text = event.message.text ?? "";
       if (isDemoTriggerMessage(text)) {
-        await deliverMessages(
-          event.replyToken,
-          lineUserId,
-          buildDemoWelcomeTextMessages(),
-        );
+        await deliverDemoWelcome(event.replyToken, lineUserId);
         results.push({ type: event.type, replied: true });
         continue;
       }

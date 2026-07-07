@@ -56,47 +56,116 @@ export function buildDemoWelcomeTextMessages(): LineReplyMessage[] {
 }
 
 export function buildDemoWelcomeMessages(): LineReplyMessage[] {
-  const { propertyUrl, tenantBoardUrl } = getDemoFunnelUrls();
+  const { propertyUrl, tenantBoardUrl, propertySlug } = getDemoFunnelUrls();
 
   return [
     {
       type: "flex",
-      altText: "RentChill Demo — ลองใช้ระบบได้ทันที",
+      altText: "RentChill Demo — ลองใช้ระบบบิลค่าเช่า",
       contents: {
         type: "bubble",
-        body: {
+        size: "mega",
+        header: {
           type: "box",
           layout: "vertical",
+          backgroundColor: "#16a34a",
+          paddingAll: "20px",
           contents: [
             {
               type: "text",
               text: "RentChill",
-              color: "#16a34a",
-              weight: "bold",
-              size: "sm",
-            },
-            {
-              type: "text",
-              text: "ยินดีต้อนรับ!",
+              color: "#ffffff",
               weight: "bold",
               size: "xl",
-              margin: "md",
             },
             {
               type: "text",
-              text: "ลองระบบบิลค่าเช่าได้ทันที — ไม่ต้องสมัคร",
+              text: "Interactive Demo",
+              color: "#dcfce7",
+              size: "sm",
+              margin: "sm",
+            },
+          ],
+        },
+        body: {
+          type: "box",
+          layout: "vertical",
+          spacing: "md",
+          paddingAll: "20px",
+          contents: [
+            {
+              type: "text",
+              text: "ลองระบบบิลค่าเช่าได้ทันที",
+              weight: "bold",
+              size: "md",
+              color: "#18181b",
+            },
+            {
+              type: "text",
+              text: "ไม่ต้องสมัคร · โปร่งใส · จ่ายผ่าน LINE",
               wrap: true,
               size: "sm",
-              color: "#52525b",
-              margin: "md",
+              color: "#71717a",
             },
             {
               type: "text",
               text: "Try RentChill now — no signup required",
               wrap: true,
-              size: "sm",
-              color: "#52525b",
+              size: "xs",
+              color: "#a1a1aa",
               margin: "sm",
+            },
+            { type: "separator", margin: "md" },
+            {
+              type: "box",
+              layout: "vertical",
+              spacing: "sm",
+              contents: [
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    {
+                      type: "text",
+                      text: "●",
+                      color: "#16a34a",
+                      size: "xs",
+                      flex: 0,
+                    },
+                    {
+                      type: "text",
+                      text: `ดูหน้าหอ ${propertySlug}`,
+                      size: "sm",
+                      color: "#3f3f46",
+                      wrap: true,
+                      flex: 1,
+                    },
+                  ],
+                },
+                {
+                  type: "box",
+                  layout: "baseline",
+                  spacing: "sm",
+                  contents: [
+                    {
+                      type: "text",
+                      text: "●",
+                      color: "#16a34a",
+                      size: "xs",
+                      flex: 0,
+                    },
+                    {
+                      type: "text",
+                      text: "ลองบิลลูกบ้าน + ส่งสลิป",
+                      size: "sm",
+                      color: "#3f3f46",
+                      wrap: true,
+                      flex: 1,
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
@@ -104,6 +173,7 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
           type: "box",
           layout: "vertical",
           spacing: "sm",
+          paddingAll: "16px",
           contents: [
             {
               type: "button",
@@ -112,8 +182,8 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
               height: "sm",
               action: {
                 type: "uri",
-                label: "ดูหน้าหอ / Property",
-                uri: propertyUrl,
+                label: "ลองบิลลูกบ้าน",
+                uri: tenantBoardUrl,
               },
             },
             {
@@ -122,8 +192,8 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
               height: "sm",
               action: {
                 type: "uri",
-                label: "ลองบิล / Tenant bill",
-                uri: tenantBoardUrl,
+                label: "ดูหน้าหอพัก",
+                uri: propertyUrl,
               },
             },
           ],
