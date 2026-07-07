@@ -3,6 +3,7 @@ import type { PropertyPaymentAccount } from "@/services/types";
 export type SlipReceiver = {
   accountNumbers: string[];
   name: string | null;
+  nameCandidates: string[];
 };
 
 function normalizeDigits(value: string) {
@@ -61,8 +62,18 @@ export function matchSlipReceiver(
     return { matched: false, message: "บัญชีผู้รับไม่ตรงกับหอพัก" };
   }
 
-  if (account.receiver_name?.trim() && receiver.name) {
-    if (!namesMatch(account.receiver_name, receiver.name)) {
+  if (account.receiver_name?.trim()) {
+    const candidates =
+      receiver.nameCandidates.length > 0
+        ? receiver.nameCandidates
+        : receiver.name
+          ? [receiver.name]
+          : [];
+
+    if (
+      candidates.length > 0 &&
+      !candidates.some((candidate) => namesMatch(account.receiver_name!, candidate))
+    ) {
       return { matched: false, message: "ชื่อผู้รับไม่ตรงกับหอพัก" };
     }
   }

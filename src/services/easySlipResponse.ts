@@ -44,6 +44,12 @@ export function extractSlipTransRef(data: EasySlipResponse["data"]) {
   return data?.rawSlip?.transRef ?? data?.transRef ?? null;
 }
 
+function receiverNameCandidates(name?: { th?: string; en?: string }) {
+  return [name?.th?.trim(), name?.en?.trim()].filter(
+    (value): value is string => Boolean(value),
+  );
+}
+
 export function extractSlipReceiver(data: EasySlipResponse["data"]) {
   const receiver = data?.rawSlip?.receiver ?? data?.receiver;
   if (!receiver) return null;
@@ -53,12 +59,10 @@ export function extractSlipReceiver(data: EasySlipResponse["data"]) {
     receiver.account?.proxy?.account,
   ].filter((value): value is string => Boolean(value?.trim()));
 
-  const name =
-    receiver.account?.name?.th?.trim() ||
-    receiver.account?.name?.en?.trim() ||
-    null;
+  const nameCandidates = receiverNameCandidates(receiver.account?.name);
+  const name = nameCandidates[0] ?? null;
 
-  return { accountNumbers, name };
+  return { accountNumbers, name, nameCandidates };
 }
 
 function messageIndicatesDuplicate(message: string) {

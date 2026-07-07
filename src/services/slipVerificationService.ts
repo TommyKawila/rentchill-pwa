@@ -16,6 +16,7 @@ export type SlipVerifyResult = {
   receiver: {
     accountNumbers: string[];
     name: string | null;
+    nameCandidates: string[];
   } | null;
 };
 
