@@ -1,21 +1,31 @@
-import type { Invoice } from "@/services/types";
+import type { Invoice, InvoiceStatus } from "@/services/types";
 
 interface InvoiceSkinProps {
   invoice: Invoice;
   tenantName: string;
   roomNumber: string;
+  isPaying?: boolean;
   onPay: () => void;
 }
 
 const formatAmount = (amount: number) =>
   amount.toLocaleString("th-TH", { minimumFractionDigits: 0 });
 
+const statusLabel: Record<InvoiceStatus, string> = {
+  pending: "รอชำระ",
+  scanning: "กำลังตรวจสอบสลิป",
+  paid: "ชำระแล้ว",
+};
+
 export function InvoiceSkin({
   invoice,
   tenantName,
   roomNumber,
+  isPaying,
   onPay,
 }: InvoiceSkinProps) {
+  const canPay = invoice.status === "pending" && !isPaying;
+
   return (
     <article className="bg-zinc-50 p-6 text-zinc-900">
       <header className="border-b border-zinc-200 pb-4">
@@ -24,6 +34,9 @@ export function InvoiceSkin({
         <p className="text-sm text-zinc-600">
           Room {roomNumber} · {invoice.billing_month}
         </p>
+        <span className="mt-2 inline-block rounded-full bg-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700">
+          {statusLabel[invoice.status]}
+        </span>
       </header>
 
       <section className="mt-4 space-y-3 text-sm">
@@ -57,18 +70,34 @@ export function InvoiceSkin({
       </div>
 
       <footer className="mt-6 flex flex-col items-center gap-4">
-        <div
-          aria-hidden
-          className="flex h-28 w-28 items-center justify-center border border-dashed border-zinc-300 bg-white text-xs text-zinc-400"
-        >
-          QR Code
-        </div>
+        {invoice.slip_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={invoice.slip_image_url}
+            alt="Payment slip"
+            className="h-28 w-28 rounded-md border border-zinc-200 object-cover"
+          />
+        ) : (
+          <div
+            aria-hidden
+            className="flex h-28 w-28 items-center justify-center border border-dashed border-zinc-300 bg-white text-xs text-zinc-400"
+          >
+            QR Code
+          </div>
+        )}
         <button
           type="button"
           onClick={onPay}
-          className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white"
+          disabled={!canPay}
+          className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
-          Pay Now
+          {isPaying
+            ? "กำลังอัปโหลด..."
+            : invoice.status === "pending"
+              ? "Pay Now"
+              : invoice.status === "scanning"
+                ? "รอตรวจสอบ"
+                : "ชำระแล้ว"}
         </button>
       </footer>
     </article>

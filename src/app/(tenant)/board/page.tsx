@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { MobileFrame } from "@/components/frames/MobileFrame";
 import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
 import { useLineAuth } from "@/hooks/useLineAuth";
+import { usePaymentEngine } from "@/hooks/usePaymentEngine";
 import { useTenantBoard } from "@/hooks/useTenantBoard";
 
 function AuthLoading({ message }: { message: string }) {
@@ -19,6 +20,7 @@ function AuthLoading({ message }: { message: string }) {
 }
 
 function TenantBoardContent() {
+  const slipInputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
   const {
     isLoading: authLoading,
@@ -39,11 +41,19 @@ function TenantBoardContent() {
   const boardEnabled =
     authReady && ((isInClient && !!lineUserId) || useDevFallback);
 
-  const { board, isLoading, error, engineStatus, createBill } = useTenantBoard({
+  const { board, isLoading, error, engineStatus, createBill, reload } =
+    useTenantBoard({
     enabled: boardEnabled,
     lineUserId: isInClient ? lineUserId : null,
     tenantId: useDevFallback ? devTenantId : null,
   });
+
+  const {
+    status: paymentStatus,
+    error: paymentError,
+    submitSlip,
+    reset: resetPayment,
+  } = usePaymentEngine();
 
   if (authLoading) return <AuthLoading message={statusMessage} />;
 
@@ -129,12 +139,40 @@ function TenantBoardContent() {
       </header>
 
       {board.invoice ? (
-        <InvoiceSkin
-          invoice={board.invoice}
-          tenantName={board.tenant.name}
-          roomNumber={board.room.room_number}
-          onPay={() => {}}
-        />
+        <>
+          <input
+            ref={slipInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (!file || !board.invoice) return;
+
+              void submitSlip(board.invoice.id, board.tenant.id, file).then(
+                (invoice) => {
+                  if (invoice) {
+                    resetPayment();
+                    void reload();
+                  }
+                },
+              );
+            }}
+          />
+          <InvoiceSkin
+            invoice={board.invoice}
+            tenantName={board.tenant.name}
+            roomNumber={board.room.room_number}
+            isPaying={paymentStatus === "uploading"}
+            onPay={() => slipInputRef.current?.click()}
+          />
+          {paymentError && (
+            <p className="px-6 pb-4 text-center text-sm text-red-600">
+              {paymentError}
+            </p>
+          )}
+        </>
       ) : (
         <div className="flex flex-col items-center gap-4 p-6 text-center">
           <p className="text-sm text-zinc-600">ยังไม่มีบิลเดือนนี้</p>

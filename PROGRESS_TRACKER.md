@@ -36,3 +36,10 @@
 
 ---
 *Note for AI Agents: Always check this file before suggesting new code to understand the current progress state. Do not jump ahead of the pending steps.*
+
+## Phase 4: Beta Features (IN PROGRESS)
+- [x] Admin auth for `/import` and `/override` (`ADMIN_SECRET` + middleware)
+- [x] Pay flow — upload slip → status `scanning` (`usePaymentEngine` + Supabase Storage)
+- [ ] Slip verification API (auto approve/reject)
+- [ ] PDPA consent gate
+- [ ] LINE Rich Menu → LIFF
