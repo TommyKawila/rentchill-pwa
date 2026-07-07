@@ -16,6 +16,23 @@ export function getDemoFunnelUrls() {
   return { propertyUrl, tenantBoardUrl, propertySlug, inviteCode };
 }
 
+function normalizeDemoKeyword(text: string) {
+  return text.trim().toLowerCase();
+}
+
+export function isDemoTriggerMessage(text: string) {
+  return normalizeDemoKeyword(text) === "demo";
+}
+
+export function buildDemoPromptMessages(): LineReplyMessage[] {
+  return [
+    {
+      type: "text",
+      text: "พิมพ์ demo เพื่อลองใช้ระบบ\nType demo to start the demo",
+    },
+  ];
+}
+
 export function buildDemoWelcomeTextMessages(): LineReplyMessage[] {
   const { propertyUrl, tenantBoardUrl } = getDemoFunnelUrls();
 
