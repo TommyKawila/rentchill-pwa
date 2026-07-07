@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "@/components/LocaleProvider";
+import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 
 interface InviteCodeSkinProps {
   initialCode?: string;
@@ -15,6 +17,7 @@ export function InviteCodeSkin({
   error,
   onSubmit,
 }: InviteCodeSkinProps) {
+  const { t } = useLocale();
   const [code, setCode] = useState(initialCode);
 
   useEffect(() => {
@@ -23,18 +26,19 @@ export function InviteCodeSkin({
 
   return (
     <div className="flex flex-col gap-4 p-6">
+      <div className="flex justify-end">
+        <LocaleToggleSkin />
+      </div>
       <header>
         <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-          ผูกห้อง
+          {t("tenant.invite.tag")}
         </p>
-        <h1 className="mt-2 text-lg font-semibold">ใส่รหัสเชิญจากเจ้าของหอ</h1>
-        <p className="mt-2 text-sm text-zinc-600">
-          รหัสอยู่ในลิงก์หรือข้อความที่เจ้าของหอส่งให้
-        </p>
+        <h1 className="mt-2 text-lg font-semibold">{t("tenant.invite.title")}</h1>
+        <p className="mt-2 text-sm text-zinc-600">{t("tenant.invite.desc")}</p>
       </header>
 
       <label className="block space-y-1 text-sm">
-        <span className="font-medium">รหัสเชิญ</span>
+        <span className="font-medium">{t("tenant.invite.code")}</span>
         <input
           value={code}
           onChange={(event) => setCode(event.target.value.toUpperCase())}
@@ -51,7 +55,7 @@ export function InviteCodeSkin({
         onClick={() => onSubmit(code.trim())}
         className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
       >
-        {disabled ? "กำลังผูกห้อง..." : "ยืนยันผูกห้อง"}
+        {disabled ? t("tenant.invite.linking") : t("tenant.invite.submit")}
       </button>
     </div>
   );

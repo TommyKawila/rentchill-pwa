@@ -2,9 +2,12 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "@/components/LocaleProvider";
+import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { usePropertyPaymentSettings } from "@/hooks/usePropertyPaymentSettings";
 
 function SettingsContent() {
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const propertySlug = searchParams.get("property") ?? "demo-apartment";
   const { account, status, error, save } = usePropertyPaymentSettings(propertySlug);
@@ -24,22 +27,23 @@ function SettingsContent() {
     <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
       <div className="mx-auto max-w-xl">
         <header className="border-b border-zinc-200 pb-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-            ตั้งค่าหอพัก
-          </p>
-          <h1 className="mt-2 text-2xl font-bold">บัญชีรับเงิน</h1>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+              {t("settings.tag")}
+            </p>
+            <LocaleToggleSkin />
+          </div>
+          <h1 className="mt-2 text-2xl font-bold">{t("settings.title")}</h1>
           <p className="mt-2 text-sm text-zinc-600">
             {account?.property_name ?? propertySlug}
           </p>
         </header>
 
         <section className="mt-8 space-y-4">
-          <p className="text-sm text-zinc-600">
-            ใช้ตรวจสอบสลิปอัตโนมัติ — ถ้าไม่ตั้งค่า ระบบจะเช็คแค่ยอดเงิน
-          </p>
+          <p className="text-sm text-zinc-600">{t("settings.desc")}</p>
 
           {status === "loading" && (
-            <p className="text-sm text-zinc-500">กำลังโหลด...</p>
+            <p className="text-sm text-zinc-500">{t("common.loading")}</p>
           )}
 
           {error && (
@@ -49,7 +53,7 @@ function SettingsContent() {
           )}
 
           <label className="block space-y-1 text-sm">
-            <span className="font-medium">PromptPay / เบอร์โทร</span>
+            <span className="font-medium">{t("settings.promptPay")}</span>
             <input
               value={promptPay}
               onChange={(event) => setPromptPay(event.target.value)}
@@ -59,7 +63,7 @@ function SettingsContent() {
           </label>
 
           <label className="block space-y-1 text-sm">
-            <span className="font-medium">เลขบัญชีธนาคาร</span>
+            <span className="font-medium">{t("settings.bankAccount")}</span>
             <input
               value={bankAccount}
               onChange={(event) => setBankAccount(event.target.value)}
@@ -69,11 +73,11 @@ function SettingsContent() {
           </label>
 
           <label className="block space-y-1 text-sm">
-            <span className="font-medium">ชื่อผู้รับ (ไม่บังคับ)</span>
+            <span className="font-medium">{t("settings.receiverName")}</span>
             <input
               value={receiverName}
               onChange={(event) => setReceiverName(event.target.value)}
-              placeholder="นายสมชาย ใจดี"
+              placeholder={t("settings.receiverPlaceholder")}
               className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
             />
           </label>
@@ -90,14 +94,14 @@ function SettingsContent() {
             }
             className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
           >
-            {status === "saving" ? "กำลังบันทึก..." : "บันทึกบัญชีรับเงิน"}
+            {status === "saving" ? t("common.saving") : t("settings.save")}
           </button>
 
           <a
             href={`/dashboard?property=${encodeURIComponent(propertySlug)}`}
             className="block text-center text-sm text-zinc-600 underline"
           >
-            กลับแดชบอร์ด
+            {t("common.backToDashboard")}
           </a>
         </section>
       </div>
@@ -105,15 +109,18 @@ function SettingsContent() {
   );
 }
 
+function SettingsFallback() {
+  const { t } = useLocale();
+  return (
+    <main className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
+      {t("common.loading")}
+    </main>
+  );
+}
+
 export default function SettingsPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
-          กำลังโหลด...
-        </main>
-      }
-    >
+    <Suspense fallback={<SettingsFallback />}>
       <SettingsContent />
     </Suspense>
   );

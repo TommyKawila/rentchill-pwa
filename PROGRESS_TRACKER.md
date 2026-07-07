@@ -46,3 +46,5 @@
 - [x] Owner Dashboard hub (`/dashboard` — slips, stats, nav to settings/import/LINE)
 - [x] Monthly billing from Dashboard (`/api/billing` — meter entry + bulk invoice)
 - [x] Tenant LINE invite link (`invite_code` + `/api/tenants/link` + board onboarding)
+- [x] Dashboard property selector (`/api/properties` + multi-property dropdown)
+- [x] Beta polish — landing `/`, Thai InvoiceSkin, property QR, admin logout

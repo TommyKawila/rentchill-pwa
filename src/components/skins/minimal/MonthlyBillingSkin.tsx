@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "@/components/LocaleProvider";
 import {
   calculateInvoiceAmounts,
   WATER_RATE,
   ELECTRIC_RATE,
 } from "@/services/invoiceCalculator";
+import { statusMessageKey } from "@/services/i18n/translate";
 import type {
   BillingEntry,
   MonthlyBillingRow,
@@ -22,12 +24,6 @@ interface MonthlyBillingSkinProps {
   } | null;
   onSubmit: (entries: BillingEntry[]) => void;
 }
-
-const statusLabel: Record<string, string> = {
-  pending: "รอชำระ",
-  scanning: "กำลังตรวจสลิป",
-  paid: "ชำระแล้ว",
-};
 
 function isLocked(status: MonthlyBillingRow["invoice_status"]) {
   return status === "paid" || status === "scanning";
@@ -64,6 +60,7 @@ export function MonthlyBillingSkin({
   result,
   onSubmit,
 }: MonthlyBillingSkinProps) {
+  const { t } = useLocale();
   const [meters, setMeters] = useState<
     Record<string, { water: string; electric: string }>
   >({});
@@ -105,15 +102,21 @@ export function MonthlyBillingSkin({
     <section className="mt-8 space-y-4">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-zinc-800">ออกบิลรายเดือน</h2>
+          <h2 className="text-sm font-semibold text-zinc-800">
+            {t("owner.billing.title")}
+          </h2>
           <p className="mt-1 text-xs text-zinc-500">
-            เดือน {billingMonth} · น้ำ {WATER_RATE} บ./หน่วย · ไฟ {ELECTRIC_RATE} บ./หน่วย
+            {t("owner.billing.rates", {
+              month: billingMonth,
+              water: WATER_RATE,
+              electric: ELECTRIC_RATE,
+            })}
           </p>
         </div>
       </div>
 
       {rows.length === 0 && (
-        <p className="text-sm text-zinc-600">ไม่มีห้องที่มีลูกบ้าน (สถานะ occupied)</p>
+        <p className="text-sm text-zinc-600">{t("owner.billing.noRooms")}</p>
       )}
 
       {rows.map((row) => {
@@ -134,11 +137,13 @@ export function MonthlyBillingSkin({
             <header className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-3">
               <div>
                 <p className="text-sm font-semibold">{row.tenant_name}</p>
-                <p className="text-xs text-zinc-500">ห้อง {row.room_number}</p>
+                <p className="text-xs text-zinc-500">
+                  {t("common.room", { number: row.room_number })}
+                </p>
               </div>
               {row.invoice_status && (
                 <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700">
-                  {statusLabel[row.invoice_status] ?? row.invoice_status}
+                  {t(statusMessageKey(row.invoice_status))}
                 </span>
               )}
             </header>
@@ -146,7 +151,7 @@ export function MonthlyBillingSkin({
             <div className="mt-3 rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-zinc-500">
-                  รหัสเชิญ:{" "}
+                  {t("owner.billing.inviteCode")}:{" "}
                   <span className="font-medium text-zinc-800">{row.invite_code || "-"}</span>
                 </span>
                 <span
@@ -156,7 +161,9 @@ export function MonthlyBillingSkin({
                       : "text-amber-700"
                   }
                 >
-                  {row.line_linked ? "ผูก LINE แล้ว" : "ยังไม่ผูก LINE"}
+                  {row.line_linked
+                    ? t("owner.billing.lineLinked")
+                    : t("owner.billing.lineNotLinked")}
                 </span>
               </div>
               {row.invite_url && (
@@ -173,13 +180,13 @@ export function MonthlyBillingSkin({
                           setCopiedTenantId(row.tenant_id);
                           window.setTimeout(() => setCopiedTenantId(null), 2000);
                         })
-                        .catch(() => setCopyError("คัดลอกไม่สำเร็จ — กดค้างที่ลิงก์ด้านบนแล้วคัดลอกเอง"));
+                        .catch(() => setCopyError(t("owner.billing.copyFailed")));
                     }}
                     className="w-full rounded-md border border-green-300 bg-green-50 py-2 text-sm font-medium text-green-800"
                   >
                     {copiedTenantId === row.tenant_id
-                      ? "คัดลอกแล้ว ✓"
-                      : "คัดลอกลิงก์เชิญลูกบ้าน"}
+                      ? t("owner.billing.copied")
+                      : t("owner.billing.copyInvite")}
                   </button>
                 </div>
               )}
@@ -187,7 +194,7 @@ export function MonthlyBillingSkin({
 
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <label className="space-y-1">
-                <span className="text-zinc-500">น้ำ (หน่วย)</span>
+                <span className="text-zinc-500">{t("owner.billing.water")}</span>
                 <input
                   type="number"
                   min={0}
@@ -206,7 +213,7 @@ export function MonthlyBillingSkin({
                 />
               </label>
               <label className="space-y-1">
-                <span className="text-zinc-500">ไฟ (หน่วย)</span>
+                <span className="text-zinc-500">{t("owner.billing.electric")}</span>
                 <input
                   type="number"
                   min={0}
@@ -227,7 +234,7 @@ export function MonthlyBillingSkin({
             </div>
 
             <p className="mt-3 text-sm font-medium">
-              รวม ฿{total_amount.toLocaleString("th-TH")}
+              {t("common.total")} ฿{total_amount.toLocaleString("th-TH")}
             </p>
           </article>
         );
@@ -246,13 +253,17 @@ export function MonthlyBillingSkin({
           onClick={handleSubmit}
           className="w-full rounded-md bg-green-700 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
-          ออกบิลเดือนนี้ ({editableCount} ห้อง)
+          {t("owner.billing.submit", { count: editableCount })}
         </button>
       )}
 
       {result && (
         <p className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
-          สร้าง {result.created} · อัปเดต {result.updated} · ข้าม {result.skipped}
+          {t("owner.billing.result", {
+            created: result.created,
+            updated: result.updated,
+            skipped: result.skipped,
+          })}
         </p>
       )}
     </section>

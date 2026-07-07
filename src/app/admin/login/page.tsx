@@ -2,8 +2,11 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale } from "@/components/LocaleProvider";
+import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 
 function AdminLoginForm() {
+  const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/dashboard";
@@ -26,12 +29,12 @@ function AdminLoginForm() {
 
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error ?? "เข้าสู่ระบบไม่สำเร็จ");
+        throw new Error(payload.error ?? t("admin.login.failed"));
       }
 
       router.replace(nextPath);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "เข้าสู่ระบบไม่สำเร็จ");
+      setError(err instanceof Error ? err.message : t("admin.login.failed"));
     } finally {
       setIsLoading(false);
     }
@@ -43,16 +46,17 @@ function AdminLoginForm() {
         onSubmit={(event) => void onSubmit(event)}
         className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-6"
       >
+        <div className="mb-4 flex justify-end">
+          <LocaleToggleSkin />
+        </div>
         <p className="text-xs font-medium uppercase tracking-wide text-green-600">
           RentChill
         </p>
-        <h1 className="mt-2 text-xl font-bold">เข้าสู่ระบบเจ้าของหอ</h1>
-        <p className="mt-2 text-sm text-zinc-600">
-          สำหรับแดชบอร์ดเจ้าของหอ
-        </p>
+        <h1 className="mt-2 text-xl font-bold">{t("admin.login.title")}</h1>
+        <p className="mt-2 text-sm text-zinc-600">{t("admin.login.desc")}</p>
 
         <label className="mt-6 block space-y-1 text-sm">
-          <span className="text-zinc-600">รหัสผ่าน</span>
+          <span className="text-zinc-600">{t("admin.login.password")}</span>
           <input
             type="password"
             value={password}
@@ -69,22 +73,25 @@ function AdminLoginForm() {
           disabled={isLoading}
           className="mt-4 w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
-          {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+          {isLoading ? t("admin.login.loading") : t("admin.login.submit")}
         </button>
       </form>
     </main>
   );
 }
 
+function AdminLoginFallback() {
+  const { t } = useLocale();
+  return (
+    <main className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
+      {t("common.loading")}
+    </main>
+  );
+}
+
 export default function AdminLoginPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
-          กำลังโหลด...
-        </main>
-      }
-    >
+    <Suspense fallback={<AdminLoginFallback />}>
       <AdminLoginForm />
     </Suspense>
   );

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/components/LocaleProvider";
+import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 
 interface PdpaConsentSkinProps {
   tenantName: string;
@@ -13,17 +15,21 @@ export function PdpaConsentSkin({
   disabled,
   onAccept,
 }: PdpaConsentSkinProps) {
+  const { t } = useLocale();
   const [checked, setChecked] = useState(false);
 
   return (
     <div className="flex flex-col gap-4 p-6">
+      <div className="flex justify-end">
+        <LocaleToggleSkin />
+      </div>
       <header>
         <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-          PDPA
+          {t("tenant.pdpa.tag")}
         </p>
-        <h1 className="mt-2 text-lg font-semibold">ยินยอมการเก็บข้อมูล</h1>
+        <h1 className="mt-2 text-lg font-semibold">{t("tenant.pdpa.title")}</h1>
         <p className="mt-2 text-sm text-zinc-600">
-          สวัสดี {tenantName} — RentChill เก็บเบอร์โทรและประวัติการชำระเพื่อจัดการบิลค่าเช่าเท่านั้น
+          {t("tenant.pdpa.desc", { name: tenantName })}
         </p>
       </header>
 
@@ -34,9 +40,7 @@ export function PdpaConsentSkin({
           onChange={(event) => setChecked(event.target.checked)}
           className="mt-1"
         />
-        <span>
-          ข้าพเจ้ายินยอมให้เก็บ ใช้ และเปิดเผยข้อมูลส่วนบุคคลตาม พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล
-        </span>
+        <span>{t("tenant.pdpa.checkbox")}</span>
       </label>
 
       <button
@@ -45,7 +49,7 @@ export function PdpaConsentSkin({
         onClick={onAccept}
         className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
       >
-        {disabled ? "กำลังบันทึก..." : "ยอมรับและเข้าใช้งาน"}
+        {disabled ? t("tenant.pdpa.saving") : t("tenant.pdpa.accept")}
       </button>
     </div>
   );

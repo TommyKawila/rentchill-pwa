@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocale } from "@/components/LocaleProvider";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
+import { statusMessageKey } from "@/services/i18n/translate";
 
 interface OverrideSkinProps {
   invoice: InvoiceOverrideRow;
@@ -20,18 +22,15 @@ export function OverrideSkin({
   onReject,
   onApprove,
 }: OverrideSkinProps) {
-  const statusLabel: Record<string, string> = {
-    pending: "รอชำระ",
-    scanning: "กำลังตรวจสลิป",
-    paid: "ชำระแล้ว",
-  };
-
+  const { t } = useLocale();
   const [waterUnit, setWaterUnit] = useState(String(invoice.water_unit));
   const [electricUnit, setElectricUnit] = useState(String(invoice.electric_unit));
   const [slipUrl, setSlipUrl] = useState(invoice.slip_image_url ?? "");
-  const [rejectNote, setRejectNote] = useState(
-    "สลิปไม่ตรงกับยอดแจ้งชำระ กรุณาส่งใหม่",
-  );
+  const [rejectNote, setRejectNote] = useState("");
+
+  useEffect(() => {
+    setRejectNote(t("owner.override.rejectDefault"));
+  }, [t]);
 
   const hasSlip = Boolean(slipUrl);
   const isScanning = invoice.status === "scanning";
@@ -42,14 +41,14 @@ export function OverrideSkin({
       <header className="border-b border-zinc-100 pb-3">
         <p className="text-sm font-semibold">{invoice.tenant_name}</p>
         <p className="text-xs text-zinc-500">
-          ห้อง {invoice.room_number} · {invoice.billing_month} ·{" "}
-          {statusLabel[invoice.status] ?? invoice.status}
+          {t("common.room", { number: invoice.room_number })} · {invoice.billing_month} ·{" "}
+          {t(statusMessageKey(invoice.status))}
         </p>
       </header>
 
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
         <label className="space-y-1">
-          <span className="text-zinc-500">น้ำ (หน่วย)</span>
+          <span className="text-zinc-500">{t("owner.override.water")}</span>
           <input
             type="number"
             min={0}
@@ -59,7 +58,7 @@ export function OverrideSkin({
           />
         </label>
         <label className="space-y-1">
-          <span className="text-zinc-500">ไฟ (หน่วย)</span>
+          <span className="text-zinc-500">{t("owner.override.electric")}</span>
           <input
             type="number"
             min={0}
@@ -71,7 +70,7 @@ export function OverrideSkin({
       </div>
 
       <p className="mt-3 text-sm font-medium">
-        รวม ฿{invoice.total_amount.toLocaleString("th-TH")}
+        {t("common.total")} ฿{invoice.total_amount.toLocaleString("th-TH")}
       </p>
 
       {hasRejection && invoice.status === "pending" && (
@@ -82,18 +81,18 @@ export function OverrideSkin({
 
       {isScanning && hasSlip && (
         <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          สลิปรอตรวจสอบ — กดตรวจสอบอัตโนมัติ หรือปฏิเสธหากยอดไม่ตรง
+          {t("owner.override.scanningHint")}
         </p>
       )}
 
       {hasSlip && (
         <div className="mt-3">
-          <p className="text-xs text-zinc-500">สลิปที่ลูกบ้านส่ง</p>
+          <p className="text-xs text-zinc-500">{t("owner.override.slipTenant")}</p>
           <a href={slipUrl} target="_blank" rel="noreferrer" className="mt-1 block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={slipUrl}
-              alt="สลิปชำระเงิน"
+              alt={t("tenant.invoice.slipAlt")}
               className="max-h-48 w-full rounded-md border border-zinc-200 object-contain"
             />
           </a>
@@ -101,7 +100,7 @@ export function OverrideSkin({
       )}
 
       <label className="mt-3 block space-y-1 text-sm">
-        <span className="text-zinc-500">ลิงก์สลิป (ไม่บังคับ)</span>
+        <span className="text-zinc-500">{t("owner.override.slipOptional")}</span>
         <input
           type="url"
           value={slipUrl}
@@ -113,7 +112,7 @@ export function OverrideSkin({
 
       {isScanning && hasSlip && (
         <label className="mt-3 block space-y-1 text-sm">
-          <span className="text-zinc-500">ข้อความแจ้งลูกบ้าน (เมื่อปฏิเสธ)</span>
+          <span className="text-zinc-500">{t("owner.override.rejectNote")}</span>
           <input
             type="text"
             value={rejectNote}
@@ -132,18 +131,18 @@ export function OverrideSkin({
           }
           className="rounded-md border border-zinc-300 py-2 text-sm font-medium disabled:opacity-50"
         >
-          บันทึกมิเตอร์
+          {t("owner.override.saveMeters")}
         </button>
 
         {isScanning && hasSlip && (
-        <>
+          <>
             <button
               type="button"
               disabled={disabled}
               onClick={onAutoVerify}
               className="rounded-md border border-green-600 bg-green-50 py-2 text-sm font-medium text-green-800 disabled:opacity-50"
             >
-              ตรวจสอบอัตโนมัติ
+              {t("owner.override.autoVerify")}
             </button>
             <button
               type="button"
@@ -151,7 +150,7 @@ export function OverrideSkin({
               onClick={() => onReject(rejectNote)}
               className="rounded-md border border-red-300 bg-red-50 py-2 text-sm font-medium text-red-700 disabled:opacity-50"
             >
-              ปฏิเสธสลิป / แจ้งส่งใหม่
+              {t("owner.override.reject")}
             </button>
           </>
         )}
@@ -162,7 +161,7 @@ export function OverrideSkin({
           onClick={() => onApprove(slipUrl || undefined)}
           className="rounded-md bg-zinc-900 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          อนุมัติชำระ (ด้วยมือ)
+          {t("owner.override.approve")}
         </button>
       </div>
     </article>

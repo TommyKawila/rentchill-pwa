@@ -1,37 +1,41 @@
 "use client";
 
 import { Suspense } from "react";
+import { useLocale } from "@/components/LocaleProvider";
+import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { useLineRichMenu } from "@/hooks/useLineRichMenu";
 
 function LineSetupContent() {
+  const { t } = useLocale();
   const { status, loading, deploying, error, success, deploy } = useLineRichMenu();
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
       <div className="mx-auto max-w-xl">
         <header className="border-b border-zinc-200 pb-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-            ตั้งค่า LINE
-          </p>
-          <h1 className="mt-2 text-2xl font-bold">เมนู Rich Menu → LIFF</h1>
-          <p className="mt-2 text-sm text-zinc-600">
-            เมนูด้านล่าง LINE OA → เปิดบิลลูกบ้าน
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+              {t("line.tag")}
+            </p>
+            <LocaleToggleSkin />
+          </div>
+          <h1 className="mt-2 text-2xl font-bold">{t("line.title")}</h1>
+          <p className="mt-2 text-sm text-zinc-600">{t("line.desc")}</p>
         </header>
 
         <section className="mt-8 space-y-4 text-sm">
-          {loading && <p className="text-zinc-500">กำลังโหลด...</p>}
+          {loading && <p className="text-zinc-500">{t("common.loading")}</p>}
 
           {status && (
             <div className="rounded-lg border border-zinc-200 bg-white p-4 space-y-2">
               <p>
-                <span className="text-zinc-500">LIFF URL:</span>{" "}
+                <span className="text-zinc-500">{t("line.liffUrl")}</span>{" "}
                 <a href={status.liffUrl} className="break-all underline">
                   {status.liffUrl}
                 </a>
               </p>
               <p>
-                <span className="text-zinc-500">Endpoint (ตั้งใน LINE Console):</span>{" "}
+                <span className="text-zinc-500">{t("line.endpoint")}</span>{" "}
                 <span className="break-all">{status.endpointUrl}</span>
               </p>
               {status.message && (
@@ -39,17 +43,19 @@ function LineSetupContent() {
               )}
               {status.richmenus && status.richmenus.length > 0 && (
                 <p className="text-zinc-600">
-                  เมนูที่มี: {status.richmenus.map((m) => m.name).join(", ")}
+                  {t("line.menus", {
+                    names: status.richmenus.map((m) => m.name).join(", "),
+                  })}
                 </p>
               )}
             </div>
           )}
 
           <ol className="list-decimal space-y-2 pl-5 text-zinc-600">
-            <li>LINE Console → LIFF → Endpoint URL = ด้านบน</li>
-            <li>Vercel → ใส่ LINE_CHANNEL_ACCESS_TOKEN (Messaging API)</li>
-            <li>กดติดตั้ง Rich Menu ด้านล่าง</li>
-            <li>เปิด LINE OA → กดเมนู &quot;ดูบิล&quot;</li>
+            <li>{t("line.step1")}</li>
+            <li>{t("line.step2")}</li>
+            <li>{t("line.step3")}</li>
+            <li>{t("line.step4")}</li>
           </ol>
 
           <button
@@ -58,7 +64,7 @@ function LineSetupContent() {
             onClick={() => void deploy()}
             className="w-full rounded-md bg-zinc-900 py-3 font-medium text-white disabled:opacity-50"
           >
-            {deploying ? "กำลังติดตั้ง..." : "ติดตั้ง Rich Menu"}
+            {deploying ? t("line.deploying") : t("line.deploy")}
           </button>
 
           {success && (
@@ -73,8 +79,8 @@ function LineSetupContent() {
             </p>
           )}
 
-          <a href="/dashboard?property=demo-apartment" className="block text-center underline">
-            กลับแดชบอร์ด
+          <a href="/dashboard" className="block text-center underline">
+            {t("common.backToDashboard")}
           </a>
         </section>
       </div>
@@ -82,15 +88,18 @@ function LineSetupContent() {
   );
 }
 
+function LineSetupFallback() {
+  const { t } = useLocale();
+  return (
+    <main className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
+      {t("common.loading")}
+    </main>
+  );
+}
+
 export default function LineSetupPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center text-sm text-zinc-500">
-          กำลังโหลด...
-        </main>
-      }
-    >
+    <Suspense fallback={<LineSetupFallback />}>
       <LineSetupContent />
     </Suspense>
   );

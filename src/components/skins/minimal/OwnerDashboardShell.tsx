@@ -1,41 +1,87 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useLocale } from "@/components/LocaleProvider";
+import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
+import type { OwnerPropertyOption } from "@/services/ownerPropertyService";
 
 interface OwnerDashboardShellProps {
   propertySlug: string;
+  properties: OwnerPropertyOption[];
+  propertiesLoading?: boolean;
+  onPropertyChange: (slug: string) => void;
+  onLogout: () => void;
   pendingCount: number;
   paidCount: number;
   children: ReactNode;
 }
 
-const navItems = [
-  { href: "/import", label: "นำเข้า Excel", externalProperty: false },
-  { href: "/settings", label: "บัญชีรับเงิน", externalProperty: true },
-  { href: "/admin/line", label: "เมนู LINE", externalProperty: false },
-] as const;
-
 export function OwnerDashboardShell({
   propertySlug,
+  properties,
+  propertiesLoading,
+  onPropertyChange,
+  onLogout,
   pendingCount,
   paidCount,
   children,
 }: OwnerDashboardShellProps) {
+  const { t } = useLocale();
+  const activeProperty =
+    properties.find((property) => property.slug === propertySlug) ?? null;
+
+  const navItems = [
+    { href: "/import", label: t("owner.nav.import"), externalProperty: false },
+    {
+      href: "/settings",
+      label: t("owner.nav.settings"),
+      externalProperty: true,
+    },
+    { href: "/admin/line", label: t("owner.nav.line"), externalProperty: false },
+  ] as const;
+
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
       <div className="mx-auto max-w-xl">
         <header className="border-b border-zinc-200 pb-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-            RentChill
-          </p>
-          <h1 className="mt-2 text-2xl font-bold">แดชบอร์ดเจ้าของหอ</h1>
-          <p className="mt-2 text-sm text-zinc-600">หอ: {propertySlug}</p>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+              RentChill
+            </p>
+            <LocaleToggleSkin />
+          </div>
+          <h1 className="mt-2 text-2xl font-bold">{t("owner.dashboard.title")}</h1>
+
+          <label className="mt-3 block space-y-1 text-sm">
+            <span className="text-zinc-500">{t("owner.selectProperty")}</span>
+            <select
+              value={propertySlug}
+              disabled={propertiesLoading || properties.length === 0}
+              onChange={(event) => onPropertyChange(event.target.value)}
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 disabled:bg-zinc-100"
+            >
+              {properties.length === 0 && (
+                <option value={propertySlug}>{propertySlug}</option>
+              )}
+              {properties.map((property) => (
+                <option key={property.id} value={property.slug}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {activeProperty && (
+            <p className="mt-1 text-xs text-zinc-500">/{activeProperty.slug}</p>
+          )}
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="text-xs text-amber-800">รอตรวจ</p>
+              <p className="text-xs text-amber-800">{t("owner.pending")}</p>
               <p className="text-2xl font-bold text-amber-900">{pendingCount}</p>
             </div>
             <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-              <p className="text-xs text-green-800">ชำระแล้ว</p>
+              <p className="text-xs text-green-800">{t("owner.paid")}</p>
               <p className="text-2xl font-bold text-green-900">{paidCount}</p>
             </div>
           </div>
@@ -59,8 +105,15 @@ export function OwnerDashboardShell({
               href={`/${propertySlug}`}
               className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700"
             >
-              หน้าหอ
+              {t("owner.nav.propertyPage")}
             </a>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700"
+            >
+              {t("owner.nav.logout")}
+            </button>
           </nav>
         </header>
 
