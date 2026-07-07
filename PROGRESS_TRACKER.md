@@ -1,0 +1,32 @@
+# RentChill - Implementation Tracker
+
+## Phase 0: Project Setup (COMPLETED)
+- [x] Initialize Next.js 14+ (App Router, Tailwind CSS, TypeScript)
+- [x] Clean default boilerplate in `page.tsx` and `globals.css`
+- [x] Create `.cursorrules` for core architectural principles
+- [x] Setup `agent-skills/` directory with 4 expert system prompts
+
+## Phase 1: Core Data & Logic (COMPLETED)
+- [x] **Step 1:** Define Database Schema & Types (`src/services/types.ts` - Property, Room, Tenant, Invoice)
+- [x] **Step 2:** Create Headless Engine Hook (`src/hooks/useInvoiceEngine.ts` - calculation logic isolated from UI)
+
+## Phase 2: Routing & Views (PENDING)
+- [x] **Step 3:** Routing Architecture 
+  - [x] Public Property Profile (`app/[property_slug]/page.tsx`)
+  - [x] Private Tenant Board (`app/(tenant)/board/page.tsx`)
+- [x] **Step 4:** UI Skins & Frames
+  - [x] Device Wrapper (`src/components/frames/MobileFrame.tsx`)
+  - [x] Minimalist Invoice Skin (`src/components/skins/minimal/InvoiceSkin.tsx`)
+
+## Phase 3: Integration & Fallbacks (PENDING)
+- [x] **Step 5:** Connect UI to Headless Hooks
+  - [x] Supabase client + service layer (`src/services/supabase/`, `propertyService`, `tenantService`, `invoiceService`)
+  - [x] Core schema migration (`supabase/migrations/00001_rentchill_core_schema.sql`)
+  - [x] Tenant Board wired to `useTenantBoard` + `useInvoiceEngine`
+  - [x] Public Property Profile wired to Supabase
+  - [x] LIFF auth (`useLineAuth` + tenant lookup by `line_user_id`)
+- [ ] **Step 6:** Excel Importer Tool (Migration Friction fallback)
+- [ ] **Step 7:** Manual Override / Fallback UI for Edge Cases
+
+---
+*Note for AI Agents: Always check this file before suggesting new code to understand the current progress state. Do not jump ahead of the pending steps.*

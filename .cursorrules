@@ -1,0 +1,15 @@
+# RentChill Core Development Rules
+
+## 1. Architecture (Separation of Concerns)
+- Strictly separate Logic from UI. 
+- Business logic, database calls, and state management must reside in `src/hooks/` or `src/services/`.
+- UI components (`src/components/`) must be "dumb" presentation layers (Headless UI pattern).
+
+## 2. Coding Standard
+- Use Next.js App Router, React Server Components where possible, and Tailwind CSS.
+- Follow the "Less is More" philosophy. Eliminate redundant code. Complexity is the enemy.
+- Do not generate graphical assets or images unless explicitly requested.
+- Always prioritize precision, readability, and performance.
+
+## 3. Communication
+- All prompts and technical instructions provided to Cursor Composer/Chat will be in English.
