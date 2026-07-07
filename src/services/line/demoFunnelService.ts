@@ -21,7 +21,8 @@ function normalizeDemoKeyword(text: string) {
 }
 
 export function isDemoTriggerMessage(text: string) {
-  return normalizeDemoKeyword(text) === "demo";
+  const normalized = normalizeDemoKeyword(text);
+  return normalized === "demo" || normalized.startsWith("demo ");
 }
 
 export function buildDemoPromptMessages(): LineReplyMessage[] {

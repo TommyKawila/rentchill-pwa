@@ -41,6 +41,14 @@ function LineSetupContent() {
               {status.message && (
                 <p className="text-amber-700">{status.message}</p>
               )}
+              {status.botReady === false && status.botTokenError && (
+                <p className="text-red-700">
+                  Access token invalid: {status.botTokenError}
+                </p>
+              )}
+              {status.botReady && status.botName && (
+                <p className="text-green-700">Bot: {status.botName}</p>
+              )}
               {status.webhookUrl && (
                 <p>
                   <span className="text-zinc-500">{t("line.webhookUrl")}</span>{" "}

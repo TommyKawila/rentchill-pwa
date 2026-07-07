@@ -20,7 +20,14 @@ export async function lineFetch(
   });
 
   const text = await response.text();
-  const payload = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+  let payload: Record<string, unknown> = {};
+  if (text) {
+    try {
+      payload = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      payload = { message: text };
+    }
+  }
 
   if (!response.ok) {
     const error = payload as LineError;

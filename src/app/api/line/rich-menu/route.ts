@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lineFetch } from "@/services/line/lineApiClient";
 import {
   deployTenantRichMenu,
   listRichMenus,
@@ -13,6 +14,24 @@ function lineStatusExtras() {
   };
 }
 
+async function getBotInfo(accessToken: string) {
+  try {
+    const info = (await lineFetch("https://api.line.me/v2/bot/info", accessToken)) as {
+      displayName?: string;
+      userId?: string;
+    };
+    return {
+      botReady: true as const,
+      botName: info.displayName ?? null,
+    };
+  } catch (error) {
+    return {
+      botReady: false as const,
+      botTokenError: error instanceof Error ? error.message : "Invalid token",
+    };
+  }
+}
+
 export async function GET() {
   const accessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
@@ -25,6 +44,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       configured: false,
+      botReady: false,
       liffUrl: buildBoardLiffUrl(liffId),
       endpointUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/board`,
       message: "Set LINE_CHANNEL_ACCESS_TOKEN to deploy rich menu via API",
@@ -32,11 +52,14 @@ export async function GET() {
     });
   }
 
+  const botInfo = await getBotInfo(accessToken);
+
   try {
     const menus = await listRichMenus(accessToken);
     return NextResponse.json({
       ok: true,
       configured: true,
+      ...botInfo,
       liffUrl: buildBoardLiffUrl(liffId),
       endpointUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/board`,
       richmenus: menus.richmenus ?? [],
@@ -44,7 +67,7 @@ export async function GET() {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Load failed";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message, ...botInfo }, { status: 400 });
   }
 }
 

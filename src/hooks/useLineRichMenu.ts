@@ -6,6 +6,9 @@ type RichMenuStatus = {
   configured: boolean;
   liffUrl: string;
   endpointUrl: string;
+  botReady?: boolean;
+  botName?: string | null;
+  botTokenError?: string;
   webhookUrl?: string;
   webhookConfigured?: boolean;
   richmenus?: Array<{ richMenuId: string; name: string; chatBarText: string }>;
