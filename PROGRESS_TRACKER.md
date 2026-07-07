@@ -25,7 +25,10 @@
   - [x] Tenant Board wired to `useTenantBoard` + `useInvoiceEngine`
   - [x] Public Property Profile wired to Supabase
   - [x] LIFF auth (`useLineAuth` + tenant lookup by `line_user_id`)
-- [ ] **Step 6:** Excel Importer Tool (Migration Friction fallback)
+- [x] **Step 6:** Excel Importer Tool (Migration Friction fallback)
+  - [x] Parse `.xlsx` template (`src/services/excel/parseWorkbook.ts`)
+  - [x] Bulk import API (`/api/import` + `excelImportService`)
+  - [x] Import UI (`/import` + `useExcelImporter`)
 - [ ] **Step 7:** Manual Override / Fallback UI for Edge Cases
 
 ---
