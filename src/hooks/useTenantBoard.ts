@@ -87,6 +87,31 @@ export function useTenantBoard({
     void loadBoard();
   }, [enabled, loadBoard]);
 
+  useEffect(() => {
+    if (!enabled || board?.invoice?.status !== "scanning") return;
+
+    const intervalId = window.setInterval(() => {
+      void loadBoard();
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [enabled, board?.invoice?.status, board?.invoice?.id, loadBoard]);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadBoard();
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [enabled, loadBoard]);
+
+  const patchInvoice = useCallback((invoice: Invoice) => {
+    setBoard((prev) => (prev ? { ...prev, invoice } : prev));
+  }, []);
+
   const createBill = useCallback(async () => {
     if (!board) return;
 
@@ -114,6 +139,7 @@ export function useTenantBoard({
     error,
     engineStatus,
     reload: loadBoard,
+    patchInvoice,
     createBill,
   };
 }

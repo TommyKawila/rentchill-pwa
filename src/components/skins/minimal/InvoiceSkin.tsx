@@ -25,6 +25,7 @@ export function InvoiceSkin({
   onPay,
 }: InvoiceSkinProps) {
   const canPay = invoice.status === "pending" && !isPaying;
+  const hasRejection = Boolean(invoice.slip_rejection_note?.trim());
 
   return (
     <article className="bg-zinc-50 p-6 text-zinc-900">
@@ -69,9 +70,16 @@ export function InvoiceSkin({
         </div>
       </div>
 
-      {invoice.slip_rejection_note && invoice.status === "pending" && (
+      {invoice.status === "scanning" && (
+        <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          สลิปของคุณอยู่ระหว่างตรวจสอบ — รอเจ้าของหออนุมัติ
+        </div>
+      )}
+
+      {hasRejection && invoice.status === "pending" && (
         <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {invoice.slip_rejection_note}
+          <p className="font-medium">สลิปไม่ผ่านการตรวจสอบ</p>
+          <p className="mt-1">{invoice.slip_rejection_note}</p>
         </div>
       )}
 
@@ -100,7 +108,9 @@ export function InvoiceSkin({
           {isPaying
             ? "กำลังอัปโหลด..."
             : invoice.status === "pending"
-              ? "Pay Now"
+              ? hasRejection
+                ? "ส่งสลิปใหม่"
+                : "Pay Now"
               : invoice.status === "scanning"
                 ? "รอตรวจสอบ"
                 : "ชำระแล้ว"}

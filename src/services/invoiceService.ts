@@ -31,6 +31,9 @@ export async function getInvoiceForTenantMonth(
     water_amount: Number(data.water_amount),
     electric_amount: Number(data.electric_amount),
     total_amount: Number(data.total_amount),
+    slip_rejection_note: data.slip_rejection_note
+      ? String(data.slip_rejection_note)
+      : null,
   };
 }
 
@@ -52,5 +55,8 @@ export async function saveInvoice(invoice: Invoice): Promise<Invoice> {
     water_amount: Number(data.water_amount),
     electric_amount: Number(data.electric_amount),
     total_amount: Number(data.total_amount),
+    slip_rejection_note: data.slip_rejection_note
+      ? String(data.slip_rejection_note)
+      : null,
   };
 }

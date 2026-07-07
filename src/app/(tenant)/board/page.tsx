@@ -43,7 +43,7 @@ function TenantBoardContent() {
   const boardEnabled =
     authReady && ((isInClient && !!lineUserId) || useDevFallback);
 
-  const { board, isLoading, error, engineStatus, createBill, reload } =
+  const { board, isLoading, error, engineStatus, createBill, reload, patchInvoice } =
     useTenantBoard({
     enabled: boardEnabled,
     lineUserId: isInClient ? lineUserId : null,
@@ -55,7 +55,6 @@ function TenantBoardContent() {
     error: paymentError,
     feedback: paymentFeedback,
     submitSlip,
-    reset: resetPayment,
   } = usePaymentEngine();
 
   const {
@@ -180,10 +179,9 @@ function TenantBoardContent() {
 
               void submitSlip(board.invoice.id, board.tenant.id, file).then(
                 (invoice) => {
-                  if (invoice) {
-                    resetPayment();
-                    void reload();
-                  }
+                  if (!invoice) return;
+                  patchInvoice(invoice);
+                  void reload();
                 },
               );
             }}
