@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/services/supabase/admin";
+import { INVOICE_SELECT } from "@/services/invoiceFields";
 import { calculateInvoiceAmounts } from "@/services/invoiceCalculator";
 import type { Invoice, InvoiceStatus } from "@/services/types";
 
@@ -22,6 +23,9 @@ function mapInvoice(row: Record<string, unknown>): Invoice {
     total_amount: Number(row.total_amount),
     status: row.status as InvoiceStatus,
     slip_image_url: row.slip_image_url ? String(row.slip_image_url) : null,
+    slip_rejection_note: row.slip_rejection_note
+      ? String(row.slip_rejection_note)
+      : null,
   };
 }
 
@@ -41,9 +45,7 @@ export async function getOverrideInvoices(
 
   const { data, error } = await supabase
     .from("invoices")
-    .select(
-      "id, property_id, tenant_id, room_id, billing_month, water_unit, electric_unit, base_rent_amount, water_amount, electric_amount, total_amount, status, slip_image_url, tenants(name), rooms(room_number)",
-    )
+    .select(`${INVOICE_SELECT}, tenants(name), rooms(room_number)`)
     .eq("property_id", property.id)
     .in("status", ["pending", "scanning"])
     .order("billing_month", { ascending: false });
@@ -94,12 +96,32 @@ export async function updateInvoiceMeters(
       ...amounts,
     })
     .eq("id", invoiceId)
-    .select(
-      "id, property_id, tenant_id, room_id, billing_month, water_unit, electric_unit, base_rent_amount, water_amount, electric_amount, total_amount, status, slip_image_url",
-    )
+    .select(INVOICE_SELECT)
     .single();
 
   if (error || !data) throw new Error(error?.message ?? "อัปเดตมิเตอร์ไม่สำเร็จ");
+  return mapInvoice(data);
+}
+
+export async function rejectInvoiceSlip(
+  invoiceId: string,
+  note?: string | null,
+) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("invoices")
+    .update({
+      status: "pending",
+      slip_image_url: null,
+      slip_rejection_note:
+        note?.trim() || "สลิปไม่ตรงกับยอดแจ้งชำระ กรุณาส่งใหม่",
+    })
+    .eq("id", invoiceId)
+    .select(INVOICE_SELECT)
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "ปฏิเสธสลิปไม่สำเร็จ");
   return mapInvoice(data);
 }
 
@@ -116,9 +138,7 @@ export async function approveInvoiceManually(
       slip_image_url: slipImageUrl ?? null,
     })
     .eq("id", invoiceId)
-    .select(
-      "id, property_id, tenant_id, room_id, billing_month, water_unit, electric_unit, base_rent_amount, water_amount, electric_amount, total_amount, status, slip_image_url",
-    )
+    .select(INVOICE_SELECT)
     .single();
 
   if (error || !data) throw new Error(error?.message ?? "อนุมัติบิลไม่สำเร็จ");

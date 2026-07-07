@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@/services/supabase/client";
+import { INVOICE_SELECT } from "@/services/invoiceFields";
 import type { Invoice } from "@/services/types";
 
 const getBillingMonth = () => {
@@ -14,9 +15,7 @@ export async function getInvoiceForTenantMonth(
   const supabase = createBrowserClient();
   const { data, error } = await supabase
     .from("invoices")
-    .select(
-      "id, property_id, tenant_id, room_id, billing_month, water_unit, electric_unit, base_rent_amount, water_amount, electric_amount, total_amount, status, slip_image_url",
-    )
+    .select(INVOICE_SELECT)
     .eq("tenant_id", tenantId)
     .eq("billing_month", billingMonth)
     .maybeSingle();
@@ -40,9 +39,7 @@ export async function saveInvoice(invoice: Invoice): Promise<Invoice> {
   const { data, error } = await supabase
     .from("invoices")
     .insert(invoice)
-    .select(
-      "id, property_id, tenant_id, room_id, billing_month, water_unit, electric_unit, base_rent_amount, water_amount, electric_amount, total_amount, status, slip_image_url",
-    )
+    .select(INVOICE_SELECT)
     .single();
 
   if (error) throw error;

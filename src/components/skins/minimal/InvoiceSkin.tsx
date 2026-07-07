@@ -69,6 +69,12 @@ export function InvoiceSkin({
         </div>
       </div>
 
+      {invoice.slip_rejection_note && invoice.status === "pending" && (
+        <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {invoice.slip_rejection_note}
+        </div>
+      )}
+
       <footer className="mt-6 flex flex-col items-center gap-4">
         {invoice.slip_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element

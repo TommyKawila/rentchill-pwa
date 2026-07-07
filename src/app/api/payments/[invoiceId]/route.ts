@@ -29,8 +29,8 @@ export async function POST(
       return NextResponse.json({ error: "ไฟล์ใหญ่เกิน 5MB" }, { status: 400 });
     }
 
-    const invoice = await submitPaymentSlip(invoiceId, tenantId, file);
-    return NextResponse.json({ ok: true, invoice });
+    const result = await submitPaymentSlip(invoiceId, tenantId, file);
+    return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Payment failed";
     return NextResponse.json({ error: message }, { status: 400 });

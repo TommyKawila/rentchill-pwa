@@ -9,7 +9,7 @@ function OverrideContent() {
   const searchParams = useSearchParams();
   const propertySlug = searchParams.get("property") ?? "demo-apartment";
 
-  const { invoices, status, error, updateMeters, approveInvoice } =
+  const { invoices, status, error, updateMeters, approveInvoice, verifySlipAuto, rejectSlip } =
     useInvoiceOverride(propertySlug);
 
   return (
@@ -21,6 +21,12 @@ function OverrideContent() {
           </p>
           <h1 className="mt-2 text-2xl font-bold">แก้บิล & อนุมัติสลิป</h1>
           <p className="mt-2 text-sm text-zinc-600">หอ: {propertySlug}</p>
+          <a
+            href={`/settings?property=${encodeURIComponent(propertySlug)}`}
+            className="mt-3 inline-block text-sm text-green-700 underline"
+          >
+            ตั้งค่าบัญชีรับเงิน
+          </a>
         </header>
 
         <section className="mt-8 space-y-4">
@@ -46,6 +52,8 @@ function OverrideContent() {
               onSaveMeters={(water, electric) =>
                 void updateMeters(invoice.id, water, electric)
               }
+              onAutoVerify={() => void verifySlipAuto(invoice.id)}
+              onReject={(note) => void rejectSlip(invoice.id, note)}
               onApprove={(slipUrl) => void approveInvoice(invoice.id, slipUrl)}
             />
           ))}

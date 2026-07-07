@@ -40,6 +40,6 @@
 ## Phase 4: Beta Features (IN PROGRESS)
 - [x] Admin auth for `/import` and `/override` (`ADMIN_SECRET` + middleware)
 - [x] Pay flow — upload slip → status `scanning` (`usePaymentEngine` + Supabase Storage)
-- [ ] Slip verification API (auto approve/reject)
+- [x] Property payment account settings + slip receiver matching
 - [x] PDPA consent gate (`PdpaConsentSkin` + `/api/tenants/[id]/consent`)
 - [ ] LINE Rich Menu → LIFF

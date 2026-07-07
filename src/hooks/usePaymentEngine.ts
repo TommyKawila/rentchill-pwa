@@ -5,14 +5,21 @@ import type { Invoice } from "@/services/types";
 
 type PaymentStatus = "idle" | "uploading" | "success" | "error";
 
+export type PaymentFeedback = {
+  autoVerified: boolean;
+  message: string | null;
+};
+
 export function usePaymentEngine() {
   const [status, setStatus] = useState<PaymentStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<PaymentFeedback | null>(null);
 
   const submitSlip = useCallback(
     async (invoiceId: string, tenantId: string, file: File): Promise<Invoice | null> => {
       setStatus("uploading");
       setError(null);
+      setFeedback(null);
 
       try {
         const formData = new FormData();
@@ -28,12 +35,17 @@ export function usePaymentEngine() {
           ok?: boolean;
           error?: string;
           invoice?: Invoice;
+          verification?: { verified: boolean; message: string } | null;
         };
 
         if (!response.ok || !payload.ok || !payload.invoice) {
           throw new Error(payload.error ?? "อัปโหลดสลิปไม่สำเร็จ");
         }
 
+        setFeedback({
+          autoVerified: payload.verification?.verified ?? false,
+          message: payload.verification?.message ?? null,
+        });
         setStatus("success");
         return payload.invoice;
       } catch (err) {
@@ -48,7 +60,8 @@ export function usePaymentEngine() {
   const reset = useCallback(() => {
     setStatus("idle");
     setError(null);
+    setFeedback(null);
   }, []);
 
-  return { status, error, submitSlip, reset };
+  return { status, error, feedback, submitSlip, reset };
 }

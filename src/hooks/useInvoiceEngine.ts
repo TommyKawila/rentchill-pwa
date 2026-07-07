@@ -48,6 +48,7 @@ export function useInvoiceEngine() {
           total_amount: totalAmount,
           status: "pending",
           slip_image_url: null,
+          slip_rejection_note: null,
         };
 
         await delay(1000);

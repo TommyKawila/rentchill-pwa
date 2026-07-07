@@ -5,6 +5,21 @@ export interface Property {
   created_at: string;
 }
 
+export interface PropertyPaymentAccount {
+  property_id: string;
+  property_name: string;
+  property_slug: string;
+  prompt_pay: string | null;
+  bank_account: string | null;
+  receiver_name: string | null;
+}
+
+export type PropertyPaymentInput = {
+  prompt_pay?: string | null;
+  bank_account?: string | null;
+  receiver_name?: string | null;
+};
+
 export type RoomStatus = "available" | "occupied" | "maintenance";
 
 export interface Room {
@@ -41,4 +56,5 @@ export interface Invoice {
   total_amount: number;
   status: InvoiceStatus;
   slip_image_url: string | null;
+  slip_rejection_note: string | null;
 }

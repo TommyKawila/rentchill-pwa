@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   approveInvoiceManually,
+  rejectInvoiceSlip,
   updateInvoiceMeters,
 } from "@/services/invoiceOverrideService";
 
@@ -13,6 +14,10 @@ type OverrideBody =
   | {
       action: "approve";
       slip_image_url?: string | null;
+    }
+  | {
+      action: "reject";
+      note?: string | null;
     };
 
 export async function PATCH(
@@ -37,6 +42,11 @@ export async function PATCH(
 
     if (body.action === "approve") {
       const invoice = await approveInvoiceManually(invoiceId, body.slip_image_url);
+      return NextResponse.json({ ok: true, invoice });
+    }
+
+    if (body.action === "reject") {
+      const invoice = await rejectInvoiceSlip(invoiceId, body.note);
       return NextResponse.json({ ok: true, invoice });
     }
 

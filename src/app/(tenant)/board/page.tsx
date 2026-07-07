@@ -53,6 +53,7 @@ function TenantBoardContent() {
   const {
     status: paymentStatus,
     error: paymentError,
+    feedback: paymentFeedback,
     submitSlip,
     reset: resetPayment,
   } = usePaymentEngine();
@@ -197,6 +198,16 @@ function TenantBoardContent() {
           {paymentError && (
             <p className="px-6 pb-4 text-center text-sm text-red-600">
               {paymentError}
+            </p>
+          )}
+          {paymentFeedback?.autoVerified && (
+            <p className="px-6 pb-4 text-center text-sm text-green-700">
+              ตรวจสอบสลิปอัตโนมัติผ่านแล้ว
+            </p>
+          )}
+          {paymentFeedback && !paymentFeedback.autoVerified && paymentFeedback.message && (
+            <p className="px-6 pb-4 text-center text-sm text-red-600">
+              {paymentFeedback.message}
             </p>
           )}
         </>

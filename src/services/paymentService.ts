@@ -1,4 +1,6 @@
 import { createAdminClient } from "@/services/supabase/admin";
+import { INVOICE_SELECT } from "@/services/invoiceFields";
+import { verifyInvoiceSlip } from "@/services/slipVerificationApplyService";
 import type { Invoice } from "@/services/types";
 
 const SLIP_BUCKET = "slips";
@@ -18,26 +20,38 @@ function mapInvoice(row: Record<string, unknown>): Invoice {
     total_amount: Number(row.total_amount),
     status: row.status as Invoice["status"],
     slip_image_url: row.slip_image_url ? String(row.slip_image_url) : null,
+    slip_rejection_note: row.slip_rejection_note
+      ? String(row.slip_rejection_note)
+      : null,
   };
 }
+
+export type PaymentSubmitResult = {
+  invoice: Invoice;
+  verification: {
+    verified: boolean;
+    message: string;
+    transRef: string | null;
+  } | null;
+};
 
 export async function submitPaymentSlip(
   invoiceId: string,
   tenantId: string,
   file: File,
-) {
+): Promise<PaymentSubmitResult> {
   const supabase = createAdminClient();
 
-  const { data: invoice, error: readError } = await supabase
+  const { data: existing, error: readError } = await supabase
     .from("invoices")
     .select("id, tenant_id, status")
     .eq("id", invoiceId)
     .single();
 
-  if (readError || !invoice) throw new Error("ไม่พบบิล");
-  if (invoice.tenant_id !== tenantId) throw new Error("ไม่มีสิทธิ์ชำระบิลนี้");
-  if (invoice.status === "paid") throw new Error("บิลนี้ชำระแล้ว");
-  if (invoice.status === "scanning") throw new Error("กำลังตรวจสอบสลิปอยู่แล้ว");
+  if (readError || !existing) throw new Error("ไม่พบบิล");
+  if (existing.tenant_id !== tenantId) throw new Error("ไม่มีสิทธิ์ชำระบิลนี้");
+  if (existing.status === "paid") throw new Error("บิลนี้ชำระแล้ว");
+  if (existing.status === "scanning") throw new Error("กำลังตรวจสอบสลิปอยู่แล้ว");
 
   const extension = file.name.split(".").pop() ?? "jpg";
   const path = `${invoiceId}/${Date.now()}.${extension}`;
@@ -55,13 +69,45 @@ export async function submitPaymentSlip(
     .update({
       status: "scanning",
       slip_image_url: publicUrl.publicUrl,
+      slip_rejection_note: null,
     })
     .eq("id", invoiceId)
-    .select(
-      "id, property_id, tenant_id, room_id, billing_month, water_unit, electric_unit, base_rent_amount, water_amount, electric_amount, total_amount, status, slip_image_url",
-    )
+    .select(INVOICE_SELECT)
     .single();
 
   if (error || !data) throw new Error(error?.message ?? "อัปเดตบิลไม่สำเร็จ");
-  return mapInvoice(data);
+  const invoice = mapInvoice(data);
+
+  if (process.env.EASYSLIP_API_KEY) {
+    const outcome = await verifyInvoiceSlip(invoiceId);
+
+    if (!outcome.verification.verified) {
+      const { data: rejected, error: rejectError } = await supabase
+        .from("invoices")
+        .update({
+          status: "pending",
+          slip_image_url: null,
+          slip_rejection_note: outcome.verification.message,
+        })
+        .eq("id", invoiceId)
+        .select(INVOICE_SELECT)
+        .single();
+
+      if (rejectError || !rejected) {
+        throw new Error(rejectError?.message ?? "อัปเดตบิลไม่สำเร็จ");
+      }
+
+      return {
+        invoice: mapInvoice(rejected),
+        verification: outcome.verification,
+      };
+    }
+
+    return {
+      invoice: outcome.invoice,
+      verification: outcome.verification,
+    };
+  }
+
+  return { invoice, verification: null };
 }

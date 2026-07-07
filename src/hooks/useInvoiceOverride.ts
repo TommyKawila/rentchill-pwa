@@ -101,6 +101,65 @@ export function useInvoiceOverride(propertySlug: string) {
     [load],
   );
 
+  const verifySlipAuto = useCallback(
+    async (invoiceId: string) => {
+      setStatus("saving");
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/payments/${invoiceId}/verify`, {
+          method: "POST",
+        });
+
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          error?: string;
+          verification?: { verified: boolean; message: string };
+        };
+
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error ?? "ตรวจสอบสลิปไม่สำเร็จ");
+        }
+
+        if (!payload.verification?.verified) {
+          throw new Error(payload.verification?.message ?? "สลิปไม่ผ่านการตรวจสอบ");
+        }
+
+        await load();
+      } catch (err) {
+        setStatus("error");
+        setError(err instanceof Error ? err.message : "ตรวจสอบสลิปไม่สำเร็จ");
+      }
+    },
+    [load],
+  );
+
+  const rejectSlip = useCallback(
+    async (invoiceId: string, note?: string) => {
+      setStatus("saving");
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/override/${invoiceId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "reject", note }),
+        });
+
+        const payload = (await response.json()) as { ok?: boolean; error?: string };
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error ?? "ปฏิเสธสลิปไม่สำเร็จ");
+        }
+
+        await load();
+      } catch (err) {
+        setStatus("error");
+        setError(err instanceof Error ? err.message : "ปฏิเสธสลิปไม่สำเร็จ");
+      }
+    },
+    [load],
+  );
+
   return {
     invoices,
     status,
@@ -108,5 +167,7 @@ export function useInvoiceOverride(propertySlug: string) {
     reload: load,
     updateMeters,
     approveInvoice,
+    verifySlipAuto,
+    rejectSlip,
   };
 }
