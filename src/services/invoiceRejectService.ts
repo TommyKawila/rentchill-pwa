@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import { INVOICE_SELECT } from "@/services/invoiceFields";
+import { safeNotifySlipRejected } from "@/services/notificationService";
 import type { Invoice } from "@/services/types";
 
 function mapInvoice(row: Record<string, unknown>): Invoice {
@@ -49,5 +50,29 @@ export async function markInvoiceSlipRejected(
     throw new Error(error?.message ?? "อัปเดตบิลไม่สำเร็จ");
   }
 
-  return mapInvoice(data);
+  const invoice = mapInvoice(data);
+  void notifySlipRejected(invoice, note);
+
+  return invoice;
+}
+
+async function notifySlipRejected(invoice: Invoice, note: string) {
+  const supabase = createAdminClient();
+  const { data: tenant, error } = await supabase
+    .from("tenants")
+    .select("line_user_id, rooms(room_number)")
+    .eq("id", invoice.tenant_id)
+    .maybeSingle();
+
+  if (error || !tenant?.line_user_id) return;
+
+  const roomRaw = tenant.rooms as { room_number: string } | { room_number: string }[] | null;
+  const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+
+  await safeNotifySlipRejected({
+    lineUserId: String(tenant.line_user_id),
+    roomNumber: room?.room_number ?? "-",
+    billingMonth: invoice.billing_month,
+    note,
+  });
 }

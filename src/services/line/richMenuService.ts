@@ -1,35 +1,10 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { lineFetch } from "@/services/line/lineApiClient";
 import { buildBoardLiffUrl } from "@/services/line/liffUrls";
 
 const LINE_API = "https://api.line.me/v2/bot";
 const LINE_DATA_API = "https://api-data.line.me/v2/bot";
-
-type LineError = { message?: string; details?: unknown };
-
-async function lineFetch(
-  url: string,
-  accessToken: string,
-  init?: RequestInit,
-) {
-  const response = await fetch(url, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  const text = await response.text();
-  const payload = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-
-  if (!response.ok) {
-    const error = payload as LineError;
-    throw new Error(error.message ?? `LINE API error (${response.status})`);
-  }
-
-  return payload;
-}
 
 export async function createTenantRichMenu(accessToken: string, liffId: string) {
   return lineFetch(`${LINE_API}/richmenu`, accessToken, {

@@ -3,6 +3,7 @@ import {
   calculateInvoiceAmounts,
   getCurrentBillingMonth,
 } from "@/services/invoiceCalculator";
+import { safeNotifyBillIssued } from "@/services/notificationService";
 import { buildTenantInviteUrl } from "@/services/tenantLinkService";
 import type { InvoiceStatus } from "@/services/types";
 
@@ -129,7 +130,7 @@ export async function generateMonthlyInvoices(
 
     const { data: tenant, error: tenantError } = await supabase
       .from("tenants")
-      .select("id, room_id, rooms!inner(property_id, base_rent_price)")
+      .select("id, line_user_id, room_id, rooms!inner(property_id, base_rent_price, room_number)")
       .eq("id", entry.tenant_id)
       .eq("rooms.property_id", propertyId)
       .maybeSingle();
@@ -137,7 +138,9 @@ export async function generateMonthlyInvoices(
     if (tenantError) throw tenantError;
     if (!tenant) continue;
 
-    const roomRaw = tenant.rooms as { base_rent_price: number } | { base_rent_price: number }[];
+    const roomRaw = tenant.rooms as
+      | { base_rent_price: number; room_number: string }
+      | { base_rent_price: number; room_number: string }[];
     const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
     const baseRent = Number(room.base_rent_price);
     const amounts = calculateInvoiceAmounts(
@@ -172,6 +175,12 @@ export async function generateMonthlyInvoices(
 
       if (error) throw error;
       updated++;
+      void notifyBillIssued({
+        lineUserId: tenant.line_user_id ? String(tenant.line_user_id) : null,
+        roomNumber: room.room_number,
+        billingMonth,
+        totalAmount: amounts.total_amount,
+      });
       continue;
     }
 
@@ -189,7 +198,28 @@ export async function generateMonthlyInvoices(
 
     if (error) throw error;
     created++;
+    void notifyBillIssued({
+      lineUserId: tenant.line_user_id ? String(tenant.line_user_id) : null,
+      roomNumber: room.room_number,
+      billingMonth,
+      totalAmount: amounts.total_amount,
+    });
   }
 
   return { billingMonth, created, updated, skipped };
+}
+
+async function notifyBillIssued(input: {
+  lineUserId: string | null;
+  roomNumber: string;
+  billingMonth: string;
+  totalAmount: number;
+}) {
+  if (!input.lineUserId) return;
+  await safeNotifyBillIssued({
+    lineUserId: input.lineUserId,
+    roomNumber: input.roomNumber,
+    billingMonth: input.billingMonth,
+    totalAmount: input.totalAmount,
+  });
 }
