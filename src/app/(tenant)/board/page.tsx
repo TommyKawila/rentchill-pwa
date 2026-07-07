@@ -4,8 +4,10 @@ import { Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { MobileFrame } from "@/components/frames/MobileFrame";
 import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
+import { PdpaConsentSkin } from "@/components/skins/minimal/PdpaConsentSkin";
 import { useLineAuth } from "@/hooks/useLineAuth";
 import { usePaymentEngine } from "@/hooks/usePaymentEngine";
+import { usePdpaConsent } from "@/hooks/usePdpaConsent";
 import { useTenantBoard } from "@/hooks/useTenantBoard";
 
 function AuthLoading({ message }: { message: string }) {
@@ -54,6 +56,12 @@ function TenantBoardContent() {
     submitSlip,
     reset: resetPayment,
   } = usePaymentEngine();
+
+  const {
+    status: consentStatus,
+    error: consentError,
+    acceptConsent,
+  } = usePdpaConsent();
 
   if (authLoading) return <AuthLoading message={statusMessage} />;
 
@@ -125,6 +133,25 @@ function TenantBoardContent() {
   }
 
   const welcomeName = profile?.displayName ?? board.tenant.name;
+
+  if (!board.tenant.pdpa_consented_at) {
+    return (
+      <MobileFrame>
+        <PdpaConsentSkin
+          tenantName={welcomeName}
+          disabled={consentStatus === "submitting"}
+          onAccept={() => {
+            void acceptConsent(board.tenant.id).then((ok) => {
+              if (ok) void reload();
+            });
+          }}
+        />
+        {consentError && (
+          <p className="px-6 pb-4 text-center text-sm text-red-600">{consentError}</p>
+        )}
+      </MobileFrame>
+    );
+  }
 
   return (
     <MobileFrame>

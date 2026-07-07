@@ -41,5 +41,5 @@
 - [x] Admin auth for `/import` and `/override` (`ADMIN_SECRET` + middleware)
 - [x] Pay flow — upload slip → status `scanning` (`usePaymentEngine` + Supabase Storage)
 - [ ] Slip verification API (auto approve/reject)
-- [ ] PDPA consent gate
+- [x] PDPA consent gate (`PdpaConsentSkin` + `/api/tenants/[id]/consent`)
 - [ ] LINE Rich Menu → LIFF

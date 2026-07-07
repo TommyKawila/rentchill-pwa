@@ -22,6 +22,7 @@ export interface Tenant {
   phone_number: string;
   name: string;
   move_in_date: string;
+  pdpa_consented_at: string | null;
 }
 
 export type InvoiceStatus = "pending" | "scanning" | "paid";
