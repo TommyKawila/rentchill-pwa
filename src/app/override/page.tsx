@@ -28,6 +28,12 @@ function OverrideContent() {
           >
             ตั้งค่าบัญชีรับเงิน
           </a>
+          <a
+            href="/admin/line"
+            className="mt-2 inline-block text-sm text-green-700 underline"
+          >
+            ตั้งค่า LINE Rich Menu
+          </a>
         </header>
 
         <section className="mt-8 space-y-4">

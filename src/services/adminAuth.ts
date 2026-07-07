@@ -42,8 +42,10 @@ export function isAdminProtectedPath(pathname: string) {
     pathname.startsWith("/import") ||
     pathname.startsWith("/override") ||
     pathname.startsWith("/settings") ||
+    pathname.startsWith("/admin/line") ||
     pathname.startsWith("/api/import") ||
     pathname.startsWith("/api/override") ||
-    pathname.startsWith("/api/properties/")
+    pathname.startsWith("/api/properties/") ||
+    pathname.startsWith("/api/line/")
   );
 }

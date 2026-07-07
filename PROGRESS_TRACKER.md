@@ -42,4 +42,4 @@
 - [x] Pay flow — upload slip → status `scanning` (`usePaymentEngine` + Supabase Storage)
 - [x] Property payment account settings + slip receiver matching
 - [x] PDPA consent gate (`PdpaConsentSkin` + `/api/tenants/[id]/consent`)
-- [ ] LINE Rich Menu → LIFF
+- [x] LINE Rich Menu → LIFF (`/admin/line` + `/api/line/rich-menu`)
