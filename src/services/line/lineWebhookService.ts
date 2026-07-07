@@ -1,4 +1,7 @@
-import { buildDemoWelcomeMessages } from "@/services/line/demoFunnelService";
+import {
+  buildDemoWelcomeMessages,
+  buildDemoWelcomeTextMessages,
+} from "@/services/line/demoFunnelService";
 import { replyLineMessages } from "@/services/line/replyMessageService";
 
 type LineWebhookEvent = {
@@ -14,8 +17,18 @@ type LineWebhookPayload = {
 function shouldSendDemoWelcome(event: LineWebhookEvent) {
   if (event.type === "follow") return true;
   if (event.type !== "message" || !event.replyToken) return false;
-  if (event.message?.type === "text") return true;
-  return event.message?.type === "sticker";
+  return Boolean(event.message?.type);
+}
+
+async function sendDemoWelcome(replyToken: string) {
+  try {
+    await replyLineMessages(replyToken, buildDemoWelcomeMessages());
+    return true;
+  } catch (flexError) {
+    console.error("[lineWebhook] flex reply failed", flexError);
+    await replyLineMessages(replyToken, buildDemoWelcomeTextMessages());
+    return true;
+  }
 }
 
 export async function handleLineWebhook(payload: LineWebhookPayload) {
@@ -29,7 +42,7 @@ export async function handleLineWebhook(payload: LineWebhookPayload) {
     }
 
     try {
-      await replyLineMessages(event.replyToken, buildDemoWelcomeMessages());
+      await sendDemoWelcome(event.replyToken);
       results.push({ type: event.type, replied: true });
     } catch (error) {
       console.error("[lineWebhook]", event.type, error);

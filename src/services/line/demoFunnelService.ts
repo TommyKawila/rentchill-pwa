@@ -16,6 +16,27 @@ export function getDemoFunnelUrls() {
   return { propertyUrl, tenantBoardUrl, propertySlug, inviteCode };
 }
 
+export function buildDemoWelcomeTextMessages(): LineReplyMessage[] {
+  const { propertyUrl, tenantBoardUrl } = getDemoFunnelUrls();
+
+  return [
+    {
+      type: "text",
+      text: [
+        "🏠 RentChill Demo",
+        "ลองระบบบิลค่าเช่าได้ทันที — ไม่ต้องสมัคร",
+        "Try RentChill now — no signup required",
+        "",
+        "ดูหน้าหอ / Property:",
+        propertyUrl,
+        "",
+        "ลองบิลลูกบ้าน / Tenant bill:",
+        tenantBoardUrl,
+      ].join("\n"),
+    },
+  ];
+}
+
 export function buildDemoWelcomeMessages(): LineReplyMessage[] {
   const { propertyUrl, tenantBoardUrl } = getDemoFunnelUrls();
 
@@ -79,11 +100,11 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
             },
             {
               type: "button",
-              style: "secondary",
+              style: "link",
               height: "sm",
               action: {
                 type: "uri",
-                label: "ลองบิลลูกบ้าน / Tenant bill",
+                label: "ลองบิล / Tenant bill",
                 uri: tenantBoardUrl,
               },
             },
