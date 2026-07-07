@@ -1,4 +1,4 @@
--- Demo test data: bill 2000 + receiver CHINNAREE RATCHARIT
+-- Update demo test: bill 2000 + receiver CHINNAREE RATCHARIT
 
 update properties
 set
