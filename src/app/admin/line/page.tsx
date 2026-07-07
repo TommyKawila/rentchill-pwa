@@ -41,6 +41,17 @@ function LineSetupContent() {
               {status.message && (
                 <p className="text-amber-700">{status.message}</p>
               )}
+              {status.webhookUrl && (
+                <p>
+                  <span className="text-zinc-500">{t("line.webhookUrl")}</span>{" "}
+                  <span className="break-all">{status.webhookUrl}</span>
+                </p>
+              )}
+              {status.webhookConfigured ? (
+                <p className="text-green-700">{t("line.webhookReady")}</p>
+              ) : (
+                <p className="text-amber-700">{t("line.webhookMissingSecret")}</p>
+              )}
               {status.richmenus && status.richmenus.length > 0 && (
                 <p className="text-zinc-600">
                   {t("line.menus", {
@@ -56,6 +67,8 @@ function LineSetupContent() {
             <li>{t("line.step2")}</li>
             <li>{t("line.step3")}</li>
             <li>{t("line.step4")}</li>
+            <li>{t("line.step5")}</li>
+            <li>{t("line.step6")}</li>
           </ol>
 
           <button

@@ -3,7 +3,15 @@ import {
   deployTenantRichMenu,
   listRichMenus,
 } from "@/services/line/richMenuService";
+import { buildWebhookUrl } from "@/services/line/demoFunnelService";
 import { buildBoardLiffUrl } from "@/services/line/liffUrls";
+
+function lineStatusExtras() {
+  return {
+    webhookUrl: buildWebhookUrl(),
+    webhookConfigured: Boolean(process.env.LINE_CHANNEL_SECRET),
+  };
+}
 
 export async function GET() {
   const accessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
@@ -20,6 +28,7 @@ export async function GET() {
       liffUrl: buildBoardLiffUrl(liffId),
       endpointUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/board`,
       message: "Set LINE_CHANNEL_ACCESS_TOKEN to deploy rich menu via API",
+      ...lineStatusExtras(),
     });
   }
 
@@ -31,6 +40,7 @@ export async function GET() {
       liffUrl: buildBoardLiffUrl(liffId),
       endpointUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/board`,
       richmenus: menus.richmenus ?? [],
+      ...lineStatusExtras(),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Load failed";

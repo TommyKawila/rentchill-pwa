@@ -50,3 +50,4 @@
 - [x] Beta polish — landing `/`, Thai InvoiceSkin, property QR, admin logout
 - [x] Bilingual TH/EN UI toggle (owner + tenant flows)
 - [x] LINE Push notifications (bill issued + slip rejected)
+- [x] LINE OA Demo funnel webhook (welcome + demo links on follow/message)
