@@ -18,7 +18,7 @@
   - [x] Device Wrapper (`src/components/frames/MobileFrame.tsx`)
   - [x] Minimalist Invoice Skin (`src/components/skins/minimal/InvoiceSkin.tsx`)
 
-## Phase 3: Integration & Fallbacks (PENDING)
+## Phase 3: Integration & Fallbacks (COMPLETED)
 - [x] **Step 5:** Connect UI to Headless Hooks
   - [x] Supabase client + service layer (`src/services/supabase/`, `propertyService`, `tenantService`, `invoiceService`)
   - [x] Core schema migration (`supabase/migrations/00001_rentchill_core_schema.sql`)
@@ -29,7 +29,10 @@
   - [x] Parse `.xlsx` template (`src/services/excel/parseWorkbook.ts`)
   - [x] Bulk import API (`/api/import` + `excelImportService`)
   - [x] Import UI (`/import` + `useExcelImporter`)
-- [ ] **Step 7:** Manual Override / Fallback UI for Edge Cases
+- [x] **Step 7:** Manual Override / Fallback UI for Edge Cases
+  - [x] Override service + API (`/api/override`)
+  - [x] `useInvoiceOverride` + `OverrideSkin`
+  - [x] Owner UI at `/override?property=demo-apartment`
 
 ---
 *Note for AI Agents: Always check this file before suggesting new code to understand the current progress state. Do not jump ahead of the pending steps.*
