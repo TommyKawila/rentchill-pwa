@@ -11,6 +11,11 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("ngrok-skip-browser-warning", "true");
 
   const { pathname } = request.nextUrl;
+
+  if (pathname === "/api/line/webhook") {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   const adminSecret = process.env.ADMIN_SECRET;
 
   if (isAdminProtectedPath(pathname)) {
@@ -48,5 +53,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/((?!_next/static|_next/image|favicon.ico).*)",
+  matcher: "/((?!_next/static|_next/image|favicon.ico|api/line/webhook).*)",
 };
