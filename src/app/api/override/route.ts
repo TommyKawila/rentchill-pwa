@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { getOverrideInvoices } from "@/services/invoiceOverrideService";
+import {
+  getOverrideInvoices,
+  getPaidInvoicesWithSlips,
+} from "@/services/invoiceOverrideService";
 
 export async function GET(request: Request) {
   try {
@@ -10,8 +13,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "ต้องระบุ property_slug" }, { status: 400 });
     }
 
-    const invoices = await getOverrideInvoices(propertySlug);
-    return NextResponse.json({ ok: true, invoices });
+    const [invoices, paidInvoices] = await Promise.all([
+      getOverrideInvoices(propertySlug),
+      getPaidInvoicesWithSlips(propertySlug),
+    ]);
+
+    return NextResponse.json({ ok: true, invoices, paidInvoices });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Load failed";
     return NextResponse.json({ error: message }, { status: 400 });

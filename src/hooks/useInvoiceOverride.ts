@@ -7,6 +7,7 @@ type OverrideStatus = "idle" | "loading" | "saving" | "error";
 
 export function useInvoiceOverride(propertySlug: string) {
   const [invoices, setInvoices] = useState<InvoiceOverrideRow[]>([]);
+  const [paidInvoices, setPaidInvoices] = useState<InvoiceOverrideRow[]>([]);
   const [status, setStatus] = useState<OverrideStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +25,7 @@ export function useInvoiceOverride(propertySlug: string) {
         ok?: boolean;
         error?: string;
         invoices?: InvoiceOverrideRow[];
+        paidInvoices?: InvoiceOverrideRow[];
       };
 
       if (!response.ok || !payload.ok) {
@@ -31,6 +33,7 @@ export function useInvoiceOverride(propertySlug: string) {
       }
 
       setInvoices(payload.invoices ?? []);
+      setPaidInvoices(payload.paidInvoices ?? []);
       setStatus("idle");
     } catch (err) {
       setStatus("error");
@@ -162,6 +165,7 @@ export function useInvoiceOverride(propertySlug: string) {
 
   return {
     invoices,
+    paidInvoices,
     status,
     error,
     reload: load,

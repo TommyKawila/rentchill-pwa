@@ -3,13 +3,14 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { OverrideSkin } from "@/components/skins/minimal/OverrideSkin";
+import { PaidInvoiceSkin } from "@/components/skins/minimal/PaidInvoiceSkin";
 import { useInvoiceOverride } from "@/hooks/useInvoiceOverride";
 
 function OverrideContent() {
   const searchParams = useSearchParams();
   const propertySlug = searchParams.get("property") ?? "demo-apartment";
 
-  const { invoices, status, error, updateMeters, approveInvoice, verifySlipAuto, rejectSlip } =
+  const { invoices, paidInvoices, status, error, updateMeters, approveInvoice, verifySlipAuto, rejectSlip } =
     useInvoiceOverride(propertySlug);
 
   return (
@@ -41,7 +42,7 @@ function OverrideContent() {
           )}
 
           {!error && status !== "loading" && invoices.length === 0 && (
-            <p className="text-sm text-zinc-600">ไม่มีบิล pending/scanning</p>
+            <p className="text-sm text-zinc-600">ไม่มีบิลรอตรวจสอบ (pending/scanning)</p>
           )}
 
           {invoices.map((invoice) => (
@@ -58,6 +59,15 @@ function OverrideContent() {
             />
           ))}
         </section>
+
+        {paidInvoices.length > 0 && (
+          <section className="mt-10 space-y-4">
+            <h2 className="text-sm font-semibold text-zinc-800">ชำระแล้ว (มีสลิป)</h2>
+            {paidInvoices.map((invoice) => (
+              <PaidInvoiceSkin key={invoice.id} invoice={invoice} />
+            ))}
+          </section>
+        )}
       </div>
     </main>
   );

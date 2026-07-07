@@ -53,7 +53,11 @@ export async function getOverrideInvoices(
 
   if (error) throw error;
 
-  return (data ?? []).map((row) => {
+  return mapOverrideRows(data ?? []);
+}
+
+function mapOverrideRows(data: Record<string, unknown>[]) {
+  return data.map((row) => {
     const invoice = mapInvoice(row);
     const tenantRaw = row.tenants as { name: string } | { name: string }[] | null;
     const roomRaw = row.rooms as { room_number: string } | { room_number: string }[] | null;
@@ -66,6 +70,39 @@ export async function getOverrideInvoices(
       room_number: room?.room_number ?? "-",
     };
   });
+}
+
+async function getPropertyId(propertySlug: string) {
+  const supabase = createAdminClient();
+  const { data: property, error } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("slug", propertySlug)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!property) throw new Error("ไม่พบหอพัก");
+  return property.id;
+}
+
+export async function getPaidInvoicesWithSlips(
+  propertySlug: string,
+  limit = 12,
+): Promise<InvoiceOverrideRow[]> {
+  const propertyId = await getPropertyId(propertySlug);
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("invoices")
+    .select(`${INVOICE_SELECT}, tenants(name), rooms(room_number)`)
+    .eq("property_id", propertyId)
+    .eq("status", "paid")
+    .not("slip_image_url", "is", null)
+    .order("billing_month", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return mapOverrideRows(data ?? []);
 }
 
 export async function updateInvoiceMeters(
