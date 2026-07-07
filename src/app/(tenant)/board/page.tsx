@@ -198,16 +198,17 @@ function TenantBoardContent() {
               {paymentError}
             </p>
           )}
-          {paymentFeedback?.autoVerified && (
+          {paymentFeedback?.autoVerified && board.invoice.status === "paid" && (
             <p className="px-6 pb-4 text-center text-sm text-green-700">
               ตรวจสอบสลิปอัตโนมัติผ่านแล้ว
             </p>
           )}
-          {paymentFeedback && !paymentFeedback.autoVerified && paymentFeedback.message && (
+          {(paymentFeedback?.message && !paymentFeedback.autoVerified) ||
+          (board.invoice.slip_rejection_note && board.invoice.status === "pending") ? (
             <p className="px-6 pb-4 text-center text-sm text-red-600">
-              {paymentFeedback.message}
+              {board.invoice.slip_rejection_note ?? paymentFeedback?.message}
             </p>
-          )}
+          ) : null}
         </>
       ) : (
         <div className="flex flex-col items-center gap-4 p-6 text-center">

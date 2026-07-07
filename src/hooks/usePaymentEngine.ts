@@ -43,7 +43,9 @@ export function usePaymentEngine() {
         }
 
         setFeedback({
-          autoVerified: payload.verification?.verified ?? false,
+          autoVerified: Boolean(
+            payload.verification?.verified && payload.invoice.status === "paid",
+          ),
           message: payload.verification?.message ?? null,
         });
         setStatus("success");
