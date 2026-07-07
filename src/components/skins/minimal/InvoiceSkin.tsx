@@ -83,8 +83,14 @@ export function InvoiceSkin({
         </div>
       )}
 
+      {invoice.status === "paid" && (
+        <div className="mt-4 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600">
+          บิลนี้ชำระแล้ว — หากต้องการทดสอบใหม่ ให้เจ้าของหอ reset บิล
+        </div>
+      )}
+
       <footer className="mt-6 flex flex-col items-center gap-4">
-        {invoice.slip_image_url ? (
+        {invoice.slip_image_url && !(hasRejection && invoice.status === "pending") ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={invoice.slip_image_url}

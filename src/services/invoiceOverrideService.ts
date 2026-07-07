@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import { INVOICE_SELECT } from "@/services/invoiceFields";
+import { markInvoiceSlipRejected } from "@/services/invoiceRejectService";
 import { calculateInvoiceAmounts } from "@/services/invoiceCalculator";
 import type { Invoice, InvoiceStatus } from "@/services/types";
 
@@ -107,22 +108,10 @@ export async function rejectInvoiceSlip(
   invoiceId: string,
   note?: string | null,
 ) {
-  const supabase = createAdminClient();
-
-  const { data, error } = await supabase
-    .from("invoices")
-    .update({
-      status: "pending",
-      slip_image_url: null,
-      slip_rejection_note:
-        note?.trim() || "สลิปไม่ตรงกับยอดแจ้งชำระ กรุณาส่งใหม่",
-    })
-    .eq("id", invoiceId)
-    .select(INVOICE_SELECT)
-    .single();
-
-  if (error || !data) throw new Error(error?.message ?? "ปฏิเสธสลิปไม่สำเร็จ");
-  return mapInvoice(data);
+  return markInvoiceSlipRejected(
+    invoiceId,
+    note?.trim() || "สลิปไม่ตรงกับยอดแจ้งชำระ กรุณาส่งใหม่",
+  );
 }
 
 export async function approveInvoiceManually(

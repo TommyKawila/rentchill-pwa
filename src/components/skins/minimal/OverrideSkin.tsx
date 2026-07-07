@@ -29,6 +29,7 @@ export function OverrideSkin({
 
   const hasSlip = Boolean(slipUrl);
   const isScanning = invoice.status === "scanning";
+  const hasRejection = Boolean(invoice.slip_rejection_note?.trim());
 
   return (
     <article className="rounded-lg border border-zinc-200 bg-white p-4">
@@ -65,6 +66,12 @@ export function OverrideSkin({
       <p className="mt-3 text-sm font-medium">
         รวม ฿{invoice.total_amount.toLocaleString("th-TH")}
       </p>
+
+      {hasRejection && invoice.status === "pending" && (
+        <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {invoice.slip_rejection_note}
+        </div>
+      )}
 
       {isScanning && hasSlip && (
         <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -122,7 +129,7 @@ export function OverrideSkin({
         </button>
 
         {isScanning && hasSlip && (
-          <>
+        <>
             <button
               type="button"
               disabled={disabled}

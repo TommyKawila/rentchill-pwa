@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import { INVOICE_SELECT } from "@/services/invoiceFields";
+import { markInvoiceSlipRejected } from "@/services/invoiceRejectService";
 import { verifyInvoiceSlip } from "@/services/slipVerificationApplyService";
 import type { Invoice } from "@/services/types";
 
@@ -79,34 +80,35 @@ export async function submitPaymentSlip(
   const invoice = mapInvoice(data);
 
   if (process.env.EASYSLIP_API_KEY) {
-    const outcome = await verifyInvoiceSlip(invoiceId);
+    try {
+      const outcome = await verifyInvoiceSlip(invoiceId);
 
-    if (!outcome.verification.verified) {
-      const { data: rejected, error: rejectError } = await supabase
-        .from("invoices")
-        .update({
-          status: "pending",
-          slip_image_url: null,
-          slip_rejection_note: outcome.verification.message,
-        })
-        .eq("id", invoiceId)
-        .select(INVOICE_SELECT)
-        .single();
+      if (!outcome.verification.verified) {
+        const rejected = await markInvoiceSlipRejected(
+          invoiceId,
+          outcome.verification.message,
+        );
 
-      if (rejectError || !rejected) {
-        throw new Error(rejectError?.message ?? "อัปเดตบิลไม่สำเร็จ");
+        return {
+          invoice: rejected,
+          verification: outcome.verification,
+        };
       }
 
       return {
-        invoice: mapInvoice(rejected),
+        invoice: outcome.invoice,
         verification: outcome.verification,
       };
-    }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "ตรวจสอบสลิปไม่สำเร็จ";
+      const rejected = await markInvoiceSlipRejected(invoiceId, message);
 
-    return {
-      invoice: outcome.invoice,
-      verification: outcome.verification,
-    };
+      return {
+        invoice: rejected,
+        verification: { verified: false, message, transRef: null },
+      };
+    }
   }
 
   return { invoice, verification: null };
