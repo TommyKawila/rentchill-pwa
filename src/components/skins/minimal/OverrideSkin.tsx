@@ -56,6 +56,20 @@ export function OverrideSkin({
         รวม ฿{invoice.total_amount.toLocaleString("th-TH")}
       </p>
 
+      {slipUrl && (
+        <div className="mt-3">
+          <p className="text-xs text-zinc-500">สลิปที่ลูกบ้านส่ง</p>
+          <a href={slipUrl} target="_blank" rel="noreferrer" className="mt-1 block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={slipUrl}
+              alt="Payment slip"
+              className="max-h-48 w-full rounded-md border border-zinc-200 object-contain"
+            />
+          </a>
+        </div>
+      )}
+
       <label className="mt-3 block space-y-1 text-sm">
         <span className="text-zinc-500">ลิงก์สลิป (optional)</span>
         <input
