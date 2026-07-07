@@ -32,7 +32,7 @@ export function PaidInvoiceSkin({ invoice }: PaidInvoiceSkinProps) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={invoice.slip_image_url}
-              alt="Payment slip"
+              alt="สลิปชำระเงิน"
               className="max-h-48 w-full rounded-md border border-zinc-200 object-contain"
             />
           </a>

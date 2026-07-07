@@ -20,6 +20,12 @@ export function OverrideSkin({
   onReject,
   onApprove,
 }: OverrideSkinProps) {
+  const statusLabel: Record<string, string> = {
+    pending: "รอชำระ",
+    scanning: "กำลังตรวจสลิป",
+    paid: "ชำระแล้ว",
+  };
+
   const [waterUnit, setWaterUnit] = useState(String(invoice.water_unit));
   const [electricUnit, setElectricUnit] = useState(String(invoice.electric_unit));
   const [slipUrl, setSlipUrl] = useState(invoice.slip_image_url ?? "");
@@ -36,7 +42,8 @@ export function OverrideSkin({
       <header className="border-b border-zinc-100 pb-3">
         <p className="text-sm font-semibold">{invoice.tenant_name}</p>
         <p className="text-xs text-zinc-500">
-          ห้อง {invoice.room_number} · {invoice.billing_month} · {invoice.status}
+          ห้อง {invoice.room_number} · {invoice.billing_month} ·{" "}
+          {statusLabel[invoice.status] ?? invoice.status}
         </p>
       </header>
 
@@ -86,7 +93,7 @@ export function OverrideSkin({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={slipUrl}
-              alt="Payment slip"
+              alt="สลิปชำระเงิน"
               className="max-h-48 w-full rounded-md border border-zinc-200 object-contain"
             />
           </a>
@@ -94,7 +101,7 @@ export function OverrideSkin({
       )}
 
       <label className="mt-3 block space-y-1 text-sm">
-        <span className="text-zinc-500">ลิงก์สลิป (optional)</span>
+        <span className="text-zinc-500">ลิงก์สลิป (ไม่บังคับ)</span>
         <input
           type="url"
           value={slipUrl}
@@ -155,7 +162,7 @@ export function OverrideSkin({
           onClick={() => onApprove(slipUrl || undefined)}
           className="rounded-md bg-zinc-900 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
-          อนุมัติชำระ (manual)
+          อนุมัติชำระ (ด้วยมือ)
         </button>
       </div>
     </article>

@@ -26,13 +26,20 @@ export default function ImportPage() {
       <div className="mx-auto max-w-xl">
         <header className="border-b border-zinc-200 pb-6">
           <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-            RentChill Import
+            นำเข้าข้อมูล
           </p>
-          <h1 className="mt-2 text-2xl font-bold">Excel Importer</h1>
+          <h1 className="mt-2 text-2xl font-bold">นำเข้า Excel</h1>
           <p className="mt-2 text-sm text-zinc-600">
             อัปโหลด .xlsx เพื่อสร้างหอพักและห้องแบบ bulk
           </p>
         </header>
+
+        <a
+          href="/dashboard?property=demo-apartment"
+          className="mt-4 inline-block text-sm text-zinc-600 underline"
+        >
+          กลับแดชบอร์ด
+        </a>
 
         <section className="mt-8 space-y-4">
           <button
@@ -40,7 +47,7 @@ export default function ImportPage() {
             onClick={downloadTemplate}
             className="w-full rounded-md border border-zinc-300 bg-white py-3 text-sm font-medium"
           >
-            Download Template (.xlsx)
+            ดาวน์โหลดเทมเพลต (.xlsx)
           </button>
 
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white p-8 text-center">
@@ -62,7 +69,7 @@ export default function ImportPage() {
               <p>หอพัก: {preview.propertyCount}</p>
               <p>ห้อง: {preview.roomCount}</p>
               <p className="mt-2 break-all text-zinc-600">
-                slug: {preview.slugs.join(", ")}
+                รหัสหอ: {preview.slugs.join(", ")}
               </p>
             </div>
           )}
@@ -73,12 +80,12 @@ export default function ImportPage() {
             onClick={() => file && void importFile(file)}
             className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
           >
-            {status === "importing" ? "กำลัง import..." : "Import to Supabase"}
+            {status === "importing" ? "กำลังนำเข้า..." : "นำเข้าข้อมูล"}
           </button>
 
           {status === "success" && (
             <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-              <p className="font-medium">Import สำเร็จ</p>
+              <p className="font-medium">นำเข้าสำเร็จ</p>
               {resultSlugs.map((slug) => (
                 <a
                   key={slug}

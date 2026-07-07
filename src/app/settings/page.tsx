@@ -25,7 +25,7 @@ function SettingsContent() {
       <div className="mx-auto max-w-xl">
         <header className="border-b border-zinc-200 pb-6">
           <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-            Property Settings
+            ตั้งค่าหอพัก
           </p>
           <h1 className="mt-2 text-2xl font-bold">บัญชีรับเงิน</h1>
           <p className="mt-2 text-sm text-zinc-600">
@@ -94,10 +94,10 @@ function SettingsContent() {
           </button>
 
           <a
-            href={`/override?property=${encodeURIComponent(propertySlug)}`}
+            href={`/dashboard?property=${encodeURIComponent(propertySlug)}`}
             className="block text-center text-sm text-zinc-600 underline"
           >
-            กลับไปหน้า Override
+            กลับแดชบอร์ด
           </a>
         </section>
       </div>

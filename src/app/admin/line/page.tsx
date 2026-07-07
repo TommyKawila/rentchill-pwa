@@ -11,9 +11,9 @@ function LineSetupContent() {
       <div className="mx-auto max-w-xl">
         <header className="border-b border-zinc-200 pb-6">
           <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-            LINE Setup
+            ตั้งค่า LINE
           </p>
-          <h1 className="mt-2 text-2xl font-bold">Rich Menu → LIFF</h1>
+          <h1 className="mt-2 text-2xl font-bold">เมนู Rich Menu → LIFF</h1>
           <p className="mt-2 text-sm text-zinc-600">
             เมนูด้านล่าง LINE OA → เปิดบิลลูกบ้าน
           </p>
@@ -39,7 +39,7 @@ function LineSetupContent() {
               )}
               {status.richmenus && status.richmenus.length > 0 && (
                 <p className="text-zinc-600">
-                  Rich menus: {status.richmenus.map((m) => m.name).join(", ")}
+                  เมนูที่มี: {status.richmenus.map((m) => m.name).join(", ")}
                 </p>
               )}
             </div>
@@ -48,7 +48,7 @@ function LineSetupContent() {
           <ol className="list-decimal space-y-2 pl-5 text-zinc-600">
             <li>LINE Console → LIFF → Endpoint URL = ด้านบน</li>
             <li>Vercel → ใส่ LINE_CHANNEL_ACCESS_TOKEN (Messaging API)</li>
-            <li>กด Deploy Rich Menu ด้านล่าง</li>
+            <li>กดติดตั้ง Rich Menu ด้านล่าง</li>
             <li>เปิด LINE OA → กดเมนู &quot;ดูบิล&quot;</li>
           </ol>
 
@@ -58,7 +58,7 @@ function LineSetupContent() {
             onClick={() => void deploy()}
             className="w-full rounded-md bg-zinc-900 py-3 font-medium text-white disabled:opacity-50"
           >
-            {deploying ? "กำลัง Deploy..." : "Deploy Rich Menu"}
+            {deploying ? "กำลังติดตั้ง..." : "ติดตั้ง Rich Menu"}
           </button>
 
           {success && (
@@ -73,8 +73,8 @@ function LineSetupContent() {
             </p>
           )}
 
-          <a href="/override?property=demo-apartment" className="block text-center underline">
-            กลับ Override
+          <a href="/dashboard?property=demo-apartment" className="block text-center underline">
+            กลับแดชบอร์ด
           </a>
         </section>
       </div>

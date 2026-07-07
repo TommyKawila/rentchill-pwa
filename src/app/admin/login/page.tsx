@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 function AdminLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") ?? "/import";
+  const nextPath = searchParams.get("next") ?? "/dashboard";
 
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -26,12 +26,12 @@ function AdminLoginForm() {
 
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error ?? "Login failed");
+        throw new Error(payload.error ?? "เข้าสู่ระบบไม่สำเร็จ");
       }
 
       router.replace(nextPath);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : "เข้าสู่ระบบไม่สำเร็จ");
     } finally {
       setIsLoading(false);
     }
@@ -44,11 +44,11 @@ function AdminLoginForm() {
         className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-6"
       >
         <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-          RentChill Admin
+          RentChill
         </p>
-        <h1 className="mt-2 text-xl font-bold">Owner Login</h1>
+        <h1 className="mt-2 text-xl font-bold">เข้าสู่ระบบเจ้าของหอ</h1>
         <p className="mt-2 text-sm text-zinc-600">
-          สำหรับหน้า /import และ /override
+          สำหรับแดชบอร์ดเจ้าของหอ
         </p>
 
         <label className="mt-6 block space-y-1 text-sm">

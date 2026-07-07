@@ -32,7 +32,7 @@
 - [x] **Step 7:** Manual Override / Fallback UI for Edge Cases
   - [x] Override service + API (`/api/override`)
   - [x] `useInvoiceOverride` + `OverrideSkin`
-  - [x] Owner UI at `/override?property=demo-apartment`
+  - [x] Owner UI at `/dashboard?property=demo-apartment` (`/override` redirects)
 
 ---
 *Note for AI Agents: Always check this file before suggesting new code to understand the current progress state. Do not jump ahead of the pending steps.*
@@ -43,3 +43,4 @@
 - [x] Property payment account settings + slip receiver matching
 - [x] PDPA consent gate (`PdpaConsentSkin` + `/api/tenants/[id]/consent`)
 - [x] LINE Rich Menu → LIFF (`/admin/line` + `/api/line/rich-menu`)
+- [x] Owner Dashboard hub (`/dashboard` — slips, stats, nav to settings/import/LINE)

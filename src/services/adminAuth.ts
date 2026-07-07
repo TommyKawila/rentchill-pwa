@@ -40,6 +40,7 @@ export function getAdminCookieName() {
 export function isAdminProtectedPath(pathname: string) {
   return (
     pathname.startsWith("/import") ||
+    pathname.startsWith("/dashboard") ||
     pathname.startsWith("/override") ||
     pathname.startsWith("/settings") ||
     pathname.startsWith("/admin/line") ||
