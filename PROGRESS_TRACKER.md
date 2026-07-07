@@ -44,3 +44,4 @@
 - [x] PDPA consent gate (`PdpaConsentSkin` + `/api/tenants/[id]/consent`)
 - [x] LINE Rich Menu → LIFF (`/admin/line` + `/api/line/rich-menu`)
 - [x] Owner Dashboard hub (`/dashboard` — slips, stats, nav to settings/import/LINE)
+- [x] Monthly billing from Dashboard (`/api/billing` — meter entry + bulk invoice)

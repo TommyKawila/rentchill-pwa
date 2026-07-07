@@ -1,19 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useInvoiceEngine } from "@/hooks/useInvoiceEngine";
-import { getInvoiceForTenantMonth, saveInvoice } from "@/services/invoiceService";
+import { getInvoiceForTenantMonth } from "@/services/invoiceService";
 import {
   getRoomById,
   getTenantById,
   getTenantByLineUserId,
 } from "@/services/tenantService";
 import type { Invoice, Room, Tenant } from "@/services/types";
-
-const WATER_RATE = 10;
-const ELECTRIC_RATE = 7;
-const DEMO_WATER_UNIT = 12;
-const DEMO_ELECTRIC_UNIT = 85;
 
 type BoardState = {
   tenant: Tenant;
@@ -32,7 +26,6 @@ export function useTenantBoard({
   tenantId,
   lineUserId,
 }: TenantIdentity) {
-  const { status: engineStatus, generateInvoice } = useInvoiceEngine();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [board, setBoard] = useState<BoardState | null>(null);
@@ -112,34 +105,11 @@ export function useTenantBoard({
     setBoard((prev) => (prev ? { ...prev, invoice } : prev));
   }, []);
 
-  const createBill = useCallback(async () => {
-    if (!board) return;
-
-    const invoice = await generateInvoice(
-      board.tenant,
-      board.room,
-      DEMO_WATER_UNIT,
-      DEMO_ELECTRIC_UNIT,
-      WATER_RATE,
-      ELECTRIC_RATE,
-    );
-
-    if (!invoice) {
-      setError("สร้างบิลไม่สำเร็จ");
-      return;
-    }
-
-    const saved = await saveInvoice(invoice);
-    setBoard({ ...board, invoice: saved });
-  }, [board, generateInvoice]);
-
   return {
     board,
     isLoading,
     error,
-    engineStatus,
     reload: loadBoard,
     patchInvoice,
-    createBill,
   };
 }

@@ -43,7 +43,7 @@ function TenantBoardContent() {
   const boardEnabled =
     authReady && ((isInClient && !!lineUserId) || useDevFallback);
 
-  const { board, isLoading, error, engineStatus, createBill, reload, patchInvoice } =
+  const { board, isLoading, error, reload, patchInvoice } =
     useTenantBoard({
     enabled: boardEnabled,
     lineUserId: isInClient ? lineUserId : null,
@@ -213,14 +213,7 @@ function TenantBoardContent() {
       ) : (
         <div className="flex flex-col items-center gap-4 p-6 text-center">
           <p className="text-sm text-zinc-600">ยังไม่มีบิลเดือนนี้</p>
-          <button
-            type="button"
-            onClick={() => void createBill()}
-            disabled={engineStatus === "calculating"}
-            className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {engineStatus === "calculating" ? "กำลังคำนวณ..." : "สร้างบิลเดือนนี้"}
-          </button>
+          <p className="text-xs text-zinc-500">รอเจ้าของหอออกบิลให้</p>
         </div>
       )}
     </MobileFrame>

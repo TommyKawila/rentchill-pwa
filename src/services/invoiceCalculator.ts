@@ -15,4 +15,10 @@ export function calculateInvoiceAmounts(
   return { water_amount, electric_amount, total_amount };
 }
 
+export function getCurrentBillingMonth() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  return `${now.getFullYear()}-${month}`;
+}
+
 export { WATER_RATE, ELECTRIC_RATE };
