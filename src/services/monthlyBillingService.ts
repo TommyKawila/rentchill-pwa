@@ -3,6 +3,7 @@ import {
   calculateInvoiceAmounts,
   getCurrentBillingMonth,
 } from "@/services/invoiceCalculator";
+import { buildTenantInviteUrl } from "@/services/tenantLinkService";
 import type { InvoiceStatus } from "@/services/types";
 
 export type MonthlyBillingRow = {
@@ -15,6 +16,9 @@ export type MonthlyBillingRow = {
   invoice_status: InvoiceStatus | null;
   water_unit: number;
   electric_unit: number;
+  invite_code: string;
+  line_linked: boolean;
+  invite_url: string;
 };
 
 export type BillingEntry = {
@@ -44,7 +48,7 @@ export async function getMonthlyBillingRows(propertySlug: string) {
   const { data: tenants, error } = await supabase
     .from("tenants")
     .select(
-      "id, name, room_id, rooms!inner(id, room_number, base_rent_price, status, property_id)",
+      "id, name, room_id, line_user_id, invite_code, rooms!inner(id, room_number, base_rent_price, status, property_id)",
     )
     .eq("rooms.property_id", propertyId)
     .eq("rooms.status", "occupied");
@@ -94,6 +98,11 @@ export async function getMonthlyBillingRows(propertySlug: string) {
         invoice_status: invoice?.status ?? null,
         water_unit: invoice?.water_unit ?? 0,
         electric_unit: invoice?.electric_unit ?? 0,
+        invite_code: String(row.invite_code ?? ""),
+        line_linked: Boolean(row.line_user_id),
+        invite_url: row.invite_code
+          ? buildTenantInviteUrl(String(row.invite_code))
+          : "",
       };
     })
     .sort((a, b) => a.room_number.localeCompare(b.room_number, "th"));

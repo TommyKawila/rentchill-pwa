@@ -3,12 +3,14 @@
 import { Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { MobileFrame } from "@/components/frames/MobileFrame";
+import { InviteCodeSkin } from "@/components/skins/minimal/InviteCodeSkin";
 import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
 import { PdpaConsentSkin } from "@/components/skins/minimal/PdpaConsentSkin";
 import { useLineAuth } from "@/hooks/useLineAuth";
 import { usePaymentEngine } from "@/hooks/usePaymentEngine";
 import { usePdpaConsent } from "@/hooks/usePdpaConsent";
 import { useTenantBoard } from "@/hooks/useTenantBoard";
+import { useTenantLink } from "@/hooks/useTenantLink";
 
 function AuthLoading({ message }: { message: string }) {
   return (
@@ -24,6 +26,8 @@ function AuthLoading({ message }: { message: string }) {
 function TenantBoardContent() {
   const slipInputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
+  const inviteFromUrl = searchParams.get("invite") ?? "";
+
   const {
     isLoading: authLoading,
     error: authError,
@@ -43,12 +47,18 @@ function TenantBoardContent() {
   const boardEnabled =
     authReady && ((isInClient && !!lineUserId) || useDevFallback);
 
-  const { board, isLoading, error, reload, patchInvoice } =
+  const { board, isLoading, error, needsLink, reload, patchInvoice } =
     useTenantBoard({
-    enabled: boardEnabled,
-    lineUserId: isInClient ? lineUserId : null,
-    tenantId: useDevFallback ? devTenantId : null,
-  });
+      enabled: boardEnabled,
+      lineUserId: isInClient ? lineUserId : null,
+      tenantId: useDevFallback ? devTenantId : null,
+    });
+
+  const {
+    status: linkStatus,
+    error: linkError,
+    link: linkTenant,
+  } = useTenantLink();
 
   const {
     status: paymentStatus,
@@ -89,25 +99,29 @@ function TenantBoardContent() {
     return (
       <MobileFrame>
         <div className="flex min-h-[420px] flex-col items-center justify-center gap-2 p-6 text-center text-sm text-zinc-600">
-          <p>เปิดลิงก์ LIFF จากแอป LINE</p>
+          <p>เปิดลิงก์จากแอป LINE</p>
         </div>
       </MobileFrame>
     );
   }
 
   if (isLoading) {
+    return <AuthLoading message="กำลังโหลดข้อมูล..." />;
+  }
+
+  if (needsLink && lineUserId) {
     return (
       <MobileFrame>
-        <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 p-6 text-center text-sm text-zinc-500">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
-          <p>กำลังโหลดข้อมูล...</p>
-          {lineUserId && (
-            <div className="mt-2 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-left text-xs text-zinc-600">
-              <p className="font-medium text-zinc-800">LINE User ID ของคุณ</p>
-              <p className="mt-1 break-all select-all">{lineUserId}</p>
-            </div>
-          )}
-        </div>
+        <InviteCodeSkin
+          initialCode={inviteFromUrl}
+          disabled={linkStatus === "linking"}
+          error={linkError}
+          onSubmit={(code) => {
+            void linkTenant(code, lineUserId).then((result) => {
+              if (result) void reload();
+            });
+          }}
+        />
       </MobileFrame>
     );
   }
@@ -115,18 +129,8 @@ function TenantBoardContent() {
   if (error || !board) {
     return (
       <MobileFrame>
-        <div className="flex min-h-[420px] flex-col items-center justify-center gap-2 p-6 text-center text-sm text-zinc-600">
-          <p>{error ?? "ไม่พบข้อมูล"}</p>
-          {lineUserId && (
-            <>
-              <p className="text-xs font-medium text-zinc-800">
-                ผูก LINE ID นี้ใน Supabase
-              </p>
-              <p className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-600 break-all select-all">
-                {lineUserId}
-              </p>
-            </>
-          )}
+        <div className="flex min-h-[420px] items-center justify-center p-6 text-center text-sm text-zinc-600">
+          {error ?? "ไม่พบข้อมูล"}
         </div>
       </MobileFrame>
     );
@@ -157,7 +161,7 @@ function TenantBoardContent() {
     <MobileFrame>
       <header className="border-b border-zinc-200 px-6 py-4">
         <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-          Tenant Board
+          บิลค่าเช่า
         </p>
         <h1 className="mt-1 text-lg font-semibold text-zinc-900">
           บิลค่าเช่าประจำเดือน
@@ -222,7 +226,7 @@ function TenantBoardContent() {
 
 export default function TenantBoardPage() {
   return (
-    <Suspense fallback={<AuthLoading message="Authenticating securely..." />}>
+    <Suspense fallback={<AuthLoading message="กำลังโหลด..." />}>
       <TenantBoardContent />
     </Suspense>
   );

@@ -117,6 +117,34 @@ export function MonthlyBillingSkin({
               )}
             </header>
 
+            <div className="mt-3 rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-zinc-500">
+                  รหัสเชิญ:{" "}
+                  <span className="font-medium text-zinc-800">{row.invite_code || "-"}</span>
+                </span>
+                <span
+                  className={
+                    row.line_linked
+                      ? "text-green-700"
+                      : "text-amber-700"
+                  }
+                >
+                  {row.line_linked ? "ผูก LINE แล้ว" : "ยังไม่ผูก LINE"}
+                </span>
+              </div>
+              {row.invite_url && (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => void navigator.clipboard.writeText(row.invite_url)}
+                  className="mt-2 text-green-700 underline disabled:opacity-50"
+                >
+                  คัดลอกลิงก์เชิญลูกบ้าน
+                </button>
+              )}
+            </div>
+
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <label className="space-y-1">
                 <span className="text-zinc-500">น้ำ (หน่วย)</span>

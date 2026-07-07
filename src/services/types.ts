@@ -38,6 +38,7 @@ export interface Tenant {
   name: string;
   move_in_date: string;
   pdpa_consented_at: string | null;
+  invite_code: string | null;
 }
 
 export type InvoiceStatus = "pending" | "scanning" | "paid";

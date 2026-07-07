@@ -28,6 +28,7 @@ export function useTenantBoard({
 }: TenantIdentity) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsLink, setNeedsLink] = useState(false);
   const [board, setBoard] = useState<BoardState | null>(null);
 
   const loadBoard = useCallback(async () => {
@@ -39,6 +40,7 @@ export function useTenantBoard({
 
     setIsLoading(true);
     setError(null);
+    setNeedsLink(false);
 
     try {
       const tenant = lineUserId
@@ -47,13 +49,17 @@ export function useTenantBoard({
 
       if (!tenant) {
         setBoard(null);
-        setError(
-          lineUserId
-            ? "ไม่พบลูกบ้านที่ผูกกับ LINE นี้"
-            : "ไม่พบข้อมูลลูกบ้าน",
-        );
+        if (lineUserId) {
+          setNeedsLink(true);
+          setError(null);
+        } else {
+          setNeedsLink(false);
+          setError("ไม่พบข้อมูลลูกบ้าน");
+        }
         return;
       }
+
+      setNeedsLink(false);
 
       const room = await getRoomById(tenant.room_id);
       if (!room) {
@@ -109,6 +115,7 @@ export function useTenantBoard({
     board,
     isLoading,
     error,
+    needsLink,
     reload: loadBoard,
     patchInvoice,
   };
