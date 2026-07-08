@@ -66,7 +66,7 @@ LINE OA Defense (no dev required):
 - Rich Menu (hides keyboard, routes to LIFF)
 - Auto-Response redirects tenants to correct action
 
-### Phase 4b: Target-Specific Features — Freemium Tease (PENDING)
+### Phase 4b: Target-Specific Features — Freemium Tease (COMPLETED)
 Quota tracking via integer columns on `properties` table: `csv_used_this_month`, `reminder_used_this_month`.
 
 | Feature | Target Segment | Free Quota | Pro |
@@ -75,6 +75,7 @@ Quota tracking via integer columns on `properties` table: `csv_used_this_month`,
 | **One-Click CSV Export** | Juristic / Dorms | 1 download/month | Unlimited |
 | **Read-Only Magic Link** | Agents | Expires 24h | Permanent link |
 
-- [ ] The "Bad Cop" Auto-Reminder
-- [ ] One-Click CSV Export
-- [ ] Read-Only Magic Link (24h free / permanent Pro)
+- [x] Migration: `plan_tier`, `quota_month`, `reminder_used_this_month`, `csv_used_this_month`
+- [x] The "Bad Cop" Auto-Reminder
+- [x] One-Click CSV Export
+- [x] Read-Only Magic Link (24h free / permanent Pro)

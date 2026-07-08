@@ -24,6 +24,11 @@ interface MonthlyBillingSkinProps {
     skipped: number;
   } | null;
   onSubmit: (entries: BillingEntry[]) => void;
+  canRemind?: boolean;
+  reminderDisabled?: boolean;
+  remindedTenantId?: string | null;
+  quotaHint?: string | null;
+  onRemind?: (tenantId: string) => void;
 }
 
 function isLocked(status: MonthlyBillingRow["invoice_status"]) {
@@ -60,6 +65,11 @@ export function MonthlyBillingSkin({
   disabled,
   result,
   onSubmit,
+  canRemind,
+  reminderDisabled,
+  remindedTenantId,
+  quotaHint,
+  onRemind,
 }: MonthlyBillingSkinProps) {
   const { t } = useLocale();
   const [meters, setMeters] = useState<
@@ -116,6 +126,12 @@ export function MonthlyBillingSkin({
           </p>
         </div>
       </div>
+
+      {quotaHint && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          {quotaHint}
+        </p>
+      )}
 
       {rows.length === 0 && (
         <p className="text-sm text-zinc-600">{t("owner.billing.noRooms")}</p>
@@ -263,6 +279,19 @@ export function MonthlyBillingSkin({
             <p className="mt-3 text-sm font-medium">
               {t("common.total")} ฿{total_amount.toLocaleString("th-TH")}
             </p>
+
+            {row.invoice_status === "pending" && row.line_linked && onRemind && (
+              <button
+                type="button"
+                disabled={disabled || reminderDisabled || !canRemind}
+                onClick={() => onRemind(row.tenant_id)}
+                className="mt-3 w-full rounded-md border border-amber-300 bg-amber-50 py-2 text-sm font-medium text-amber-900 disabled:opacity-50"
+              >
+                {remindedTenantId === row.tenant_id
+                  ? t("owner.reminder.sent")
+                  : t("owner.reminder.send")}
+              </button>
+            )}
           </article>
         );
       })}

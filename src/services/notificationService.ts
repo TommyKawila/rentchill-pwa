@@ -54,6 +54,29 @@ export async function notifySlipRejected(input: {
   return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
 }
 
+export async function notifyPaymentReminder(input: {
+  lineUserId: string;
+  roomNumber: string;
+  billingMonth: string;
+  totalAmount: number;
+}) {
+  const total = formatAmount(input.totalAmount);
+  const text = [
+    `⚠️ แจ้งเตือนชำระค่าเช่า — ${input.billingMonth}`,
+    `ห้อง ${input.roomNumber} · ยอด ฿${total}`,
+    "กรุณาชำระโดยเร็วที่สุด",
+    "",
+    `Payment reminder — ${input.billingMonth}`,
+    `Room ${input.roomNumber} · ฿${total}`,
+    "Please pay as soon as possible.",
+    "",
+    "เปิดบิล / View bill:",
+    boardUrl(),
+  ].join("\n");
+
+  return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
+}
+
 function dashboardUrl(propertySlug: string) {
   const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
   const path = `/dashboard?property=${encodeURIComponent(propertySlug)}`;
