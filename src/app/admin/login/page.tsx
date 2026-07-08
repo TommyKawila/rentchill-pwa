@@ -9,9 +9,9 @@ function AdminLoginForm() {
   const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") ?? "/dashboard";
+  const nextPath = searchParams.get("next") ?? "";
 
-  const [email, setEmail] = useState("owner@demo.local");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,12 +28,25 @@ function AdminLoginForm() {
         body: JSON.stringify({ email, password }),
       });
 
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        is_superadmin?: boolean;
+      };
       if (!response.ok) {
         throw new Error(payload.error ?? t("admin.login.failed"));
       }
 
-      router.replace(nextPath);
+      const defaultPath = payload.is_superadmin ? "/admin" : "/dashboard";
+      const destination =
+        nextPath && !nextPath.startsWith("/admin/login")
+          ? payload.is_superadmin && nextPath.startsWith("/dashboard")
+            ? "/admin"
+            : !payload.is_superadmin && nextPath.startsWith("/admin")
+              ? "/dashboard"
+              : nextPath
+          : defaultPath;
+
+      router.replace(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("admin.login.failed"));
     } finally {

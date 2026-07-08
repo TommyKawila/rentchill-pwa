@@ -3,8 +3,11 @@ import type { NextRequest } from "next/server";
 import {
   getAdminCookieName,
   isAdminProtectedPath,
+  isOwnerOnlyPath,
+  isSuperadminOnlyPath,
   resolveOwnerSession,
 } from "@/services/adminAuth";
+import { isSuperadminOwner } from "@/services/superadminGuard";
 
 export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
@@ -42,7 +45,28 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(loginUrl);
       }
 
+      const isSuperadmin = await isSuperadminOwner(ownerId);
+
+      if (isSuperadmin && isOwnerOnlyPath(pathname)) {
+        const adminUrl = request.nextUrl.clone();
+        adminUrl.pathname = "/admin";
+        adminUrl.search = "";
+        return NextResponse.redirect(adminUrl);
+      }
+
+      if (!isSuperadmin && isSuperadminOnlyPath(pathname)) {
+        if (pathname.startsWith("/api/")) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        const dashboardUrl = request.nextUrl.clone();
+        dashboardUrl.pathname = "/dashboard";
+        dashboardUrl.search = "";
+        return NextResponse.redirect(dashboardUrl);
+      }
+
       requestHeaders.set("x-owner-id", ownerId);
+      requestHeaders.set("x-is-superadmin", isSuperadmin ? "1" : "0");
     }
   }
 

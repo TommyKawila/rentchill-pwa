@@ -7,7 +7,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = requireSuperadmin(request);
+    const auth = await requireSuperadmin(request);
     if ("error" in auth) return auth.error;
 
     const { id } = await context.params;

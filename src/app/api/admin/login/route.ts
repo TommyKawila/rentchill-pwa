@@ -5,6 +5,7 @@ import {
   getAdminCookieName,
 } from "@/services/adminAuth";
 import { authenticateOwner } from "@/services/ownerAuthService";
+import { isSuperadminOwner } from "@/services/superadminGuard";
 
 export async function POST(request: Request) {
   const secret = process.env.ADMIN_SECRET;
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
   }
 
   let token: string;
+  let ownerId: string;
 
   if (email) {
     const owner = await authenticateOwner(email, password);
@@ -28,13 +30,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" }, { status: 401 });
     }
     token = await createOwnerSessionToken(owner.id, secret);
+    ownerId = owner.id;
   } else if (password === secret) {
     token = await createLegacyAdminSessionToken(secret);
+    ownerId = process.env.SUPERADMIN_OWNER_ID ?? "00000000-0000-0000-0000-000000000011";
   } else {
     return NextResponse.json({ error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" }, { status: 401 });
   }
 
-  const response = NextResponse.json({ ok: true });
+  const is_superadmin = await isSuperadminOwner(ownerId);
+
+  const response = NextResponse.json({ ok: true, is_superadmin });
   response.cookies.set(getAdminCookieName(), token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

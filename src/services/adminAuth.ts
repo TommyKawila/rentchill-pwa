@@ -1,6 +1,6 @@
 const SESSION_LABEL = "rentchill-admin-v1";
 const COOKIE_NAME = "rc_admin";
-const DEMO_OWNER_ID = "00000000-0000-0000-0000-000000000010";
+import { getSuperadminOwnerId } from "@/services/superadminGuard";
 
 function bufferToHex(buffer: ArrayBuffer) {
   return [...new Uint8Array(buffer)]
@@ -54,7 +54,7 @@ export async function resolveOwnerSession(
   }
 
   if (await isValidLegacyAdminSession(secret, token)) {
-    return DEMO_OWNER_ID;
+    return getSuperadminOwnerId();
   }
 
   return null;
@@ -64,20 +64,41 @@ export function getAdminCookieName() {
   return COOKIE_NAME;
 }
 
+const OWNER_ONLY_PREFIXES = [
+  "/dashboard",
+  "/import",
+  "/override",
+  "/settings",
+  "/billing",
+  "/admin/line",
+  "/api/import",
+  "/api/billing",
+  "/api/override",
+  "/api/properties",
+] as const;
+
+const SUPERADMIN_ONLY_PREFIXES = [
+  "/admin/slips",
+  "/api/admin/stats",
+  "/api/admin/platform-payments",
+] as const;
+
+export function isSuperadminOnlyPath(pathname: string) {
+  if (pathname === "/admin") return true;
+  return SUPERADMIN_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+export function isOwnerOnlyPath(pathname: string) {
+  return OWNER_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 export function isAdminProtectedPath(pathname: string) {
+  if (pathname === "/admin/login") return false;
+  if (pathname === "/admin") return true;
+
   return (
-    pathname.startsWith("/import") ||
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/override") ||
-    pathname.startsWith("/settings") ||
-    pathname.startsWith("/billing") ||
-    pathname.startsWith("/admin/line") ||
-    pathname.startsWith("/admin/slips") ||
-    pathname.startsWith("/api/import") ||
-    pathname.startsWith("/api/billing") ||
-    pathname.startsWith("/api/admin/platform-payments") ||
-    pathname.startsWith("/api/override") ||
-    pathname.startsWith("/api/properties") ||
+    isOwnerOnlyPath(pathname) ||
+    isSuperadminOnlyPath(pathname) ||
     (pathname.startsWith("/api/line/") &&
       !pathname.startsWith("/api/line/webhook"))
   );

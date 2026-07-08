@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listPendingPlatformPayments } from "@/services/platformPaymentService";
+import { getPlatformStats } from "@/services/platformStatsService";
 import { requireSuperadmin } from "@/services/superadminGuard";
 
 export async function GET(request: Request) {
@@ -7,10 +7,10 @@ export async function GET(request: Request) {
     const auth = await requireSuperadmin(request);
     if ("error" in auth) return auth.error;
 
-    const payments = await listPendingPlatformPayments();
-    return NextResponse.json({ ok: true, payments });
+    const stats = await getPlatformStats();
+    return NextResponse.json({ ok: true, stats });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "โหลดรายการไม่สำเร็จ";
+    const message = error instanceof Error ? error.message : "โหลดสถิติไม่สำเร็จ";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
