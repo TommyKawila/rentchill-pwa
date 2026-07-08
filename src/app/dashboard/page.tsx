@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
+import { PlanUsageSkin } from "@/components/skins/minimal/PlanUsageSkin";
 import { OwnerDashboardShell } from "@/components/skins/minimal/OwnerDashboardShell";
 import { CsvExportSkin } from "@/components/skins/minimal/CsvExportSkin";
 import { MagicLinkSkin } from "@/components/skins/minimal/MagicLinkSkin";
@@ -14,6 +15,7 @@ import { useInvoiceOverride } from "@/hooks/useInvoiceOverride";
 import { useMagicLink } from "@/hooks/useMagicLink";
 import { useMonthlyBilling } from "@/hooks/useMonthlyBilling";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
+import { usePropertyPlan } from "@/hooks/usePropertyPlan";
 import { usePaymentReminder } from "@/hooks/usePaymentReminder";
 
 function DashboardContent() {
@@ -47,6 +49,7 @@ function DashboardContent() {
   const reminder = usePaymentReminder(propertySlug);
   const csvExport = useCsvExport(propertySlug);
   const magicLink = useMagicLink(propertySlug);
+  const propertyPlan = usePropertyPlan(propertySlug);
 
   const isSaving =
     billing.status === "saving" ||
@@ -96,6 +99,8 @@ function DashboardContent() {
       pendingCount={override.invoices.length}
       paidCount={override.paidInvoices.length}
     >
+      {propertyPlan.plan && <PlanUsageSkin plan={propertyPlan.plan} />}
+
       {propertiesError && (
         <div className="mt-8 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {propertiesError}

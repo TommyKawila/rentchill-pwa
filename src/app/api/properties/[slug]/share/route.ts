@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
+import { requireOwnerProperty } from "@/services/ownerApiGuard";
 import {
   createPropertyShareLink,
   getPropertyShareLink,
 } from "@/services/magicLinkService";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ slug: string }> },
 ) {
   try {
     const { slug } = await context.params;
+    const auth = await requireOwnerProperty(request, slug);
+    if ("error" in auth) return auth.error;
+
     const link = await getPropertyShareLink(slug);
     return NextResponse.json({ ok: true, link });
   } catch (error) {
@@ -19,11 +23,14 @@ export async function GET(
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ slug: string }> },
 ) {
   try {
     const { slug } = await context.params;
+    const auth = await requireOwnerProperty(request, slug);
+    if ("error" in auth) return auth.error;
+
     const link = await createPropertyShareLink(slug);
     return NextResponse.json({ ok: true, link });
   } catch (error) {

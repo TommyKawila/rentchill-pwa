@@ -4,6 +4,7 @@ import {
   rejectInvoiceSlip,
   updateInvoiceMeters,
 } from "@/services/invoiceOverrideService";
+import { requireOwnerInvoice } from "@/services/ownerApiGuard";
 
 type OverrideBody =
   | {
@@ -26,6 +27,9 @@ export async function PATCH(
 ) {
   try {
     const { invoiceId } = await context.params;
+    const auth = await requireOwnerInvoice(request, invoiceId);
+    if ("error" in auth) return auth.error;
+
     const body = (await request.json()) as OverrideBody;
 
     if (body.action === "update_meters") {

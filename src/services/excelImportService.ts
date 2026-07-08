@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import type { ImportRow } from "@/services/excel/parseWorkbook";
+import { assertRoomCapacity } from "@/services/planTierService";
 
 export type ImportResult = {
   property_slug: string;
@@ -9,6 +10,7 @@ export type ImportResult = {
 
 export async function importPropertyRooms(
   rows: ImportRow[],
+  ownerId: string,
 ): Promise<ImportResult[]> {
   const supabase = createAdminClient();
   const grouped = new Map<string, ImportRow[]>();
@@ -27,12 +29,30 @@ export async function importPropertyRooms(
     const { data: property, error: propertyError } = await supabase
       .from("properties")
       .upsert({ name: propertyName, slug }, { onConflict: "slug" })
-      .select("id, slug")
+      .select("id, slug, owner_id")
       .single();
 
     if (propertyError || !property) {
       throw new Error(propertyError?.message ?? "สร้างหอพักไม่สำเร็จ");
     }
+
+    if (property.owner_id && String(property.owner_id) !== ownerId) {
+      throw new Error(`FORBIDDEN:${slug}`);
+    }
+
+    if (!property.owner_id) {
+      const { error: ownerError } = await supabase
+        .from("properties")
+        .update({ owner_id: ownerId })
+        .eq("id", property.id);
+      if (ownerError) throw ownerError;
+    }
+
+    await assertRoomCapacity(
+      property.id,
+      slug,
+      propertyRows.map((row) => row.room_number),
+    );
 
     const roomPayload = propertyRows.map((row) => ({
       property_id: property.id,

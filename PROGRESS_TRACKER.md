@@ -79,3 +79,22 @@ Quota tracking via integer columns on `properties` table: `csv_used_this_month`,
 - [x] The "Bad Cop" Auto-Reminder
 - [x] One-Click CSV Export
 - [x] Read-Only Magic Link (24h free / permanent Pro)
+
+## Phase 5: Monetization (COMPLETED)
+- [x] Pricing tier enforcement — room limits per `plan_tier` (Starter 3 / Micro 20 / Growth 50 / Pro 100)
+- [x] Owner auth จริง (owners table + per-owner session + property scoping)
+- [x] Push "ชำระแล้ว" ให้ลูกบ้าน (`notifyPaymentConfirmed`)
+
+### Billing — Manual Slip Approval (Dogfooding)
+> **Rule:** No Stripe or 3rd-party payment gateways for subscriptions. Rely on manual slip uploads for Phase 1.
+
+Flow:
+1. Owner selects tier at `/billing` → sees static PromptPay/Bank account
+2. Owner uploads slip → `platform_payments` record (`pending`)
+3. Superadmin reviews at `/admin/slips` → Approve
+4. `approve_platform_payment()` RPC: marks approved, updates `owners.plan_tier` + `expires_at` (+30 days), syncs `properties.plan_tier`
+
+- [x] Migration `00014_platform_billing` — `owners.plan_tier/status/expires_at`, `platform_payments` table, approve RPC
+- [x] Owner upgrade UI (`/billing` + `PlanBillingSkin`)
+- [x] Superadmin slip approval (`/admin/slips` + `PlatformSlipsSkin`)
+- [ ] Automated slip verification (future — only when volume warrants)

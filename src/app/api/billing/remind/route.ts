@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireOwnerProperty } from "@/services/ownerApiGuard";
 import { sendPaymentReminder } from "@/services/reminderService";
 
 export async function POST(request: Request) {
@@ -14,6 +15,9 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    const auth = await requireOwnerProperty(request, body.property_slug);
+    if ("error" in auth) return auth.error;
 
     const result = await sendPaymentReminder(body.property_slug, body.tenant_id);
     return NextResponse.json({ ok: true, ...result });

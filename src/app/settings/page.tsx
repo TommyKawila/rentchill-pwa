@@ -143,6 +143,13 @@ function SettingsContent() {
           </button>
 
           <a
+            href={`/billing?property=${encodeURIComponent(propertySlug)}`}
+            className="block text-center text-sm text-green-700 underline"
+          >
+            {t("owner.planBilling.managePlan")}
+          </a>
+
+          <a
             href={`/dashboard?property=${encodeURIComponent(propertySlug)}`}
             className="block text-center text-sm text-zinc-600 underline"
           >

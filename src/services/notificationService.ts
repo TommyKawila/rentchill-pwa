@@ -77,6 +77,29 @@ export async function notifyPaymentReminder(input: {
   return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
 }
 
+export async function notifyPaymentConfirmed(input: {
+  lineUserId: string;
+  roomNumber: string;
+  billingMonth: string;
+  totalAmount: number;
+}) {
+  const total = formatAmount(input.totalAmount);
+  const text = [
+    `✅ ชำระเงินสำเร็จ — ${input.billingMonth}`,
+    `ห้อง ${input.roomNumber} · ฿${total}`,
+    "บิลนี้ชำระแล้ว ขอบคุณค่ะ",
+    "",
+    `Payment confirmed — ${input.billingMonth}`,
+    `Room ${input.roomNumber} · ฿${total}`,
+    "This bill is paid. Thank you!",
+    "",
+    "เปิดบิล / View bill:",
+    boardUrl(),
+  ].join("\n");
+
+  return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
+}
+
 function dashboardUrl(propertySlug: string) {
   const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
   const path = `/dashboard?property=${encodeURIComponent(propertySlug)}`;
@@ -166,6 +189,44 @@ export async function safeNotifySlipRejected(
     return await notifySlipRejected(input);
   } catch (error) {
     console.error("[notifySlipRejected]", error);
+    return { sent: false as const, reason: "error" as const };
+  }
+}
+
+export async function safeNotifyPaymentConfirmed(invoiceId: string) {
+  try {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from("invoices")
+      .select(
+        "billing_month, total_amount, tenants(line_user_id), rooms(room_number)",
+      )
+      .eq("id", invoiceId)
+      .maybeSingle();
+
+    if (error || !data) return { sent: false as const, reason: "not_found" as const };
+
+    const tenantRaw = data.tenants as
+      | { line_user_id: string | null }
+      | { line_user_id: string | null }[]
+      | null;
+    const roomRaw = data.rooms as { room_number: string } | { room_number: string }[] | null;
+    const tenant = Array.isArray(tenantRaw) ? tenantRaw[0] : tenantRaw;
+    const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+
+    if (!tenant?.line_user_id) {
+      return { sent: false as const, reason: "no_tenant_line" as const };
+    }
+
+    return await notifyPaymentConfirmed({
+      lineUserId: tenant.line_user_id,
+      roomNumber: room?.room_number ?? "-",
+      billingMonth: String(data.billing_month),
+      totalAmount: Number(data.total_amount),
+    });
+  } catch (error) {
+    console.error("[notifyPaymentConfirmed]", error);
     return { sent: false as const, reason: "error" as const };
   }
 }

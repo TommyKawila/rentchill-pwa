@@ -33,6 +33,11 @@ export function OwnerDashboardShell({
   const navItems = [
     { href: "/import", label: t("owner.nav.import"), externalProperty: false },
     {
+      href: "/billing",
+      label: t("owner.nav.billing"),
+      externalProperty: true,
+    },
+    {
       href: "/settings",
       label: t("owner.nav.settings"),
       externalProperty: true,

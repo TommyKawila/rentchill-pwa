@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import { INVOICE_SELECT } from "@/services/invoiceFields";
+import { safeNotifyPaymentConfirmed } from "@/services/notificationService";
 import { matchSlipReceiver } from "@/services/slipAccountMatchService";
 import { getPropertyPaymentById } from "@/services/propertyPaymentService";
 import { verifySlipByUrl } from "@/services/slipVerificationService";
@@ -109,6 +110,8 @@ export async function verifyInvoiceSlip(
   if (updateError || !paid) {
     throw new Error(updateError?.message ?? "อัปเดตบิลไม่สำเร็จ");
   }
+
+  void safeNotifyPaymentConfirmed(invoiceId);
 
   return {
     invoice: mapInvoice(paid),

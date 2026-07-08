@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import { INVOICE_SELECT } from "@/services/invoiceFields";
 import { markInvoiceSlipRejected } from "@/services/invoiceRejectService";
+import { safeNotifyPaymentConfirmed } from "@/services/notificationService";
 import { calculateInvoiceAmounts } from "@/services/invoiceCalculator";
 import type { Invoice, InvoiceStatus } from "@/services/types";
 
@@ -168,5 +169,6 @@ export async function approveInvoiceManually(
     .single();
 
   if (error || !data) throw new Error(error?.message ?? "อนุมัติบิลไม่สำเร็จ");
+  void safeNotifyPaymentConfirmed(invoiceId);
   return mapInvoice(data);
 }

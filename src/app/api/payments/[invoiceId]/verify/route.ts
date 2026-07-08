@@ -1,23 +1,15 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import {
-  getAdminCookieName,
-  isValidAdminSession,
-} from "@/services/adminAuth";
+import { requireOwnerInvoice } from "@/services/ownerApiGuard";
 import { verifyInvoiceSlip } from "@/services/slipVerificationApplyService";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ invoiceId: string }> },
 ) {
   try {
-    const adminSecret = process.env.ADMIN_SECRET;
-    const token = (await cookies()).get(getAdminCookieName())?.value;
-    const isAdmin = await isValidAdminSession(adminSecret, token);
-
-    if (!isAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { invoiceId } = await context.params;
+    const auth = await requireOwnerInvoice(request, invoiceId);
+    if ("error" in auth) return auth.error;
 
     if (!process.env.EASYSLIP_API_KEY) {
       return NextResponse.json(
@@ -26,7 +18,6 @@ export async function POST(
       );
     }
 
-    const { invoiceId } = await context.params;
     const outcome = await verifyInvoiceSlip(invoiceId);
     return NextResponse.json({ ok: true, ...outcome });
   } catch (error) {

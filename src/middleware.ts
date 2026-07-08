@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import {
   getAdminCookieName,
   isAdminProtectedPath,
-  isValidAdminSession,
+  resolveOwnerSession,
 } from "@/services/adminAuth";
 
 export async function middleware(request: NextRequest) {
@@ -29,9 +29,9 @@ export async function middleware(request: NextRequest) {
       }
     } else {
       const token = request.cookies.get(getAdminCookieName())?.value;
-      const valid = await isValidAdminSession(adminSecret, token);
+      const ownerId = await resolveOwnerSession(adminSecret, token);
 
-      if (!valid) {
+      if (!ownerId) {
         if (pathname.startsWith("/api/")) {
           return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
@@ -41,6 +41,8 @@ export async function middleware(request: NextRequest) {
         loginUrl.searchParams.set("next", pathname);
         return NextResponse.redirect(loginUrl);
       }
+
+      requestHeaders.set("x-owner-id", ownerId);
     }
   }
 

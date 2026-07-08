@@ -11,6 +11,7 @@ function AdminLoginForm() {
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "/dashboard";
 
+  const [email, setEmail] = useState("owner@demo.local");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,7 +25,7 @@ function AdminLoginForm() {
       const response = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const payload = (await response.json()) as { error?: string };
@@ -56,6 +57,17 @@ function AdminLoginForm() {
         <p className="mt-2 text-sm text-zinc-600">{t("admin.login.desc")}</p>
 
         <label className="mt-6 block space-y-1 text-sm">
+          <span className="text-zinc-600">{t("admin.login.email")}</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="w-full rounded-md border border-zinc-200 px-3 py-2"
+            required
+          />
+        </label>
+
+        <label className="mt-4 block space-y-1 text-sm">
           <span className="text-zinc-600">{t("admin.login.password")}</span>
           <input
             type="password"

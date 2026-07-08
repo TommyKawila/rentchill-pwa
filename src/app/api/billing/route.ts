@@ -4,6 +4,7 @@ import {
   getMonthlyBillingRows,
   type BillingEntry,
 } from "@/services/monthlyBillingService";
+import { requireOwnerProperty } from "@/services/ownerApiGuard";
 
 export async function GET(request: Request) {
   try {
@@ -13,6 +14,9 @@ export async function GET(request: Request) {
     if (!propertySlug) {
       return NextResponse.json({ error: "ต้องระบุ property_slug" }, { status: 400 });
     }
+
+    const auth = await requireOwnerProperty(request, propertySlug);
+    if ("error" in auth) return auth.error;
 
     const payload = await getMonthlyBillingRows(propertySlug);
     return NextResponse.json({ ok: true, ...payload });
@@ -36,6 +40,9 @@ export async function POST(request: Request) {
     if (!body.entries?.length) {
       return NextResponse.json({ error: "ไม่มีห้องให้ออกบิล" }, { status: 400 });
     }
+
+    const auth = await requireOwnerProperty(request, body.property_slug);
+    if ("error" in auth) return auth.error;
 
     const result = await generateMonthlyInvoices(body.property_slug, body.entries);
     return NextResponse.json({ ok: true, result });

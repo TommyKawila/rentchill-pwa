@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireOwnerProperty } from "@/services/ownerApiGuard";
 import {
   getPropertyPaymentBySlug,
   updatePropertyPayment,
@@ -6,11 +7,14 @@ import {
 import type { PropertyPaymentInput } from "@/services/types";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ slug: string }> },
 ) {
   try {
     const { slug } = await context.params;
+    const auth = await requireOwnerProperty(request, slug);
+    if ("error" in auth) return auth.error;
+
     const account = await getPropertyPaymentBySlug(slug);
 
     if (!account) {
@@ -30,6 +34,9 @@ export async function PATCH(
 ) {
   try {
     const { slug } = await context.params;
+    const auth = await requireOwnerProperty(request, slug);
+    if ("error" in auth) return auth.error;
+
     const body = (await request.json()) as PropertyPaymentInput;
     const account = await updatePropertyPayment(slug, body);
     return NextResponse.json({ ok: true, account });
