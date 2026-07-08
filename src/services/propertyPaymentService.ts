@@ -10,11 +10,14 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
     prompt_pay: row.payment_prompt_pay ? String(row.payment_prompt_pay) : null,
     bank_account: row.payment_bank_account ? String(row.payment_bank_account) : null,
     receiver_name: row.payment_receiver_name ? String(row.payment_receiver_name) : null,
+    contact_line_url: row.contact_line_url ? String(row.contact_line_url) : null,
+    contact_phone: row.contact_phone ? String(row.contact_phone) : null,
+    owner_line_user_id: row.owner_line_user_id ? String(row.owner_line_user_id) : null,
   };
 }
 
 const paymentSelect =
-  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name";
+  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_phone, owner_line_user_id";
 
 export async function getPropertyPaymentBySlug(
   slug: string,
@@ -56,6 +59,9 @@ export async function updatePropertyPayment(
       payment_prompt_pay: input.prompt_pay?.trim() || null,
       payment_bank_account: input.bank_account?.trim() || null,
       payment_receiver_name: input.receiver_name?.trim() || null,
+      contact_line_url: input.contact_line_url?.trim() || null,
+      contact_phone: input.contact_phone?.trim() || null,
+      owner_line_user_id: input.owner_line_user_id?.trim() || null,
     })
     .eq("slug", slug)
     .select(paymentSelect)

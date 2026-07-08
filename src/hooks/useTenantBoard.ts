@@ -2,17 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getInvoiceForTenantMonth } from "@/services/invoiceService";
+import { getPropertyContactById } from "@/services/propertyContactService";
 import {
   getRoomById,
   getTenantById,
   getTenantByLineUserId,
 } from "@/services/tenantService";
-import type { Invoice, Room, Tenant } from "@/services/types";
+import type { Invoice, PropertyContact, Room, Tenant } from "@/services/types";
 
 type BoardState = {
   tenant: Tenant;
   room: Room;
   invoice: Invoice | null;
+  contact: PropertyContact | null;
 };
 
 type TenantIdentity = {
@@ -69,7 +71,8 @@ export function useTenantBoard({
       }
 
       const invoice = await getInvoiceForTenantMonth(tenant.id);
-      setBoard({ tenant, room, invoice });
+      const contact = await getPropertyContactById(room.property_id);
+      setBoard({ tenant, room, invoice, contact });
     } catch {
       setBoard(null);
       setError("โหลดข้อมูลไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ");

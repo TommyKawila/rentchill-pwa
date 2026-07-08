@@ -15,12 +15,18 @@ function SettingsContent() {
   const [promptPay, setPromptPay] = useState("");
   const [bankAccount, setBankAccount] = useState("");
   const [receiverName, setReceiverName] = useState("");
+  const [contactLineUrl, setContactLineUrl] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [ownerLineUserId, setOwnerLineUserId] = useState("");
 
   useEffect(() => {
     if (!account) return;
     setPromptPay(account.prompt_pay ?? "");
     setBankAccount(account.bank_account ?? "");
     setReceiverName(account.receiver_name ?? "");
+    setContactLineUrl(account.contact_line_url ?? "");
+    setContactPhone(account.contact_phone ?? "");
+    setOwnerLineUserId(account.owner_line_user_id ?? "");
   }, [account]);
 
   return (
@@ -82,6 +88,42 @@ function SettingsContent() {
             />
           </label>
 
+          <div className="border-t border-zinc-200 pt-6">
+            <h2 className="text-sm font-semibold">{t("settings.contactTitle")}</h2>
+            <p className="mt-1 text-xs text-zinc-500">{t("settings.contactDesc")}</p>
+          </div>
+
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium">{t("settings.contactLineUrl")}</span>
+            <input
+              value={contactLineUrl}
+              onChange={(event) => setContactLineUrl(event.target.value)}
+              placeholder="https://line.me/ti/p/..."
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+            />
+          </label>
+
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium">{t("settings.contactPhone")}</span>
+            <input
+              value={contactPhone}
+              onChange={(event) => setContactPhone(event.target.value)}
+              placeholder="0812345678"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+            />
+          </label>
+
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium">{t("settings.ownerLineUserId")}</span>
+            <input
+              value={ownerLineUserId}
+              onChange={(event) => setOwnerLineUserId(event.target.value)}
+              placeholder="Uxxxxxxxx..."
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+            />
+            <p className="text-xs text-zinc-500">{t("settings.ownerLineHint")}</p>
+          </label>
+
           <button
             type="button"
             disabled={status === "loading" || status === "saving"}
@@ -90,6 +132,9 @@ function SettingsContent() {
                 prompt_pay: promptPay,
                 bank_account: bankAccount,
                 receiver_name: receiverName,
+                contact_line_url: contactLineUrl,
+                contact_phone: contactPhone,
+                owner_line_user_id: ownerLineUserId,
               })
             }
             className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"

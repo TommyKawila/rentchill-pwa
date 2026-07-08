@@ -4,6 +4,7 @@ import { Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { MobileFrame } from "@/components/frames/MobileFrame";
+import { ContactLandlordSkin } from "@/components/skins/minimal/ContactLandlordSkin";
 import { InviteCodeSkin } from "@/components/skins/minimal/InviteCodeSkin";
 import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
@@ -228,6 +229,8 @@ function TenantBoardContent() {
           <p className="text-xs text-zinc-500">{t("tenant.board.waitOwner")}</p>
         </div>
       )}
+
+      {board.contact && <ContactLandlordSkin contact={board.contact} />}
     </MobileFrame>
   );
 }

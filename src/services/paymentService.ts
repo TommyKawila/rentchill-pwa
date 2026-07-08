@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import { INVOICE_SELECT } from "@/services/invoiceFields";
+import { safeNotifyOwnerSlipSubmitted } from "@/services/notificationService";
 import { markInvoiceSlipRejected } from "@/services/invoiceRejectService";
 import { verifyInvoiceSlip } from "@/services/slipVerificationApplyService";
 import type { Invoice } from "@/services/types";
@@ -78,6 +79,8 @@ export async function submitPaymentSlip(
 
   if (error || !data) throw new Error(error?.message ?? "อัปเดตบิลไม่สำเร็จ");
   const invoice = mapInvoice(data);
+
+  void safeNotifyOwnerSlipSubmitted(invoice.id);
 
   if (process.env.EASYSLIP_API_KEY) {
     try {

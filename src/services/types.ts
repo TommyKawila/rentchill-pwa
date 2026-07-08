@@ -12,12 +12,23 @@ export interface PropertyPaymentAccount {
   prompt_pay: string | null;
   bank_account: string | null;
   receiver_name: string | null;
+  contact_line_url: string | null;
+  contact_phone: string | null;
+  owner_line_user_id: string | null;
 }
 
 export type PropertyPaymentInput = {
   prompt_pay?: string | null;
   bank_account?: string | null;
   receiver_name?: string | null;
+  contact_line_url?: string | null;
+  contact_phone?: string | null;
+  owner_line_user_id?: string | null;
+};
+
+export type PropertyContact = {
+  contact_line_url: string | null;
+  contact_phone: string | null;
 };
 
 export type RoomStatus = "available" | "occupied" | "maintenance";

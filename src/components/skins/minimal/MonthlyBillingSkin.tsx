@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { RoomInviteQrSkin } from "@/components/skins/minimal/RoomInviteQrSkin";
 import {
   calculateInvoiceAmounts,
   WATER_RATE,
@@ -66,6 +67,7 @@ export function MonthlyBillingSkin({
   >({});
   const [copiedTenantId, setCopiedTenantId] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const canShare = typeof navigator !== "undefined" && !!navigator.share;
 
   useEffect(() => {
     setMeters(
@@ -168,26 +170,51 @@ export function MonthlyBillingSkin({
               </div>
               {row.invite_url && (
                 <div className="mt-2 space-y-2">
-                  <p className="break-all text-zinc-600">
+                  <p className="hidden break-all text-zinc-600 md:block">
                     {fullInviteUrl(row.invite_url)}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCopyError(null);
-                      void copyText(fullInviteUrl(row.invite_url))
-                        .then(() => {
-                          setCopiedTenantId(row.tenant_id);
-                          window.setTimeout(() => setCopiedTenantId(null), 2000);
-                        })
-                        .catch(() => setCopyError(t("owner.billing.copyFailed")));
-                    }}
-                    className="w-full rounded-md border border-green-300 bg-green-50 py-2 text-sm font-medium text-green-800"
-                  >
-                    {copiedTenantId === row.tenant_id
-                      ? t("owner.billing.copied")
-                      : t("owner.billing.copyInvite")}
-                  </button>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCopyError(null);
+                        void copyText(fullInviteUrl(row.invite_url))
+                          .then(() => {
+                            setCopiedTenantId(row.tenant_id);
+                            window.setTimeout(() => setCopiedTenantId(null), 2000);
+                          })
+                          .catch(() => setCopyError(t("owner.billing.copyFailed")));
+                      }}
+                      className="flex-1 rounded-md border border-green-300 bg-green-50 py-2 text-sm font-medium text-green-800"
+                    >
+                      {copiedTenantId === row.tenant_id
+                        ? t("owner.billing.copied")
+                        : t("owner.billing.copyInvite")}
+                    </button>
+                    {canShare && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCopyError(null);
+                          void navigator
+                            .share({
+                              title: "RentChill",
+                              text: row.tenant_name,
+                              url: fullInviteUrl(row.invite_url),
+                            })
+                            .catch(() => setCopyError(t("owner.billing.copyFailed")));
+                        }}
+                        className="flex-1 rounded-md border border-zinc-300 bg-white py-2 text-sm font-medium text-zinc-800"
+                      >
+                        {t("owner.billing.shareInvite")}
+                      </button>
+                    )}
+                  </div>
+                  <RoomInviteQrSkin
+                    roomNumber={row.room_number}
+                    tenantName={row.tenant_name}
+                    inviteUrl={fullInviteUrl(row.invite_url)}
+                  />
                 </div>
               )}
             </div>
