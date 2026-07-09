@@ -72,7 +72,14 @@ export function ShareLinkModal({
 
           {linkUrl ? (
             <div className="space-y-2">
-              <p className="break-all text-xs text-zinc-600">{linkUrl}</p>
+              <a
+                href={linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="break-all text-xs text-green-700 underline"
+              >
+                {linkUrl}
+              </a>
               {isPermanent ? (
                 <p className="text-xs text-green-700">{t("owner.share.permanent")}</p>
               ) : expiresAt ? (

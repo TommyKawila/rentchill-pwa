@@ -20,12 +20,13 @@ export type ShareViewData = {
   rows: ShareInvoiceRow[];
 };
 
-function shareBaseUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+function shareBaseUrl(origin?: string) {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  return origin?.replace(/\/$/, "") || fromEnv;
 }
 
-function buildShareUrl(token: string) {
-  const base = shareBaseUrl();
+function buildShareUrl(token: string, origin?: string) {
+  const base = shareBaseUrl(origin);
   const path = `/share/${token}`;
   return base ? `${base}${path}` : path;
 }
@@ -47,7 +48,10 @@ async function getPropertyBySlug(propertySlug: string) {
   return data;
 }
 
-export async function createPropertyShareLink(propertySlug: string) {
+export async function createPropertyShareLink(
+  propertySlug: string,
+  origin?: string,
+) {
   const property = await getPropertyBySlug(propertySlug);
   const tier = String(property.plan_tier) as PlanTier;
   const token = newShareToken();
@@ -68,13 +72,16 @@ export async function createPropertyShareLink(propertySlug: string) {
   if (error) throw error;
 
   return {
-    url: buildShareUrl(token),
+    url: buildShareUrl(token, origin),
     expires_at: expiresAt,
     is_permanent: expiresAt === null,
   };
 }
 
-export async function getPropertyShareLink(propertySlug: string) {
+export async function getPropertyShareLink(
+  propertySlug: string,
+  origin?: string,
+) {
   const property = await getPropertyBySlug(propertySlug);
   if (!property.share_token) return null;
 
@@ -85,7 +92,7 @@ export async function getPropertyShareLink(propertySlug: string) {
     expiresAt !== null && new Date(expiresAt).getTime() <= Date.now();
 
   return {
-    url: buildShareUrl(String(property.share_token)),
+    url: buildShareUrl(String(property.share_token), origin),
     expires_at: expiresAt,
     is_permanent: expiresAt === null,
     is_expired: isExpired,

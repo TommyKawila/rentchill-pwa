@@ -11,6 +11,16 @@ type ShareLink = {
 
 type MagicLinkStatus = "idle" | "loading" | "creating" | "error";
 
+function fullShareUrl(url: string) {
+  if (url.startsWith("http")) return url;
+  if (typeof window === "undefined") return url;
+  return new URL(url, window.location.origin).href;
+}
+
+function normalizeShareLink(link: ShareLink): ShareLink {
+  return { ...link, url: fullShareUrl(link.url) };
+}
+
 export function useMagicLink(propertySlug: string) {
   const [link, setLink] = useState<ShareLink | null>(null);
   const [status, setStatus] = useState<MagicLinkStatus>("idle");
@@ -37,7 +47,7 @@ export function useMagicLink(propertySlug: string) {
         throw new Error(payload.error ?? "โหลดลิงก์ไม่สำเร็จ");
       }
 
-      setLink(payload.link ?? null);
+      setLink(payload.link ? normalizeShareLink(payload.link) : null);
       setStatus("idle");
     } catch (err) {
       setStatus("error");
@@ -68,7 +78,7 @@ export function useMagicLink(propertySlug: string) {
         throw new Error(payload.error ?? "สร้างลิงก์ไม่สำเร็จ");
       }
 
-      setLink(payload.link);
+      setLink(normalizeShareLink(payload.link));
       setStatus("idle");
     } catch (err) {
       setStatus("error");
