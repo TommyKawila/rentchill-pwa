@@ -9,6 +9,7 @@ export type OwnerSubscription = {
   status: "active" | "expired";
   expires_at: string | null;
   pending_payment: boolean;
+  pending_plan_requested: UpgradeTier | null;
 };
 
 export type PlatformPaymentRow = {
@@ -42,17 +43,23 @@ export async function getOwnerSubscription(ownerId: string): Promise<OwnerSubscr
   if (error) throw error;
   if (!owner) throw new Error("ไม่พบบัญชีเจ้าของ");
 
-  const { count } = await supabase
+  const { data: pending } = await supabase
     .from("platform_payments")
-    .select("id", { count: "exact", head: true })
+    .select("plan_requested")
     .eq("owner_id", ownerId)
-    .eq("status", "pending");
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return {
     plan_tier: String(owner.plan_tier) as PlanTier,
     status: String(owner.status) as OwnerSubscription["status"],
     expires_at: owner.expires_at ? String(owner.expires_at) : null,
-    pending_payment: (count ?? 0) > 0,
+    pending_payment: Boolean(pending),
+    pending_plan_requested: pending
+      ? (String(pending.plan_requested) as UpgradeTier)
+      : null,
   };
 }
 
