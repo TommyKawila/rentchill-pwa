@@ -24,6 +24,7 @@ export function AdminPlatformShell({
       label: t("admin.platform.nav.slips"),
       badge: pendingPayments > 0 ? pendingPayments : undefined,
     },
+    { href: "/admin/line", label: t("admin.platform.nav.line") },
   ];
 
   return (

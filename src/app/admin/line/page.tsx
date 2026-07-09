@@ -1,111 +1,121 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
-import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
+import { AdminPlatformShell } from "@/components/skins/minimal/AdminPlatformShell";
 import { useLineRichMenu } from "@/hooks/useLineRichMenu";
+import { usePlatformStats } from "@/hooks/usePlatformStats";
 
 function LineSetupContent() {
   const { t } = useLocale();
+  const router = useRouter();
   const { status, loading, deploying, error, success, deploy } = useLineRichMenu();
+  const stats = usePlatformStats();
+  const [showTechnical, setShowTechnical] = useState(false);
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
-      <div className="mx-auto max-w-xl">
-        <header className="border-b border-zinc-200 pb-6">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-              {t("line.tag")}
-            </p>
-            <LocaleToggleSkin />
-          </div>
-          <h1 className="mt-2 text-2xl font-bold">{t("line.title")}</h1>
-          <p className="mt-2 text-sm text-zinc-600">{t("line.desc")}</p>
-        </header>
+    <AdminPlatformShell
+      pendingPayments={stats.stats?.pending_payments ?? 0}
+      onLogout={() => {
+        void fetch("/api/admin/login", { method: "DELETE" }).then(() => {
+          router.replace("/admin/login");
+        });
+      }}
+    >
+      <section className="mt-8 space-y-4 text-sm">
+        <div>
+          <h2 className="text-sm font-semibold">{t("line.title")}</h2>
+          <p className="mt-1 text-xs text-zinc-500">{t("line.desc")}</p>
+        </div>
 
-        <section className="mt-8 space-y-4 text-sm">
-          {loading && <p className="text-zinc-500">{t("common.loading")}</p>}
+        {loading && <p className="text-zinc-500">{t("common.loading")}</p>}
 
-          {status && (
-            <div className="rounded-lg border border-zinc-200 bg-white p-4 space-y-2">
-              <p>
-                <span className="text-zinc-500">{t("line.liffUrl")}</span>{" "}
-                <a href={status.liffUrl} className="break-all underline">
-                  {status.liffUrl}
-                </a>
+        {status && (
+          <div className="rounded-lg border border-zinc-200 bg-white p-4 space-y-2">
+            {status.botReady && status.botName ? (
+              <p className="text-green-700">
+                {t("line.bot")} {status.botName}
               </p>
-              <p>
-                <span className="text-zinc-500">{t("line.endpoint")}</span>{" "}
-                <span className="break-all">{status.endpointUrl}</span>
+            ) : (
+              <p className="text-amber-700">
+                {status.botTokenError
+                  ? `${t("line.botMissing")}: ${status.botTokenError}`
+                  : t("line.tokenMissing")}
               </p>
-              {status.message && (
-                <p className="text-amber-700">{status.message}</p>
-              )}
-              {status.botReady === false && status.botTokenError && (
-                <p className="text-red-700">
-                  Access token invalid: {status.botTokenError}
-                </p>
-              )}
-              {status.botReady && status.botName && (
-                <p className="text-green-700">Bot: {status.botName}</p>
-              )}
-              {status.webhookUrl && (
+            )}
+
+            {status.webhookConfigured ? (
+              <p className="text-green-700">{t("line.webhookReady")}</p>
+            ) : (
+              <p className="text-amber-700">{t("line.webhookMissingSecret")}</p>
+            )}
+
+            {status.message && (
+              <p className="text-amber-700">{status.message}</p>
+            )}
+
+            {status.richmenus && status.richmenus.length > 0 && (
+              <p className="text-zinc-600">
+                {t("line.menus", {
+                  names: status.richmenus.map((m) => m.name).join(", "),
+                })}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowTechnical((v) => !v)}
+              className="text-xs text-zinc-500 underline"
+            >
+              {t("line.technical")}
+            </button>
+
+            {showTechnical && (
+              <div className="space-y-2 border-t border-zinc-100 pt-2 text-xs text-zinc-600">
                 <p>
-                  <span className="text-zinc-500">{t("line.webhookUrl")}</span>{" "}
-                  <span className="break-all">{status.webhookUrl}</span>
+                  <span className="text-zinc-500">{t("line.liffUrl")}</span>{" "}
+                  <a href={status.liffUrl} className="break-all underline">
+                    {status.liffUrl}
+                  </a>
                 </p>
-              )}
-              {status.webhookConfigured ? (
-                <p className="text-green-700">{t("line.webhookReady")}</p>
-              ) : (
-                <p className="text-amber-700">{t("line.webhookMissingSecret")}</p>
-              )}
-              {status.richmenus && status.richmenus.length > 0 && (
-                <p className="text-zinc-600">
-                  {t("line.menus", {
-                    names: status.richmenus.map((m) => m.name).join(", "),
-                  })}
+                <p>
+                  <span className="text-zinc-500">{t("line.endpoint")}</span>{" "}
+                  <span className="break-all">{status.endpointUrl}</span>
                 </p>
-              )}
-            </div>
-          )}
+                {status.webhookUrl && (
+                  <p>
+                    <span className="text-zinc-500">{t("line.webhookUrl")}</span>{" "}
+                    <span className="break-all">{status.webhookUrl}</span>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
-          <ol className="list-decimal space-y-2 pl-5 text-zinc-600">
-            <li>{t("line.step1")}</li>
-            <li>{t("line.step2")}</li>
-            <li>{t("line.step3")}</li>
-            <li>{t("line.step4")}</li>
-            <li>{t("line.step5")}</li>
-            <li>{t("line.step6")}</li>
-          </ol>
+        <button
+          type="button"
+          disabled={deploying || loading || !status?.configured}
+          onClick={() => void deploy()}
+          className="w-full rounded-md bg-zinc-900 py-3 font-medium text-white disabled:opacity-50"
+        >
+          {deploying ? t("line.deploying") : t("line.deploy")}
+        </button>
 
-          <button
-            type="button"
-            disabled={deploying || loading}
-            onClick={() => void deploy()}
-            className="w-full rounded-md bg-zinc-900 py-3 font-medium text-white disabled:opacity-50"
-          >
-            {deploying ? t("line.deploying") : t("line.deploy")}
-          </button>
+        {success && (
+          <p className="rounded-md border border-green-200 bg-green-50 p-3 text-green-800">
+            {success}
+          </p>
+        )}
 
-          {success && (
-            <p className="rounded-md border border-green-200 bg-green-50 p-3 text-green-800">
-              {success}
-            </p>
-          )}
-
-          {error && (
-            <p className="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">
-              {error}
-            </p>
-          )}
-
-          <a href="/dashboard" className="block text-center underline">
-            {t("common.backToDashboard")}
-          </a>
-        </section>
-      </div>
-    </main>
+        {error && (
+          <p className="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">
+            {error}
+          </p>
+        )}
+      </section>
+    </AdminPlatformShell>
   );
 }
 

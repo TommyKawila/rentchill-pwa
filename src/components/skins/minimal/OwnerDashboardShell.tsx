@@ -42,7 +42,6 @@ export function OwnerDashboardShell({
       label: t("owner.nav.settings"),
       externalProperty: true,
     },
-    { href: "/admin/line", label: t("owner.nav.line"), externalProperty: false },
   ] as const;
 
   return (

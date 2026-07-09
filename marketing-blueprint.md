@@ -70,7 +70,22 @@ UI must feel solid, trustworthy, and distraction-free. Minimalist structure. Cle
 
 ---
 
-## 4. Target Segments & Core Messages
+## 4. Competitive Advantage (RentChill vs Legacy ERPs)
+
+Legacy Thai PMS tools (e.g. Roomie, Horganice) are built as complex ERPs for 500+ room dorms with dedicated staff. RentChill wins Solopreneurs and Micro-Investors (1–100 rooms) through **Less is More** and the **Shield** philosophy.
+
+| Dimension | Legacy ERPs | RentChill |
+|-----------|-------------|-----------|
+| **The Cockpit vs. The ATM** | Steep learning curve, cluttered desktop UI | Minimal, mobile-first Card UI — learn in ~1 minute |
+| **App Fatigue vs. Zero Friction** | Force app downloads or complex portal logins | Seamless LINE LIFF — tenants pay and upload slips with zero friction |
+| **Feature Bloat vs. Laser Focus** | Internal chat, contract generators, ERP sprawl | Perfect billing, auto-reminders, CSV export only; chat via **Zero-Dev Chat Routing** (landlord's LINE/phone) |
+| **Pricing** | Feature-gated tiers | Flat-rate by volume — all premium features included |
+
+**Positioning rule:** We do not compete on "most features." We compete on *least hassle* for landlords who want to chill.
+
+---
+
+## 5. Target Segments & Core Messages
 
 ### Segment A — Micro-Investors (1–10 rooms)
 
@@ -102,7 +117,7 @@ UI must feel solid, trustworthy, and distraction-free. Minimalist structure. Cle
 
 ---
 
-## 5. Zero-Friction Ad Funnel
+## 6. Zero-Friction Ad Funnel
 
 ไม่บังคับกรอกฟอร์มยาว — ใช้ LINE เป็นทางเข้าเดียว
 
@@ -114,7 +129,7 @@ UI must feel solid, trustworthy, and distraction-free. Minimalist structure. Cle
 
 ---
 
-## 6. Visual & Brand Guidelines
+## 7. Visual & Brand Guidelines
 
 **Color Palette:** เขียว `#16a34a` · ดำ · เทา Zinc · ขาว (4 สีเท่านั้น)
 
