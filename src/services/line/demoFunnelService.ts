@@ -2,16 +2,37 @@ import { buildBoardLiffUrl } from "@/services/line/liffUrls";
 import type { LineReplyMessage } from "@/services/line/replyMessageService";
 import { buildTenantInviteUrl } from "@/services/tenantLinkService";
 
+const PRODUCTION_APP_URL = "https://rentchill-pwa.vercel.app";
+
+function resolveAbsoluteAppBase() {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  if (fromEnv.startsWith("http://") || fromEnv.startsWith("https://")) {
+    return fromEnv;
+  }
+  return PRODUCTION_APP_URL;
+}
+
+function toAbsoluteUrl(pathOrUrl: string) {
+  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+    return pathOrUrl;
+  }
+  const base = resolveAbsoluteAppBase();
+  const path = pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`;
+  return `${base}${path}`;
+}
+
 export function getDemoFunnelUrls() {
-  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const base = resolveAbsoluteAppBase();
   const propertySlug = process.env.LINE_DEMO_PROPERTY_SLUG ?? "demo-apartment";
   const inviteCode = process.env.LINE_DEMO_INVITE_CODE ?? "RCDEMO1";
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
 
-  const propertyUrl = base ? `${base}/${propertySlug}` : `/${propertySlug}`;
-  const tenantBoardUrl = liffId
-    ? buildBoardLiffUrl(liffId, { invite: inviteCode })
-    : buildTenantInviteUrl(inviteCode);
+  const propertyUrl = `${base}/${propertySlug}`;
+  const tenantBoardUrl = toAbsoluteUrl(
+    liffId
+      ? buildBoardLiffUrl(liffId, { invite: inviteCode })
+      : buildTenantInviteUrl(inviteCode),
+  );
 
   return { propertyUrl, tenantBoardUrl, propertySlug, inviteCode };
 }
@@ -41,15 +62,14 @@ export function buildDemoWelcomeTextMessages(): LineReplyMessage[] {
     {
       type: "text",
       text: [
-        "🏠 RentChill Demo",
-        "ลองระบบบิลค่าเช่าได้ทันที — ไม่ต้องสมัคร",
-        "Try RentChill now — no signup required",
+        "RentChill Demo",
+        "ลองบิลค่าเช่าฟรี — ไม่ต้องสมัคร",
         "",
-        "ดูหน้าหอ / Property:",
-        propertyUrl,
-        "",
-        "ลองบิลลูกบ้าน / Tenant bill:",
+        "ลองบิลลูกบ้าน:",
         tenantBoardUrl,
+        "",
+        "ดูหน้าหอ:",
+        propertyUrl,
       ].join("\n"),
     },
   ];
@@ -61,28 +81,48 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
   return [
     {
       type: "flex",
-      altText: "RentChill Demo — ลองใช้ระบบบิลค่าเช่า",
+      altText: "RentChill Demo — ลองบิลค่าเช่าฟรี ไม่ต้องสมัคร",
       contents: {
         type: "bubble",
         size: "mega",
+        styles: {
+          header: { separator: true },
+          footer: { separator: true },
+        },
         header: {
           type: "box",
           layout: "vertical",
-          backgroundColor: "#16a34a",
+          backgroundColor: "#fafafa",
           paddingAll: "20px",
           contents: [
             {
-              type: "text",
-              text: "RentChill",
-              color: "#ffffff",
-              weight: "bold",
-              size: "xl",
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                {
+                  type: "text",
+                  text: "RentChill",
+                  color: "#18181b",
+                  weight: "bold",
+                  size: "xl",
+                  flex: 1,
+                },
+                {
+                  type: "text",
+                  text: "Demo",
+                  color: "#16a34a",
+                  size: "xs",
+                  weight: "bold",
+                  flex: 0,
+                },
+              ],
             },
             {
               type: "text",
-              text: "Interactive Demo",
-              color: "#dcfce7",
-              size: "sm",
+              text: "ลองใช้ฟรี · ไม่ต้องสมัคร",
+              color: "#71717a",
+              size: "xs",
               margin: "sm",
             },
           ],
@@ -92,76 +132,73 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
           layout: "vertical",
           spacing: "md",
           paddingAll: "20px",
+          backgroundColor: "#ffffff",
           contents: [
             {
               type: "text",
               text: "ลองระบบบิลค่าเช่าได้ทันที",
               weight: "bold",
-              size: "md",
+              size: "lg",
               color: "#18181b",
             },
             {
               type: "text",
-              text: "ไม่ต้องสมัคร · โปร่งใส · จ่ายผ่าน LINE",
+              text: "ดูบิล ส่งสลิป ตรวจอัตโนมัติ — ทุกอย่างผ่าน LINE",
               wrap: true,
               size: "sm",
               color: "#71717a",
             },
             {
               type: "text",
-              text: "Try RentChill now — no signup required",
+              text: "Try free — no signup required",
               wrap: true,
               size: "xs",
               color: "#a1a1aa",
               margin: "sm",
             },
-            { type: "separator", margin: "md" },
+            { type: "separator", margin: "lg", color: "#f4f4f5" },
             {
               type: "box",
               layout: "vertical",
-              spacing: "sm",
+              spacing: "md",
               contents: [
                 {
                   type: "box",
-                  layout: "baseline",
-                  spacing: "sm",
+                  layout: "vertical",
+                  spacing: "xs",
                   contents: [
                     {
                       type: "text",
-                      text: "●",
-                      color: "#16a34a",
+                      text: "หน้าหอ",
                       size: "xs",
-                      flex: 0,
+                      color: "#a1a1aa",
                     },
                     {
                       type: "text",
-                      text: `ดูหน้าหอ ${propertySlug}`,
+                      text: propertySlug,
                       size: "sm",
-                      color: "#3f3f46",
-                      wrap: true,
-                      flex: 1,
+                      weight: "bold",
+                      color: "#18181b",
                     },
                   ],
                 },
                 {
                   type: "box",
-                  layout: "baseline",
-                  spacing: "sm",
+                  layout: "vertical",
+                  spacing: "xs",
                   contents: [
                     {
                       type: "text",
-                      text: "●",
-                      color: "#16a34a",
+                      text: "บิลลูกบ้าน",
                       size: "xs",
-                      flex: 0,
+                      color: "#a1a1aa",
                     },
                     {
                       type: "text",
-                      text: "ลองบิลลูกบ้าน + ส่งสลิป",
+                      text: "เปิดบิล · ส่งสลิป · ตรวจอัตโนมัติ",
                       size: "sm",
                       color: "#3f3f46",
                       wrap: true,
-                      flex: 1,
                     },
                   ],
                 },
@@ -174,6 +211,7 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
           layout: "vertical",
           spacing: "sm",
           paddingAll: "16px",
+          backgroundColor: "#fafafa",
           contents: [
             {
               type: "button",
@@ -192,7 +230,7 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
               height: "sm",
               action: {
                 type: "uri",
-                label: "ดูหน้าหอพัก",
+                label: "ดูหน้าหอ",
                 uri: propertyUrl,
               },
             },
@@ -204,6 +242,6 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
 }
 
 export function buildWebhookUrl() {
-  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
-  return base ? `${base}/api/line/webhook` : "/api/line/webhook";
+  const base = resolveAbsoluteAppBase();
+  return `${base}/api/line/webhook`;
 }
