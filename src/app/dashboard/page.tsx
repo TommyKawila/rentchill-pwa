@@ -324,7 +324,11 @@ function DashboardContent() {
         onAddRoom={handleAddRoom}
         addRoomSaving={addRoomTenant.status === "saving"}
         addRoomError={addRoomTenant.error}
-        canAddRoom={(propertyPlan.plan?.rooms_remaining ?? 0) > 0}
+        canAddRoom={
+          propertyPlan.plan
+            ? propertyPlan.plan.rooms_remaining > 0
+            : true
+        }
         roomsRemaining={propertyPlan.plan?.rooms_remaining}
         billingHref={
           propertySlug
