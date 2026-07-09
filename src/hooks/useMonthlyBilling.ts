@@ -20,6 +20,8 @@ const defaultSettings: PropertyBillingSettings = {
   billing_day: 1,
   meter_reminder_days_before: 3,
   include_utilities: true,
+  water_rate_per_unit: 10,
+  electric_rate_per_unit: 7,
 };
 
 export function useMonthlyBilling(propertySlug: string) {

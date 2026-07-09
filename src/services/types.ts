@@ -18,6 +18,8 @@ export interface PropertyPaymentAccount {
   billing_day: number;
   meter_reminder_days_before: number;
   include_utilities: boolean;
+  water_rate_per_unit: number;
+  electric_rate_per_unit: number;
 }
 
 export type PropertyPaymentInput = {
@@ -30,6 +32,8 @@ export type PropertyPaymentInput = {
   billing_day?: number;
   meter_reminder_days_before?: number;
   include_utilities?: boolean;
+  water_rate_per_unit?: number;
+  electric_rate_per_unit?: number;
 };
 
 export type PropertyContact = {

@@ -1,13 +1,15 @@
+import { getOwnerQuota } from "@/services/ownerQuotaService";
+import {
+  getProjectLimit,
+  getRoomLimit,
+  TIER_PROJECT_LIMITS,
+  TIER_ROOM_LIMITS,
+} from "@/services/planLimits";
 import { getPropertyQuota } from "@/services/propertyQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 import type { PlanTier } from "@/services/propertyQuotaService";
 
-export const TIER_ROOM_LIMITS: Record<PlanTier, number> = {
-  starter: 3,
-  micro: 20,
-  growth: 50,
-  pro: 100,
-};
+export { TIER_PROJECT_LIMITS, TIER_ROOM_LIMITS, getProjectLimit, getRoomLimit };
 
 export type UpgradeTier = Exclude<PlanTier, "starter">;
 
@@ -19,6 +21,9 @@ export const TIER_PRICES_THB: Record<UpgradeTier, number> = {
 
 export type PropertyPlanUsage = {
   plan_tier: PlanTier;
+  project_count: number;
+  project_limit: number;
+  projects_remaining: number;
   room_count: number;
   room_limit: number;
   rooms_remaining: number;
@@ -27,10 +32,6 @@ export type PropertyPlanUsage = {
   line_push_remaining: number;
 };
 
-export function getRoomLimit(tier: PlanTier) {
-  return TIER_ROOM_LIMITS[tier];
-}
-
 export async function getPropertyPlanUsage(
   propertySlug: string,
 ): Promise<PropertyPlanUsage> {
@@ -38,76 +39,29 @@ export async function getPropertyPlanUsage(
 
   const { data: property, error: propertyError } = await supabase
     .from("properties")
-    .select("id, plan_tier")
+    .select("id, owner_id")
     .eq("slug", propertySlug)
     .maybeSingle();
 
   if (propertyError) throw propertyError;
-  if (!property) throw new Error("ไม่พบหอพัก");
+  if (!property) throw new Error("ไม่พบโครงการ");
 
-  const tier = String(property.plan_tier) as PlanTier;
-  const roomLimit = getRoomLimit(tier);
+  const ownerId = property.owner_id ? String(property.owner_id) : null;
+  if (!ownerId) throw new Error("ไม่พบเจ้าของโครงการ");
 
-  const { count, error: countError } = await supabase
-    .from("rooms")
-    .select("id", { count: "exact", head: true })
-    .eq("property_id", property.id);
-
-  if (countError) throw countError;
-
-  const roomCount = count ?? 0;
-  const quota = await getPropertyQuota(propertySlug);
+  const ownerQuota = await getOwnerQuota(ownerId);
+  const lineQuota = await getPropertyQuota(propertySlug);
 
   return {
-    plan_tier: tier,
-    room_count: roomCount,
-    room_limit: roomLimit,
-    rooms_remaining: Math.max(0, roomLimit - roomCount),
-    line_push_used: quota.line_push_used,
-    line_push_limit: quota.line_push_limit,
-    line_push_remaining: quota.line_push_remaining,
+    plan_tier: ownerQuota.plan_tier,
+    project_count: ownerQuota.project_count,
+    project_limit: ownerQuota.project_limit,
+    projects_remaining: ownerQuota.projects_remaining,
+    room_count: ownerQuota.room_count,
+    room_limit: ownerQuota.room_limit,
+    rooms_remaining: ownerQuota.rooms_remaining,
+    line_push_used: lineQuota.line_push_used,
+    line_push_limit: lineQuota.line_push_limit,
+    line_push_remaining: lineQuota.line_push_remaining,
   };
-}
-
-export async function assertRoomCapacity(
-  propertyId: string,
-  propertySlug: string,
-  incomingRoomNumbers: string[],
-) {
-  const supabase = createAdminClient();
-
-  const { data: property, error: propertyError } = await supabase
-    .from("properties")
-    .select("plan_tier")
-    .eq("id", propertyId)
-    .maybeSingle();
-
-  if (propertyError) throw propertyError;
-  if (!property) throw new Error("ไม่พบหอพัก");
-
-  const tier = String(property.plan_tier) as PlanTier;
-  const roomLimit = getRoomLimit(tier);
-
-  const { data: existingRooms, error: roomsError } = await supabase
-    .from("rooms")
-    .select("room_number")
-    .eq("property_id", propertyId);
-
-  if (roomsError) throw roomsError;
-
-  const merged = new Set([
-    ...(existingRooms ?? []).map((room) => String(room.room_number)),
-    ...incomingRoomNumbers,
-  ]);
-
-  if (merged.size > roomLimit) {
-    const error = new Error("ROOM_LIMIT_EXCEEDED");
-    Object.assign(error, {
-      slug: propertySlug,
-      limit: roomLimit,
-      total: merged.size,
-      tier,
-    });
-    throw error;
-  }
 }

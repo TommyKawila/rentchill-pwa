@@ -4,7 +4,6 @@ import { useLocale } from "@/components/LocaleProvider";
 import { statusMessageKey } from "@/services/i18n/translate";
 import type { InvoiceStatus } from "@/services/types";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
-import { WATER_RATE, ELECTRIC_RATE } from "@/services/invoiceCalculator";
 
 export type RoomListRow = MonthlyBillingRow & {
   no: number;
@@ -15,6 +14,8 @@ interface RoomListSkinProps {
   billingMonth: string;
   billingDay: number;
   includeUtilities: boolean;
+  waterRate: number;
+  electricRate: number;
   rows: RoomListRow[];
   disabled?: boolean;
   editableCount: number;
@@ -40,6 +41,8 @@ export function RoomListSkin({
   billingMonth,
   billingDay,
   includeUtilities,
+  waterRate,
+  electricRate,
   rows,
   disabled,
   editableCount,
@@ -62,8 +65,8 @@ export function RoomListSkin({
           {includeUtilities
             ? t("owner.billing.rates", {
                 month: billingMonth,
-                water: WATER_RATE,
-                electric: ELECTRIC_RATE,
+                water: waterRate,
+                electric: electricRate,
               })
             : t("owner.billing.rentOnly")}
         </p>

@@ -115,16 +115,26 @@ export async function updateInvoiceMeters(
 
   const { data: current, error: readError } = await supabase
     .from("invoices")
-    .select("id, base_rent_amount")
+    .select(
+      "id, base_rent_amount, property_id, properties(water_rate_per_unit, electric_rate_per_unit)",
+    )
     .eq("id", invoiceId)
     .single();
 
   if (readError || !current) throw new Error("ไม่พบบิล");
 
+  const propertyRaw = current.properties as
+    | { water_rate_per_unit: number; electric_rate_per_unit: number }
+    | { water_rate_per_unit: number; electric_rate_per_unit: number }[]
+    | null;
+  const property = Array.isArray(propertyRaw) ? propertyRaw[0] : propertyRaw;
+
   const amounts = calculateInvoiceAmounts(
     Number(current.base_rent_amount),
     waterUnit,
     electricUnit,
+    Number(property?.water_rate_per_unit ?? 10),
+    Number(property?.electric_rate_per_unit ?? 7),
   );
 
   const { data, error } = await supabase

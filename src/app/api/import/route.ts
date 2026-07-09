@@ -38,13 +38,25 @@ export async function POST(request: Request) {
 
     if (error instanceof Error && error.message === "ROOM_LIMIT_EXCEEDED") {
       const detail = error as Error & {
-        slug?: string;
         limit?: number;
         total?: number;
       };
       return NextResponse.json(
         {
-          error: `เกินโควต้าห้อง ${detail.total ?? "?"}/${detail.limit ?? "?"} สำหรับ ${detail.slug ?? "หอพัก"} — อัปเกรดแผนเพื่อเพิ่มห้อง`,
+          error: `เกินโควต้าห้องรวม ${detail.total ?? "?"}/${detail.limit ?? "?"} — อัปเกรดแผนเพื่อเพิ่มห้อง`,
+        },
+        { status: 403 },
+      );
+    }
+
+    if (error instanceof Error && error.message === "PROJECT_LIMIT_EXCEEDED") {
+      const detail = error as Error & {
+        limit?: number;
+        total?: number;
+      };
+      return NextResponse.json(
+        {
+          error: `เกินโควต้าโครงการ ${detail.total ?? "?"}/${detail.limit ?? "?"} — อัปเกรดแผนเพื่อเพิ่มโครงการ`,
         },
         { status: 403 },
       );

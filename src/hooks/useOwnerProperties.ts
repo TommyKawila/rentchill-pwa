@@ -23,14 +23,14 @@ export function useOwnerProperties() {
       };
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error ?? "โหลดหอพักไม่สำเร็จ");
+        throw new Error(payload.error ?? "โหลดโครงการไม่สำเร็จ");
       }
 
       setProperties(payload.properties ?? []);
       setStatus("idle");
     } catch (err) {
       setStatus("error");
-      setError(err instanceof Error ? err.message : "โหลดหอพักไม่สำเร็จ");
+      setError(err instanceof Error ? err.message : "โหลดโครงการไม่สำเร็จ");
     }
   }, []);
 

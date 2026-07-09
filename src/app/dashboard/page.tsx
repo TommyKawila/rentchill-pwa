@@ -266,6 +266,8 @@ function DashboardContent() {
         billingMonth={billing.billingMonth}
         billingDay={billing.settings.billing_day}
         includeUtilities={billing.settings.include_utilities}
+        waterRate={billing.settings.water_rate_per_unit}
+        electricRate={billing.settings.electric_rate_per_unit}
         rows={listRows}
         disabled={isSaving}
         editableCount={editableCount}
@@ -279,6 +281,8 @@ function DashboardContent() {
         <RoomDetailModal
           row={selectedRow}
           includeUtilities={billing.settings.include_utilities}
+          waterRate={billing.settings.water_rate_per_unit}
+          electricRate={billing.settings.electric_rate_per_unit}
           reviewInvoice={reviewInvoice}
           paidInvoice={paidInvoice}
           disabled={isSaving}

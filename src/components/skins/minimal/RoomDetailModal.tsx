@@ -15,6 +15,8 @@ import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
 interface RoomDetailModalProps {
   row: MonthlyBillingRow;
   includeUtilities: boolean;
+  waterRate: number;
+  electricRate: number;
   reviewInvoice?: InvoiceOverrideRow | null;
   paidInvoice?: InvoiceOverrideRow | null;
   disabled?: boolean;
@@ -61,6 +63,8 @@ async function copyText(text: string) {
 export function RoomDetailModal({
   row,
   includeUtilities,
+  waterRate,
+  electricRate,
   reviewInvoice,
   paidInvoice,
   disabled,
@@ -88,6 +92,8 @@ export function RoomDetailModal({
     row.base_rent_price,
     water,
     electric,
+    waterRate,
+    electricRate,
   );
 
   useEffect(() => {

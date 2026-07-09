@@ -5,8 +5,6 @@ import { useLocale } from "@/components/LocaleProvider";
 import { RoomInviteQrSkin } from "@/components/skins/minimal/RoomInviteQrSkin";
 import {
   calculateInvoiceAmounts,
-  WATER_RATE,
-  ELECTRIC_RATE,
 } from "@/services/invoiceCalculator";
 import { statusMessageKey } from "@/services/i18n/translate";
 import {
@@ -23,6 +21,8 @@ interface MonthlyBillingSkinProps {
   billingMonth: string;
   billingDay: number;
   includeUtilities: boolean;
+  waterRate: number;
+  electricRate: number;
   rows: MonthlyBillingRow[];
   disabled?: boolean;
   result?: {
@@ -70,6 +70,8 @@ export function MonthlyBillingSkin({
   billingMonth,
   billingDay,
   includeUtilities,
+  waterRate,
+  electricRate,
   rows,
   disabled,
   result,
@@ -153,8 +155,8 @@ export function MonthlyBillingSkin({
             {includeUtilities
               ? t("owner.billing.rates", {
                   month: billingMonth,
-                  water: WATER_RATE,
-                  electric: ELECTRIC_RATE,
+                  water: waterRate,
+                  electric: electricRate,
                 })
               : t("owner.billing.rentOnly")}
           </p>
@@ -183,6 +185,8 @@ export function MonthlyBillingSkin({
           row.base_rent_price,
           water,
           electric,
+          waterRate,
+          electricRate,
         );
         const locked = isLocked(row.invoice_status);
 

@@ -9,6 +9,7 @@ interface PlanUsageSkinProps {
 
 export function PlanUsageSkin({ plan }: PlanUsageSkinProps) {
   const { t } = useLocale();
+  const atProjectLimit = plan.projects_remaining <= 0;
   const atRoomLimit = plan.rooms_remaining <= 0;
   const lineLow =
     plan.line_push_remaining <= Math.max(1, Math.floor(plan.line_push_limit * 0.2));
@@ -16,7 +17,7 @@ export function PlanUsageSkin({ plan }: PlanUsageSkinProps) {
   return (
     <div
       className={`mt-3 rounded-lg border px-4 py-3 ${
-        atRoomLimit
+        atProjectLimit || atRoomLimit
           ? "border-amber-300 bg-amber-50"
           : "border-zinc-200 bg-white"
       }`}
@@ -25,13 +26,28 @@ export function PlanUsageSkin({ plan }: PlanUsageSkinProps) {
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-600">
           {t(`owner.plan.tier.${plan.plan_tier}`)}
         </p>
-        <p className={`text-sm font-semibold ${atRoomLimit ? "text-amber-900" : "text-zinc-900"}`}>
-          {t("owner.plan.rooms", {
-            count: plan.room_count,
-            limit: plan.room_limit,
+        <p
+          className={`text-sm font-semibold ${
+            atProjectLimit || atRoomLimit ? "text-amber-900" : "text-zinc-900"
+          }`}
+        >
+          {t("owner.plan.projects", {
+            count: plan.project_count,
+            limit: plan.project_limit,
           })}
         </p>
       </div>
+
+      <p
+        className={`mt-1 text-sm font-semibold ${
+          atRoomLimit ? "text-amber-900" : "text-zinc-900"
+        }`}
+      >
+        {t("owner.plan.roomsTotal", {
+          count: plan.room_count,
+          limit: plan.room_limit,
+        })}
+      </p>
 
       <p
         className={`mt-2 text-xs ${
@@ -48,6 +64,11 @@ export function PlanUsageSkin({ plan }: PlanUsageSkinProps) {
         })}
       </p>
 
+      {atProjectLimit && (
+        <p className="mt-1 text-xs text-amber-800">
+          {t("owner.projectLimitReached")}
+        </p>
+      )}
       {atRoomLimit && (
         <p className="mt-1 text-xs text-amber-800">{t("owner.plan.limitReached")}</p>
       )}

@@ -6,6 +6,8 @@ export type PropertyBillingSettings = {
   billing_day: number;
   meter_reminder_days_before: number;
   include_utilities: boolean;
+  water_rate_per_unit: number;
+  electric_rate_per_unit: number;
 };
 
 export function getBangkokDayOfMonth(date = new Date()) {
@@ -39,6 +41,11 @@ export function clampBillingDay(value: number) {
 
 export function clampReminderDays(value: number) {
   return Math.min(7, Math.max(1, Math.round(value)));
+}
+
+export function clampUtilityRate(value: number) {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.min(999, Math.round(value * 100) / 100);
 }
 
 export function isRowEditable(row: MonthlyBillingRow) {

@@ -1,6 +1,7 @@
 import {
   clampBillingDay,
   clampReminderDays,
+  clampUtilityRate,
 } from "@/services/propertyBillingSettingsService";
 import { createAdminClient } from "@/services/supabase/admin";
 import { createServerClient } from "@/services/supabase/server";
@@ -20,11 +21,13 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
     billing_day: Number(row.billing_day ?? 1),
     meter_reminder_days_before: Number(row.meter_reminder_days_before ?? 3),
     include_utilities: row.include_utilities !== false,
+    water_rate_per_unit: Number(row.water_rate_per_unit ?? 10),
+    electric_rate_per_unit: Number(row.electric_rate_per_unit ?? 7),
   };
 }
 
 const paymentSelect =
-  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_phone, owner_line_user_id, billing_day, meter_reminder_days_before, include_utilities";
+  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_phone, owner_line_user_id, billing_day, meter_reminder_days_before, include_utilities, water_rate_per_unit, electric_rate_per_unit";
 
 export async function getPropertyPaymentBySlug(
   slug: string,
@@ -81,6 +84,16 @@ export async function updatePropertyPayment(
         : {}),
       ...(input.include_utilities !== undefined
         ? { include_utilities: input.include_utilities }
+        : {}),
+      ...(input.water_rate_per_unit !== undefined
+        ? { water_rate_per_unit: clampUtilityRate(input.water_rate_per_unit) }
+        : {}),
+      ...(input.electric_rate_per_unit !== undefined
+        ? {
+            electric_rate_per_unit: clampUtilityRate(
+              input.electric_rate_per_unit,
+            ),
+          }
         : {}),
     })
     .eq("slug", slug)

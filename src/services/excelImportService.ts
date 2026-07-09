@@ -1,6 +1,9 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import type { ImportRow } from "@/services/excel/parseWorkbook";
-import { assertRoomCapacity } from "@/services/planTierService";
+import {
+  assertOwnerCanAddProject,
+  assertOwnerRoomCapacity,
+} from "@/services/ownerQuotaService";
 
 export type ImportResult = {
   property_slug: string;
@@ -22,6 +25,26 @@ export async function importPropertyRooms(
   }
 
   const results: ImportResult[] = [];
+  const existingSlugs = new Set<string>();
+
+  const { data: ownedProperties, error: ownedError } = await supabase
+    .from("properties")
+    .select("slug")
+    .eq("owner_id", ownerId);
+
+  if (ownedError) throw ownedError;
+  for (const row of ownedProperties ?? []) {
+    existingSlugs.add(String(row.slug));
+  }
+
+  const newProjectCount = [...grouped.keys()].filter(
+    (slug) => !existingSlugs.has(slug),
+  ).length;
+  if (newProjectCount > 0) {
+    await assertOwnerCanAddProject(ownerId, {
+      additionalProjects: newProjectCount,
+    });
+  }
 
   for (const [slug, propertyRows] of grouped) {
     const propertyName = propertyRows[0].property_name;
@@ -48,11 +71,10 @@ export async function importPropertyRooms(
       if (ownerError) throw ownerError;
     }
 
-    await assertRoomCapacity(
-      property.id,
-      slug,
-      propertyRows.map((row) => row.room_number),
-    );
+    await assertOwnerRoomCapacity(ownerId, {
+      propertyId: property.id,
+      incomingRoomNumbers: propertyRows.map((row) => row.room_number),
+    });
 
     const roomPayload = propertyRows.map((row) => ({
       property_id: property.id,

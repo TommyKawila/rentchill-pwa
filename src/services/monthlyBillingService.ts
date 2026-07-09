@@ -34,7 +34,7 @@ async function getPropertyContext(propertySlug: string) {
   const { data, error } = await supabase
     .from("properties")
     .select(
-      "id, billing_day, meter_reminder_days_before, include_utilities",
+      "id, billing_day, meter_reminder_days_before, include_utilities, water_rate_per_unit, electric_rate_per_unit",
     )
     .eq("slug", propertySlug)
     .maybeSingle();
@@ -46,6 +46,8 @@ async function getPropertyContext(propertySlug: string) {
     billing_day: Number(data.billing_day ?? 1),
     meter_reminder_days_before: Number(data.meter_reminder_days_before ?? 3),
     include_utilities: data.include_utilities !== false,
+    water_rate_per_unit: Number(data.water_rate_per_unit ?? 10),
+    electric_rate_per_unit: Number(data.electric_rate_per_unit ?? 7),
   };
 
   return { propertyId: String(data.id), settings };
@@ -166,7 +168,13 @@ export async function generateMonthlyInvoices(
       | { base_rent_price: number; room_number: string }[];
     const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
     const baseRent = Number(room.base_rent_price);
-    const amounts = calculateInvoiceAmounts(baseRent, waterUnit, electricUnit);
+    const amounts = calculateInvoiceAmounts(
+      baseRent,
+      waterUnit,
+      electricUnit,
+      settings.water_rate_per_unit,
+      settings.electric_rate_per_unit,
+    );
 
     const { data: existing, error: existingError } = await supabase
       .from("invoices")
