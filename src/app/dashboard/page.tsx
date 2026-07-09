@@ -9,6 +9,7 @@ import { ShareLinkModal } from "@/components/skins/minimal/ShareLinkModal";
 import { RoomListSkin } from "@/components/skins/minimal/RoomListSkin";
 import { RoomDetailModal } from "@/components/skins/minimal/RoomDetailModal";
 import { SubscriptionBannerSkin } from "@/components/skins/minimal/SubscriptionBannerSkin";
+import { useAddRoomTenant } from "@/hooks/useAddRoomTenant";
 import { useCsvExport } from "@/hooks/useCsvExport";
 import { useInvoiceOverride } from "@/hooks/useInvoiceOverride";
 import { useMagicLink } from "@/hooks/useMagicLink";
@@ -58,6 +59,7 @@ function DashboardContent() {
   const magicLink = useMagicLink(propertySlug);
   const propertyPlan = usePropertyPlan(propertySlug);
   const ownerSubscription = useOwnerSubscription();
+  const addRoomTenant = useAddRoomTenant(propertySlug);
 
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -150,6 +152,7 @@ function DashboardContent() {
 
   const isSaving =
     billing.status === "saving" ||
+    addRoomTenant.status === "saving" ||
     override.status === "saving" ||
     reminder.status === "sending" ||
     csvExport.status === "exporting" ||
@@ -193,6 +196,16 @@ function DashboardContent() {
       }));
 
     void billing.generate(entries).then(() => override.reload());
+  };
+
+  const handleAddRoom = (form: Parameters<typeof addRoomTenant.add>[0]) => {
+    void addRoomTenant
+      .add(form)
+      .then(async (result) => {
+        await billing.reload();
+        setSelectedTenantId(result.tenant_id);
+      })
+      .catch(() => {});
   };
 
   return (
@@ -281,6 +294,9 @@ function DashboardContent() {
         result={billing.result}
         onSelect={setSelectedTenantId}
         onSubmit={handleBulkSubmit}
+        onAddRoom={handleAddRoom}
+        addRoomSaving={addRoomTenant.status === "saving"}
+        addRoomError={addRoomTenant.error}
       />
 
       {selectedRow && (

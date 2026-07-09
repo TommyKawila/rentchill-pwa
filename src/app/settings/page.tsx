@@ -77,7 +77,7 @@ function SettingsContent() {
       setShowAddForm(false);
       setNewProjectName("");
       await reloadProperties();
-      router.replace(`/settings?property=${encodeURIComponent(property.slug)}`);
+      router.replace(`/dashboard?property=${encodeURIComponent(property.slug)}`);
     } catch (err) {
       if (err instanceof Error && err.message === "PROJECT_LIMIT_EXCEEDED") {
         return;

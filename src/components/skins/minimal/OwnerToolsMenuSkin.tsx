@@ -91,7 +91,7 @@ export function OwnerToolsMenuSkin({
             </button>
           )}
           <a
-            href={`/${propertySlug}`}
+            href={`/${propertySlug}?from=owner`}
             className={itemClass}
             onClick={() => setOpen(false)}
           >

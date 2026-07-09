@@ -1,6 +1,8 @@
 "use client";
 
+import { EmptyProjectOnboardingSkin } from "@/components/skins/minimal/EmptyProjectOnboardingSkin";
 import { useLocale } from "@/components/LocaleProvider";
+import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
 import { statusMessageKey } from "@/services/i18n/translate";
 import type { InvoiceStatus } from "@/services/types";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
@@ -27,6 +29,9 @@ interface RoomListSkinProps {
   } | null;
   onSelect: (tenantId: string) => void;
   onSubmit: () => void;
+  onAddRoom?: (form: AddRoomTenantForm) => void;
+  addRoomSaving?: boolean;
+  addRoomError?: string | null;
 }
 
 function statusTone(status: InvoiceStatus | null) {
@@ -50,6 +55,9 @@ export function RoomListSkin({
   result,
   onSelect,
   onSubmit,
+  onAddRoom,
+  addRoomSaving,
+  addRoomError,
 }: RoomListSkinProps) {
   const { t } = useLocale();
   const showMeterHint =
@@ -81,7 +89,17 @@ export function RoomListSkin({
         </a>
       </div>
 
-      {rows.length === 0 && (
+      {rows.length === 0 && onAddRoom && (
+        <EmptyProjectOnboardingSkin
+          propertySlug={propertySlug}
+          disabled={disabled}
+          saving={addRoomSaving}
+          error={addRoomError}
+          onSubmit={onAddRoom}
+        />
+      )}
+
+      {rows.length === 0 && !onAddRoom && (
         <p className="text-sm text-zinc-600">{t("owner.billing.noRooms")}</p>
       )}
 

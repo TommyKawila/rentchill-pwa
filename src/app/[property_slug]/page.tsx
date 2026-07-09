@@ -8,6 +8,7 @@ import {
 
 interface PropertyProfilePageProps {
   params: Promise<{ property_slug: string }>;
+  searchParams: Promise<{ from?: string }>;
 }
 
 export async function generateMetadata({
@@ -29,8 +30,11 @@ export async function generateMetadata({
 
 export default async function PropertyProfilePage({
   params,
+  searchParams,
 }: PropertyProfilePageProps) {
   const { property_slug } = await params;
+  const { from } = await searchParams;
+  const fromOwner = from === "owner";
 
   let property = null;
   let rooms: Awaited<ReturnType<typeof getAvailableRooms>> = [];
@@ -67,6 +71,7 @@ export default async function PropertyProfilePage({
       slug={property.slug}
       propertyUrl={propertyUrl}
       rooms={rooms}
+      fromOwner={fromOwner}
     />
   );
 }
