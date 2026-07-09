@@ -9,7 +9,7 @@ export function useCreateProject() {
   const [status, setStatus] = useState<CreateStatus>("idle");
   const [error, setError] = useState<string | null>(null);
 
-  const create = useCallback(async (name: string) => {
+  const create = useCallback(async (name: string, manualSlug?: string | null) => {
     setStatus("creating");
     setError(null);
 
@@ -17,7 +17,10 @@ export function useCreateProject() {
       const response = await fetch("/api/properties", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({
+          name,
+          ...(manualSlug ? { slug: manualSlug } : {}),
+        }),
       });
 
       const payload = (await response.json()) as {

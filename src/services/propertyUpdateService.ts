@@ -1,7 +1,4 @@
-import {
-  slugFromPropertyName,
-  uniquePropertySlug,
-} from "@/services/propertySlugService";
+import { resolvePropertySlug } from "@/services/propertySlugService";
 import { createAdminClient } from "@/services/supabase/admin";
 
 export type RenamedProperty = {
@@ -16,6 +13,7 @@ export async function renameOwnerProperty(
   ownerId: string,
   currentSlug: string,
   name: string,
+  manualSlug?: string | null,
 ): Promise<RenamedProperty> {
   const trimmed = name.trim();
   if (!trimmed) throw new Error("PROJECT_NAME_REQUIRED");
@@ -34,10 +32,11 @@ export async function renameOwnerProperty(
 
   const propertyId = String(property.id);
   const previousSlug = String(property.slug);
-  const nextSlug = await uniquePropertySlug(
-    slugFromPropertyName(trimmed),
-    propertyId,
-  );
+  const nextSlug = await resolvePropertySlug({
+    name: trimmed,
+    manualSlug,
+    excludePropertyId: propertyId,
+  });
 
   const { data, error } = await supabase
     .from("properties")

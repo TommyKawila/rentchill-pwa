@@ -21,12 +21,16 @@ export async function POST(request: Request) {
     const auth = requireOwnerId(request);
     if ("error" in auth) return auth.error;
 
-    const body = (await request.json()) as { name?: string };
+    const body = (await request.json()) as { name?: string; slug?: string };
     if (!body.name?.trim()) {
       return NextResponse.json({ error: "ต้องระบุชื่อโครงการ" }, { status: 400 });
     }
 
-    const property = await createOwnerProperty(auth.ownerId, body.name);
+    const property = await createOwnerProperty(
+      auth.ownerId,
+      body.name,
+      body.slug?.trim() || null,
+    );
     return NextResponse.json({ ok: true, property });
   } catch (error) {
     if (error instanceof Error && error.message === "PROJECT_LIMIT_EXCEEDED") {

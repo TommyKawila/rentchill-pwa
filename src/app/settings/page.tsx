@@ -8,11 +8,17 @@ import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { OwnerLineNotifySkin } from "@/components/skins/minimal/OwnerLineNotifySkin";
 import { ProjectManageSkin } from "@/components/skins/minimal/ProjectManageSkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
+import {
+  isProjectSlugPayloadValid,
+  ProjectSlugEditorSkin,
+  type ProjectSlugPayload,
+} from "@/components/skins/minimal/ProjectSlugEditorSkin";
 import { useCreateProject } from "@/hooks/useCreateProject";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
 import { useProjectManage } from "@/hooks/useProjectManage";
 import { usePropertyPaymentSettings } from "@/hooks/usePropertyPaymentSettings";
 import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
+import { slugValidationMessageKey } from "@/services/propertySlugUtils";
 
 function SettingsContent() {
   const { t } = useLocale();
@@ -60,6 +66,9 @@ function SettingsContent() {
   const [electricRate, setElectricRate] = useState("7");
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [createSlugPayload, setCreateSlugPayload] = useState<ProjectSlugPayload>({
+    manualSlug: null,
+  });
 
   useEffect(() => {
     if (!account) return;
@@ -100,10 +109,15 @@ function SettingsContent() {
   };
 
   const handleCreateProject = async () => {
+    if (!isProjectSlugPayloadValid(createSlugPayload)) return;
     try {
-      const property = await createProject.create(newProjectName);
+      const property = await createProject.create(
+        newProjectName,
+        createSlugPayload.manualSlug,
+      );
       setShowAddForm(false);
       setNewProjectName("");
+      setCreateSlugPayload({ manualSlug: null });
       await reloadProperties();
       router.replace(`/dashboard?property=${encodeURIComponent(property.slug)}`);
     } catch (err) {
@@ -112,6 +126,16 @@ function SettingsContent() {
       }
     }
   };
+
+  const createSlugError =
+    createProject.error &&
+    createProject.error !== "PROJECT_LIMIT_EXCEEDED" &&
+    (createProject.error === "SLUG_TAKEN" ||
+      createProject.error === "SLUG_FORMAT" ||
+      createProject.error === "SLUG_LENGTH" ||
+      createProject.error === "SLUG_RESERVED")
+      ? t(slugValidationMessageKey(createProject.error))
+      : createProject.error;
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
@@ -145,6 +169,15 @@ function SettingsContent() {
                   className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
                 />
               </label>
+              {newProjectName.trim() && (
+                <div className="mt-3">
+                  <ProjectSlugEditorSkin
+                    name={newProjectName}
+                    disabled={createProject.status === "creating"}
+                    onChange={setCreateSlugPayload}
+                  />
+                </div>
+              )}
               {createProject.error === "PROJECT_LIMIT_EXCEEDED" && (
                 <div className="mt-2 text-xs text-amber-800">
                   <p>{t("owner.projectLimitReached")}</p>
@@ -156,15 +189,17 @@ function SettingsContent() {
                   </a>
                 </div>
               )}
-              {createProject.error &&
+              {createSlugError &&
                 createProject.error !== "PROJECT_LIMIT_EXCEEDED" && (
-                  <p className="mt-2 text-xs text-red-700">{createProject.error}</p>
+                  <p className="mt-2 text-xs text-red-700">{createSlugError}</p>
                 )}
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
                   disabled={
-                    createProject.status === "creating" || !newProjectName.trim()
+                    createProject.status === "creating" ||
+                    !newProjectName.trim() ||
+                    !isProjectSlugPayloadValid(createSlugPayload)
                   }
                   onClick={() => void handleCreateProject()}
                   className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
@@ -178,6 +213,7 @@ function SettingsContent() {
                   onClick={() => {
                     setShowAddForm(false);
                     setNewProjectName("");
+                    setCreateSlugPayload({ manualSlug: null });
                   }}
                   className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700"
                 >
@@ -194,8 +230,8 @@ function SettingsContent() {
               renaming={projectManage.status === "renaming"}
               deleting={projectManage.status === "deleting"}
               error={projectManage.error}
-              onRename={async (name) => {
-                const result = await projectManage.rename(name);
+              onRename={async (name, manualSlug) => {
+                const result = await projectManage.rename(name, manualSlug);
                 await reloadProperties();
                 router.replace(
                   `/settings?property=${encodeURIComponent(result.property.slug)}`,

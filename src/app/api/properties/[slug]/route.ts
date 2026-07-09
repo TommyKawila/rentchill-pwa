@@ -12,12 +12,17 @@ export async function PATCH(
     const auth = await requireOwnerProperty(request, slug);
     if ("error" in auth) return auth.error;
 
-    const body = (await request.json()) as { name?: string };
+    const body = (await request.json()) as { name?: string; slug?: string };
     if (!body.name?.trim()) {
       return NextResponse.json({ error: "ต้องระบุชื่อโครงการ" }, { status: 400 });
     }
 
-    const property = await renameOwnerProperty(auth.ownerId, slug, body.name);
+    const property = await renameOwnerProperty(
+      auth.ownerId,
+      slug,
+      body.name,
+      body.slug?.trim() || null,
+    );
 
     return NextResponse.json({
       ok: true,

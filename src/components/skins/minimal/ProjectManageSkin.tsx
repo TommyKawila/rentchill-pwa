@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
-import { slugFromPropertyName } from "@/services/propertySlugUtils";
+import {
+  isProjectSlugPayloadValid,
+  ProjectSlugEditorSkin,
+  type ProjectSlugPayload,
+} from "@/components/skins/minimal/ProjectSlugEditorSkin";
+import { slugValidationMessageKey } from "@/services/propertySlugUtils";
+import type { MessageKey } from "@/services/i18n/messages";
 
 interface ProjectManageSkinProps {
   propertyName: string;
@@ -10,8 +16,24 @@ interface ProjectManageSkinProps {
   renaming: boolean;
   deleting: boolean;
   error: string | null;
-  onRename: (name: string) => Promise<void>;
+  onRename: (name: string, manualSlug?: string | null) => Promise<void>;
   onDelete: () => Promise<void>;
+}
+
+function formatSlugError(
+  t: (key: MessageKey) => string,
+  error: string | null,
+) {
+  if (!error) return null;
+  if (
+    error === "SLUG_TAKEN" ||
+    error === "SLUG_FORMAT" ||
+    error === "SLUG_LENGTH" ||
+    error === "SLUG_RESERVED"
+  ) {
+    return t(slugValidationMessageKey(error));
+  }
+  return error;
 }
 
 export function ProjectManageSkin({
@@ -27,22 +49,25 @@ export function ProjectManageSkin({
   const [name, setName] = useState(propertyName);
   const [confirmName, setConfirmName] = useState("");
   const [showDelete, setShowDelete] = useState(false);
+  const [slugPayload, setSlugPayload] = useState<ProjectSlugPayload>({
+    manualSlug: null,
+  });
+
+  const handleSlugChange = useCallback((payload: ProjectSlugPayload) => {
+    setSlugPayload(payload);
+  }, []);
 
   useEffect(() => {
     setName(propertyName);
   }, [propertyName]);
 
-  const previewSlug = useMemo(() => slugFromPropertyName(name), [name]);
   const nameChanged = name.trim() !== propertyName.trim();
-  const slugWillChange = nameChanged && previewSlug !== propertySlug;
-  const appBase =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const slugValid = isProjectSlugPayloadValid(slugPayload);
+  const canSave = name.trim() && (nameChanged || slugPayload.manualSlug !== null);
 
   const handleRename = async () => {
-    if (!name.trim() || !nameChanged) return;
-    await onRename(name.trim());
+    if (!canSave || !slugValid) return;
+    await onRename(name.trim(), slugPayload.manualSlug);
   };
 
   const handleDelete = async () => {
@@ -58,27 +83,24 @@ export function ProjectManageSkin({
         <span className="font-medium">{t("settings.projectRename")}</span>
         <input
           value={name}
+          disabled={renaming || deleting}
           onChange={(event) => setName(event.target.value)}
           className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
         />
       </label>
 
-      <div className="mt-3 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs">
-        <p className="text-zinc-500">{t("settings.projectSlugPreview")}</p>
-        <p className="mt-1 break-all font-medium text-zinc-800">
-          {appBase}/{previewSlug}
-        </p>
+      <div className="mt-3">
+        <ProjectSlugEditorSkin
+          name={name}
+          currentSlug={propertySlug}
+          disabled={renaming || deleting}
+          onChange={handleSlugChange}
+        />
       </div>
-
-      {slugWillChange && (
-        <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {t("settings.projectSlugWarning")}
-        </p>
-      )}
 
       <button
         type="button"
-        disabled={renaming || deleting || !name.trim() || !nameChanged}
+        disabled={renaming || deleting || !canSave || !slugValid}
         onClick={() => void handleRename()}
         className="mt-3 w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
       >
@@ -133,7 +155,9 @@ export function ProjectManageSkin({
         )}
       </div>
 
-      {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+      {error && (
+        <p className="mt-2 text-xs text-red-700">{formatSlugError(t, error)}</p>
+      )}
     </div>
   );
 }

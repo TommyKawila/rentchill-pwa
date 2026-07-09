@@ -1,8 +1,5 @@
 import { assertOwnerCanAddProject } from "@/services/ownerQuotaService";
-import {
-  slugFromPropertyName,
-  uniquePropertySlug,
-} from "@/services/propertySlugService";
+import { resolvePropertySlug } from "@/services/propertySlugService";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 
@@ -15,6 +12,7 @@ export type CreatedProperty = {
 export async function createOwnerProperty(
   ownerId: string,
   name: string,
+  manualSlug?: string | null,
 ): Promise<CreatedProperty> {
   const trimmed = name.trim();
   if (!trimmed) throw new Error("PROJECT_NAME_REQUIRED");
@@ -32,7 +30,7 @@ export async function createOwnerProperty(
   if (!owner) throw new Error("ไม่พบบัญชีเจ้าของ");
 
   const planTier = String(owner.plan_tier) as PlanTier;
-  const slug = await uniquePropertySlug(slugFromPropertyName(trimmed));
+  const slug = await resolvePropertySlug({ name: trimmed, manualSlug });
 
   const { data, error } = await supabase
     .from("properties")

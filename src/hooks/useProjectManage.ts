@@ -10,7 +10,7 @@ export function useProjectManage(propertySlug: string) {
   const [error, setError] = useState<string | null>(null);
 
   const rename = useCallback(
-    async (name: string) => {
+    async (name: string, manualSlug?: string | null) => {
       if (!propertySlug) throw new Error("ไม่พบโครงการ");
 
       setStatus("renaming");
@@ -22,7 +22,10 @@ export function useProjectManage(propertySlug: string) {
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name }),
+            body: JSON.stringify({
+              name,
+              ...(manualSlug ? { slug: manualSlug } : {}),
+            }),
           },
         );
 
