@@ -5,8 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { PlanUsageSkin } from "@/components/skins/minimal/PlanUsageSkin";
 import { OwnerDashboardShell } from "@/components/skins/minimal/OwnerDashboardShell";
-import { CsvExportSkin } from "@/components/skins/minimal/CsvExportSkin";
-import { MagicLinkSkin } from "@/components/skins/minimal/MagicLinkSkin";
+import { ShareLinkModal } from "@/components/skins/minimal/ShareLinkModal";
 import { RoomListSkin } from "@/components/skins/minimal/RoomListSkin";
 import { RoomDetailModal } from "@/components/skins/minimal/RoomDetailModal";
 import { SubscriptionBannerSkin } from "@/components/skins/minimal/SubscriptionBannerSkin";
@@ -55,6 +54,7 @@ function DashboardContent() {
   const ownerSubscription = useOwnerSubscription();
 
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [meters, setMeters] = useState<
     Record<string, { water: string; electric: string }>
   >({});
@@ -127,15 +127,6 @@ function DashboardContent() {
     });
   }, [reminder.quota, t]);
 
-  const csvQuotaHint = useMemo(() => {
-    if (!csvExport.quota) return null;
-    if (csvExport.quota.csv_limit === null) return null;
-    return t("owner.csv.quota", {
-      remaining: csvExport.quota.csv_remaining ?? 0,
-      limit: csvExport.quota.csv_limit,
-    });
-  }, [csvExport.quota, t]);
-
   const exportErrorMessage = useMemo(() => {
     if (!csvExport.error) return null;
     if (csvExport.error === "QUOTA_EXCEEDED") return t("owner.csv.quotaExceeded");
@@ -173,6 +164,11 @@ function DashboardContent() {
       }}
       pendingCount={override.invoices.length}
       paidCount={override.paidInvoices.length}
+      onExportCsv={() => void csvExport.exportCsv()}
+      csvDisabled={isSaving || !csvExport.canExport}
+      csvLoading={csvExport.status === "exporting"}
+      onOpenShareLink={() => setShareModalOpen(true)}
+      shareDisabled={isSaving || magicLink.status === "loading"}
     >
       {ownerSubscription.subscription && (
         <SubscriptionBannerSkin
@@ -259,23 +255,18 @@ function DashboardContent() {
         />
       )}
 
-      <CsvExportSkin
-        billingMonth={billing.billingMonth}
-        disabled={isSaving || csvExport.status === "loading"}
-        canExport={csvExport.canExport}
-        quotaHint={csvQuotaHint}
-        onExport={() => void csvExport.exportCsv()}
-      />
-
-      <MagicLinkSkin
-        disabled={isSaving || magicLink.status === "loading"}
-        linkUrl={magicLink.link?.url}
-        expiresAt={magicLink.link?.expires_at}
-        isPermanent={magicLink.link?.is_permanent}
-        copied={magicLink.copied}
-        onCreate={() => void magicLink.createLink()}
-        onCopy={() => void magicLink.copyLink()}
-      />
+      {shareModalOpen && (
+        <ShareLinkModal
+          disabled={isSaving || magicLink.status === "creating"}
+          linkUrl={magicLink.link?.url}
+          expiresAt={magicLink.link?.expires_at}
+          isPermanent={magicLink.link?.is_permanent}
+          copied={magicLink.copied}
+          onClose={() => setShareModalOpen(false)}
+          onCreate={() => void magicLink.createLink()}
+          onCopy={() => void magicLink.copyLink()}
+        />
+      )}
     </OwnerDashboardShell>
   );
 }

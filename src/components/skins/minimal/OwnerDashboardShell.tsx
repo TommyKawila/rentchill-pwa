@@ -13,6 +13,11 @@ interface OwnerDashboardShellProps {
   onLogout: () => void;
   pendingCount: number;
   paidCount: number;
+  onExportCsv?: () => void;
+  csvDisabled?: boolean;
+  csvLoading?: boolean;
+  onOpenShareLink?: () => void;
+  shareDisabled?: boolean;
   children: ReactNode;
 }
 
@@ -24,6 +29,11 @@ export function OwnerDashboardShell({
   onLogout,
   pendingCount,
   paidCount,
+  onExportCsv,
+  csvDisabled,
+  csvLoading,
+  onOpenShareLink,
+  shareDisabled,
   children,
 }: OwnerDashboardShellProps) {
   const { t } = useLocale();
@@ -105,6 +115,26 @@ export function OwnerDashboardShell({
                 </a>
               );
             })}
+            {onExportCsv && (
+              <button
+                type="button"
+                disabled={csvDisabled || csvLoading}
+                onClick={onExportCsv}
+                className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 disabled:opacity-50"
+              >
+                {csvLoading ? t("owner.csv.exporting") : t("owner.nav.csvExport")}
+              </button>
+            )}
+            {onOpenShareLink && (
+              <button
+                type="button"
+                disabled={shareDisabled}
+                onClick={onOpenShareLink}
+                className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 disabled:opacity-50"
+              >
+                {t("owner.nav.shareLink")}
+              </button>
+            )}
             <a
               href={`/${propertySlug}`}
               className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700"
