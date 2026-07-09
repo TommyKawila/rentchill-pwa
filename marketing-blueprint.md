@@ -119,13 +119,14 @@ Legacy Thai PMS tools (e.g. Roomie, Horganice) are built as complex ERPs for 500
 
 ## 6. Zero-Friction Ad Funnel
 
-ไม่บังคับกรอกฟอร์มยาว — ใช้ LINE เป็นทางเข้าเดียว
+กรอง intent ด้วย sales page ก่อน — LINE เป็นช่องทางรองหลังสนใจ
 
 | Stage | Action |
 |-------|--------|
-| **Awareness** | Ad เน้น Pain Point — หน้าจอมือถือบิลสีเขียวมินิมอล |
-| **Action** | CTA: "ทัก LINE เพื่อลองเดโม่" → RentChill OA |
-| **Conversion** | พิมพ์ `demo` → Flex card → ลองหน้าหอ + บิลลูกบ้านผ่าน LIFF ทันที ไม่ต้องสมัคร |
+| **Awareness** | Facebook Ad เน้น Pain Point — หน้าจอแดชบอร์ดมินิมอล |
+| **Interest** | CTA: "ดูรายละเอียด" → Sales page (`/`) — hero, ฟีเจอร์, พรีวิวแดชบอร์ด, ราคา |
+| **Conversion** | CTA: "เริ่มใช้ฟรี 3 ห้อง" → `/admin/signup` → Starter → `/dashboard` |
+| **Nurture (รอง)** | แอด LINE OA → พิมพ์ `demo` → Flex card → สมัคร Starter หรือดูตัวอย่างบิลลูกบ้าน |
 
 ---
 

@@ -27,6 +27,8 @@ export function getDemoFunnelUrls() {
   const inviteCode = process.env.LINE_DEMO_INVITE_CODE ?? "RCDEMO1";
   const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
 
+  const salesPageUrl = `${base}/`;
+  const signupUrl = `${base}/admin/signup`;
   const propertyUrl = `${base}/${propertySlug}`;
   const tenantBoardUrl = toAbsoluteUrl(
     liffId
@@ -34,7 +36,14 @@ export function getDemoFunnelUrls() {
       : buildTenantInviteUrl(inviteCode),
   );
 
-  return { propertyUrl, tenantBoardUrl, propertySlug, inviteCode };
+  return {
+    salesPageUrl,
+    signupUrl,
+    propertyUrl,
+    tenantBoardUrl,
+    propertySlug,
+    inviteCode,
+  };
 }
 
 function normalizeDemoKeyword(text: string) {
@@ -47,41 +56,49 @@ export function isDemoTriggerMessage(text: string) {
 }
 
 export function buildDemoPromptMessages(): LineReplyMessage[] {
-  return [
-    {
-      type: "text",
-      text: "พิมพ์ demo เพื่อลองใช้ระบบ\nType demo to start the demo",
-    },
-  ];
-}
-
-export function buildDemoWelcomeTextMessages(): LineReplyMessage[] {
-  const { propertyUrl, tenantBoardUrl } = getDemoFunnelUrls();
+  const { salesPageUrl } = getDemoFunnelUrls();
 
   return [
     {
       type: "text",
       text: [
-        "RentChill Demo",
-        "ลองบิลค่าเช่าฟรี — ไม่ต้องสมัคร",
+        "สวัสดี — RentChill ระบบบริหารห้องเช่า",
+        "ดูรายละเอียดและราคา:",
+        salesPageUrl,
         "",
-        "ลองบิลลูกบ้าน:",
+        "หรือพิมพ์ demo เพื่อลองใช้",
+      ].join("\n"),
+    },
+  ];
+}
+
+export function buildDemoWelcomeTextMessages(): LineReplyMessage[] {
+  const { signupUrl, tenantBoardUrl } = getDemoFunnelUrls();
+
+  return [
+    {
+      type: "text",
+      text: [
+        "RentChill",
+        "บริหารห้องเช่าให้เป็นเรื่องชิล — เริ่มฟรี 3 ห้อง",
+        "",
+        "สมัครใช้งาน:",
+        signupUrl,
+        "",
+        "ตัวอย่างบิลลูกบ้าน:",
         tenantBoardUrl,
-        "",
-        "ดูหน้าหอ:",
-        propertyUrl,
       ].join("\n"),
     },
   ];
 }
 
 export function buildDemoWelcomeMessages(): LineReplyMessage[] {
-  const { propertyUrl, tenantBoardUrl, propertySlug } = getDemoFunnelUrls();
+  const { signupUrl, tenantBoardUrl } = getDemoFunnelUrls();
 
   return [
     {
       type: "flex",
-      altText: "RentChill Demo — ลองบิลค่าเช่าฟรี ไม่ต้องสมัคร",
+      altText: "RentChill — เริ่มใช้ฟรี 3 ห้อง บริหารห้องเช่าใน LINE",
       contents: {
         type: "bubble",
         size: "mega",
@@ -110,7 +127,7 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
                 },
                 {
                   type: "text",
-                  text: "Demo",
+                  text: "Starter",
                   color: "#16a34a",
                   size: "xs",
                   weight: "bold",
@@ -120,7 +137,7 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
             },
             {
               type: "text",
-              text: "ลองใช้ฟรี · ไม่ต้องสมัคร",
+              text: "ฟรี 3 ห้อง · ไม่ต้องบัตรเครดิต",
               color: "#71717a",
               size: "xs",
               margin: "sm",
@@ -136,21 +153,21 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
           contents: [
             {
               type: "text",
-              text: "ลองระบบบิลค่าเช่าได้ทันที",
+              text: "บริหารห้องเช่าให้เป็นเรื่องชิล",
               weight: "bold",
               size: "lg",
               color: "#18181b",
             },
             {
               type: "text",
-              text: "ดูบิล ส่งสลิป ตรวจอัตโนมัติ — ทุกอย่างผ่าน LINE",
+              text: "ออกบิล ตรวจสลิป ดูภาพรวมทุกห้อง — จากแดชบอร์ดผู้ดูแล",
               wrap: true,
               size: "sm",
               color: "#71717a",
             },
             {
               type: "text",
-              text: "Try free — no signup required",
+              text: "ลูกบ้านจ่ายผ่าน LINE ไม่ต้องโหลดแอป",
               wrap: true,
               size: "xs",
               color: "#a1a1aa",
@@ -169,13 +186,13 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
                   contents: [
                     {
                       type: "text",
-                      text: "หน้าหอ",
+                      text: "แผน Starter",
                       size: "xs",
                       color: "#a1a1aa",
                     },
                     {
                       type: "text",
-                      text: propertySlug,
+                      text: "ฟรี · สูงสุด 3 ห้อง",
                       size: "sm",
                       weight: "bold",
                       color: "#18181b",
@@ -189,7 +206,7 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
                   contents: [
                     {
                       type: "text",
-                      text: "บิลลูกบ้าน",
+                      text: "ตัวอย่างฝั่งลูกบ้าน",
                       size: "xs",
                       color: "#a1a1aa",
                     },
@@ -220,8 +237,8 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
               height: "sm",
               action: {
                 type: "uri",
-                label: "ลองบิลลูกบ้าน",
-                uri: tenantBoardUrl,
+                label: "เริ่มใช้ฟรี 3 ห้อง",
+                uri: signupUrl,
               },
             },
             {
@@ -230,8 +247,8 @@ export function buildDemoWelcomeMessages(): LineReplyMessage[] {
               height: "sm",
               action: {
                 type: "uri",
-                label: "ดูหน้าหอ",
-                uri: propertyUrl,
+                label: "ตัวอย่างบิลลูกบ้าน",
+                uri: tenantBoardUrl,
               },
             },
           ],

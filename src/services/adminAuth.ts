@@ -95,6 +95,7 @@ export function isOwnerOnlyPath(pathname: string) {
 
 export function isAdminProtectedPath(pathname: string) {
   if (pathname === "/admin/login") return false;
+  if (pathname === "/admin/signup") return false;
   if (pathname === "/admin") return true;
 
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
@@ -100,6 +101,12 @@ function AdminLoginForm() {
         >
           {isLoading ? t("admin.login.loading") : t("admin.login.submit")}
         </button>
+
+        <p className="mt-4 text-center text-sm text-zinc-500">
+          <Link href="/admin/signup" className="text-zinc-900 underline">
+            {t("admin.login.signupLink")}
+          </Link>
+        </p>
       </form>
     </main>
   );
