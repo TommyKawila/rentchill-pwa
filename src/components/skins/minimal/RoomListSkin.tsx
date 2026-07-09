@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { EmptyProjectOnboardingSkin } from "@/components/skins/minimal/EmptyProjectOnboardingSkin";
 import { useLocale } from "@/components/LocaleProvider";
 import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
@@ -32,6 +33,9 @@ interface RoomListSkinProps {
   onAddRoom?: (form: AddRoomTenantForm) => void;
   addRoomSaving?: boolean;
   addRoomError?: string | null;
+  canAddRoom?: boolean;
+  roomsRemaining?: number;
+  billingHref?: string;
 }
 
 function statusTone(status: InvoiceStatus | null) {
@@ -58,10 +62,18 @@ export function RoomListSkin({
   onAddRoom,
   addRoomSaving,
   addRoomError,
+  canAddRoom = true,
+  roomsRemaining,
+  billingHref,
 }: RoomListSkinProps) {
   const { t } = useLocale();
+  const [showAddForm, setShowAddForm] = useState(false);
   const showMeterHint =
     includeUtilities && editableCount > 0 && readyCount === 0;
+
+  useEffect(() => {
+    setShowAddForm(false);
+  }, [rows.length]);
 
   return (
     <section className="mt-8 space-y-3">
@@ -95,6 +107,7 @@ export function RoomListSkin({
           disabled={disabled}
           saving={addRoomSaving}
           error={addRoomError}
+          variant="first"
           onSubmit={onAddRoom}
         />
       )}
@@ -139,6 +152,49 @@ export function RoomListSkin({
             ))}
           </ul>
         </div>
+      )}
+
+      {rows.length > 0 && onAddRoom && canAddRoom && !showAddForm && (
+        <button
+          type="button"
+          disabled={disabled || addRoomSaving}
+          onClick={() => setShowAddForm(true)}
+          className="w-full rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          + {t("owner.rooms.addRoom")}
+          {roomsRemaining !== undefined && roomsRemaining > 0 && (
+            <span className="ml-1 text-xs font-normal text-zinc-500">
+              ({t("owner.rooms.quotaHint", { remaining: roomsRemaining })})
+            </span>
+          )}
+        </button>
+      )}
+
+      {rows.length > 0 && onAddRoom && canAddRoom && showAddForm && (
+        <EmptyProjectOnboardingSkin
+          propertySlug={propertySlug}
+          disabled={disabled}
+          saving={addRoomSaving}
+          error={addRoomError}
+          variant="additional"
+          formKey={String(rows.length)}
+          onCancel={() => setShowAddForm(false)}
+          onSubmit={onAddRoom}
+        />
+      )}
+
+      {rows.length > 0 && !canAddRoom && (
+        <p className="text-xs text-amber-800">
+          {t("owner.plan.limitReached")}
+          {billingHref && (
+            <>
+              {" "}
+              <a href={billingHref} className="font-medium underline">
+                {t("owner.planBilling.managePlan")}
+              </a>
+            </>
+          )}
+        </p>
       )}
 
       {showMeterHint && (

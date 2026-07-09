@@ -8,6 +8,8 @@ import { statusMessageKey } from "@/services/i18n/translate";
 interface OverrideSkinProps {
   invoice: InvoiceOverrideRow;
   disabled?: boolean;
+  autoVerifyEnabled?: boolean;
+  billingHref?: string;
   onSaveMeters: (waterUnit: number, electricUnit: number) => void;
   onAutoVerify: () => void;
   onReject: (note?: string) => void;
@@ -17,6 +19,8 @@ interface OverrideSkinProps {
 export function OverrideSkin({
   invoice,
   disabled,
+  autoVerifyEnabled = true,
+  billingHref,
   onSaveMeters,
   onAutoVerify,
   onReject,
@@ -81,8 +85,21 @@ export function OverrideSkin({
 
       {isScanning && hasSlip && (
         <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {t("owner.override.scanningHint")}
+          {t(
+            autoVerifyEnabled
+              ? "owner.override.scanningHint"
+              : "owner.override.scanningHintManual",
+          )}
         </p>
+      )}
+
+      {!autoVerifyEnabled && isScanning && hasSlip && billingHref && (
+        <a
+          href={billingHref}
+          className="mt-2 block text-center text-xs font-medium text-zinc-700 underline"
+        >
+          {t("owner.plan.slipVerifyUpgrade")}
+        </a>
       )}
 
       {hasSlip && (
@@ -136,14 +153,16 @@ export function OverrideSkin({
 
         {isScanning && hasSlip && (
           <>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={onAutoVerify}
-              className="rounded-md border border-green-600 bg-green-50 py-2 text-sm font-medium text-green-800 disabled:opacity-50"
-            >
-              {t("owner.override.autoVerify")}
-            </button>
+            {autoVerifyEnabled && (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={onAutoVerify}
+                className="rounded-md border border-green-600 bg-green-50 py-2 text-sm font-medium text-green-800 disabled:opacity-50"
+              >
+                {t("owner.override.autoVerify")}
+              </button>
+            )}
             <button
               type="button"
               disabled={disabled}

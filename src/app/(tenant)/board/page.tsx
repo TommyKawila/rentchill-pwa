@@ -217,6 +217,12 @@ function TenantBoardMain() {
               {t("tenant.board.slipVerified")}
             </p>
           )}
+          {paymentFeedback?.manualReviewOnly &&
+            board.invoice.status === "scanning" && (
+              <p className="px-6 pb-4 text-center text-sm text-zinc-600">
+                {t("tenant.board.slipManualReview")}
+              </p>
+            )}
           {(paymentFeedback?.message && !paymentFeedback.autoVerified) ||
           (board.invoice.slip_rejection_note && board.invoice.status === "pending") ? (
             <p className="px-6 pb-4 text-center text-sm text-red-600">

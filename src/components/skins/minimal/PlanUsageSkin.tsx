@@ -2,17 +2,20 @@
 
 import { useLocale } from "@/components/LocaleProvider";
 import type { PropertyPlanUsage } from "@/services/planTierService";
+import { canAutoVerifySlip } from "@/services/planLimits";
 
 interface PlanUsageSkinProps {
   plan: PropertyPlanUsage;
+  billingHref?: string;
 }
 
-export function PlanUsageSkin({ plan }: PlanUsageSkinProps) {
+export function PlanUsageSkin({ plan, billingHref }: PlanUsageSkinProps) {
   const { t } = useLocale();
   const atProjectLimit = plan.projects_remaining <= 0;
   const atRoomLimit = plan.rooms_remaining <= 0;
   const lineLow =
     plan.line_push_remaining <= Math.max(1, Math.floor(plan.line_push_limit * 0.2));
+  const slipAutoDisabled = !canAutoVerifySlip(plan.plan_tier);
 
   return (
     <div
@@ -63,6 +66,20 @@ export function PlanUsageSkin({ plan }: PlanUsageSkinProps) {
           limit: plan.line_push_limit,
         })}
       </p>
+
+      {slipAutoDisabled && (
+        <p className="mt-2 text-xs text-zinc-600">
+          {t("owner.plan.slipVerifyStarter")}
+          {billingHref && (
+            <>
+              {" "}
+              <a href={billingHref} className="font-medium underline">
+                {t("owner.plan.slipVerifyUpgrade")}
+              </a>
+            </>
+          )}
+        </p>
+      )}
 
       {atProjectLimit && (
         <p className="mt-1 text-xs text-amber-800">

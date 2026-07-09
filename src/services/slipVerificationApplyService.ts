@@ -4,6 +4,8 @@ import { safeNotifyPaymentConfirmed } from "@/services/notificationService";
 import { matchSlipReceiver } from "@/services/slipAccountMatchService";
 import { getPropertyPaymentById } from "@/services/propertyPaymentService";
 import { verifySlipByUrl } from "@/services/slipVerificationService";
+import { canAutoVerifySlip } from "@/services/planLimits";
+import { getPlanTierForPropertyId } from "@/services/ownerQuotaService";
 import type { Invoice } from "@/services/types";
 
 function mapInvoice(row: Record<string, unknown>): Invoice {
@@ -66,6 +68,11 @@ export async function verifyInvoiceSlip(
         transRef: null,
       },
     };
+  }
+
+  const planTier = await getPlanTierForPropertyId(mapped.property_id);
+  if (!canAutoVerifySlip(planTier)) {
+    throw new Error("SLIP_VERIFY_PLAN_REQUIRED");
   }
 
   const result = await verifySlipByUrl(

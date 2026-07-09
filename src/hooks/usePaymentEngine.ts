@@ -7,6 +7,7 @@ type PaymentStatus = "idle" | "uploading" | "success" | "error";
 
 export type PaymentFeedback = {
   autoVerified: boolean;
+  manualReviewOnly: boolean;
   message: string | null;
 };
 
@@ -36,6 +37,7 @@ export function usePaymentEngine() {
           error?: string;
           invoice?: Invoice;
           verification?: { verified: boolean; message: string } | null;
+          manual_review_reason?: "PLAN_STARTER" | null;
         };
 
         if (!response.ok || !payload.ok || !payload.invoice) {
@@ -46,6 +48,7 @@ export function usePaymentEngine() {
           autoVerified: Boolean(
             payload.verification?.verified && payload.invoice.status === "paid",
           ),
+          manualReviewOnly: payload.manual_review_reason === "PLAN_STARTER",
           message: payload.verification?.message ?? null,
         });
         setStatus("success");

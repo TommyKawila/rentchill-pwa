@@ -25,6 +25,7 @@ import {
   isRowReadyToBill,
 } from "@/services/propertyBillingSettingsService";
 import { computeBillingOverview } from "@/services/billingOverviewService";
+import { canAutoVerifySlip } from "@/services/planLimits";
 import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
 
 function DashboardContent() {
@@ -255,7 +256,10 @@ function DashboardContent() {
       )}
 
       {propertyPlan.plan && propertySlug && (
-        <PlanUsageSkin plan={propertyPlan.plan} />
+        <PlanUsageSkin
+          plan={propertyPlan.plan}
+          billingHref={`/billing?property=${encodeURIComponent(propertySlug)}`}
+        />
       )}
 
       {propertiesError && (
@@ -274,6 +278,8 @@ function DashboardContent() {
             ? t("owner.billing.meterRequired")
             : reminder.error === "QUOTA_EXCEEDED"
             ? t("owner.line.quotaExceeded")
+            : override.error === "SLIP_VERIFY_PLAN_REQUIRED"
+              ? t("owner.plan.slipVerifyStarter")
             : (billing.error ??
               override.error ??
               reminder.error ??
@@ -318,6 +324,13 @@ function DashboardContent() {
         onAddRoom={handleAddRoom}
         addRoomSaving={addRoomTenant.status === "saving"}
         addRoomError={addRoomTenant.error}
+        canAddRoom={(propertyPlan.plan?.rooms_remaining ?? 0) > 0}
+        roomsRemaining={propertyPlan.plan?.rooms_remaining}
+        billingHref={
+          propertySlug
+            ? `/billing?property=${encodeURIComponent(propertySlug)}`
+            : undefined
+        }
       />
       )}
 
@@ -329,6 +342,16 @@ function DashboardContent() {
           electricRate={billing.settings.electric_rate_per_unit}
           reviewInvoice={reviewInvoice}
           paidInvoice={paidInvoice}
+          autoVerifyEnabled={
+            propertyPlan.plan
+              ? canAutoVerifySlip(propertyPlan.plan.plan_tier)
+              : true
+          }
+          billingHref={
+            propertySlug
+              ? `/billing?property=${encodeURIComponent(propertySlug)}`
+              : undefined
+          }
           disabled={isSaving}
           canRemind={reminder.canRemind}
           reminderDisabled={reminder.status === "loading"}

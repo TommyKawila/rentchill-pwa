@@ -175,6 +175,10 @@ const th = {
   "owner.rooms.colStatus": "สถานะ",
   "owner.rooms.close": "ปิด",
   "owner.rooms.manage": "จัดการ",
+  "owner.rooms.addRoom": "เพิ่มห้อง",
+  "owner.rooms.addRoomTitle": "เพิ่มห้องใหม่",
+  "owner.rooms.addRoomDesc": "กรอกเลขห้องและข้อมูลผู้เช่า — ระบบสร้างลิงก์เชิญ LINE ให้",
+  "owner.rooms.quotaHint": "เหลือโควต้า {remaining} ห้อง",
   "owner.dashboard.title": "แดชบอร์ดผู้ให้เช่า",
   "owner.selectProperty": "เลือกโครงการ",
   "owner.selectProject": "เลือกโครงการ",
@@ -236,6 +240,9 @@ const th = {
   "owner.plan.rooms": "{count}/{limit} ห้อง",
   "owner.plan.roomsTotal": "ห้องรวม {count}/{limit}",
   "owner.plan.limitReached": "ครบโควต้าห้องรวมแล้ว — อัปเกรดแผนเพื่อเพิ่มห้อง",
+  "owner.plan.slipVerifyStarter":
+    "แพ็กเกจฟรีไม่รองรับตรวจสอบสลิปอัตโนมัติ — อนุมัติด้วยมือ หรืออัปเกรดแผน",
+  "owner.plan.slipVerifyUpgrade": "อัปเกรดเพื่อตรวจสลิปอัตโนมัติ",
   "owner.plan.tier.starter": "Starter (ฟรี)",
   "owner.plan.tier.micro": "Micro",
   "owner.plan.tier.growth": "Growth",
@@ -355,6 +362,8 @@ const th = {
     "สลิปไม่ตรงกับยอดแจ้งชำระ กรุณาส่งใหม่",
   "owner.override.scanningHint":
     "สลิปรอตรวจสอบ — กดตรวจสอบอัตโนมัติ หรือปฏิเสธหากยอดไม่ตรง",
+  "owner.override.scanningHintManual":
+    "สลิปรอตรวจสอบ — แพ็กเกจฟรีต้องอนุมัติด้วยมือ หรืออัปเกรดเพื่อตรวจสอบอัตโนมัติ",
   "owner.override.saveMeters": "บันทึกมิเตอร์",
   "owner.override.autoVerify": "ตรวจสอบอัตโนมัติ",
   "owner.override.reject": "ปฏิเสธสลิป / แจ้งส่งใหม่",
@@ -375,6 +384,8 @@ const th = {
   "tenant.board.loading": "กำลังโหลดข้อมูล...",
   "tenant.board.notFound": "ไม่พบข้อมูล",
   "tenant.board.slipVerified": "ตรวจสอบสลิปอัตโนมัติผ่านแล้ว",
+  "tenant.board.slipManualReview":
+    "ส่งสลิปแล้ว — รอเจ้าของตรวจสอบ (แพ็กเกจฟรีไม่มีตรวจอัตโนมัติ)",
   "tenant.contact.hint": "ต้องการติดต่อผู้ให้เช่า?",
   "tenant.contact.line": "แชท LINE",
   "tenant.contact.phone": "โทรหาผู้ให้เช่า",
@@ -587,6 +598,10 @@ const en: Record<keyof typeof th, string> = {
   "owner.rooms.colStatus": "Status",
   "owner.rooms.close": "Close",
   "owner.rooms.manage": "Manage",
+  "owner.rooms.addRoom": "Add room",
+  "owner.rooms.addRoomTitle": "Add new room",
+  "owner.rooms.addRoomDesc": "Enter room number and tenant details — an LINE invite link is created instantly",
+  "owner.rooms.quotaHint": "{remaining} room slots remaining",
   "owner.dashboard.title": "Owner Dashboard",
   "owner.selectProperty": "Select project",
   "owner.selectProject": "Select project",
@@ -648,6 +663,9 @@ const en: Record<keyof typeof th, string> = {
   "owner.plan.rooms": "{count}/{limit} rooms",
   "owner.plan.roomsTotal": "Total rooms {count}/{limit}",
   "owner.plan.limitReached": "Total room limit reached — upgrade plan to add more",
+  "owner.plan.slipVerifyStarter":
+    "Free plan does not include auto slip verification — approve manually or upgrade",
+  "owner.plan.slipVerifyUpgrade": "Upgrade for auto slip verification",
   "owner.plan.tier.starter": "Starter (free)",
   "owner.plan.tier.micro": "Micro",
   "owner.plan.tier.growth": "Growth",
@@ -767,6 +785,8 @@ const en: Record<keyof typeof th, string> = {
     "Slip amount does not match. Please resubmit.",
   "owner.override.scanningHint":
     "Slip pending review — auto-verify or reject if amount mismatches",
+  "owner.override.scanningHintManual":
+    "Slip pending review — free plan requires manual approval, or upgrade for auto verification",
   "owner.override.saveMeters": "Save meters",
   "owner.override.autoVerify": "Auto verify",
   "owner.override.reject": "Reject slip / ask to resubmit",
@@ -787,6 +807,8 @@ const en: Record<keyof typeof th, string> = {
   "tenant.board.loading": "Loading...",
   "tenant.board.notFound": "Not found",
   "tenant.board.slipVerified": "Slip auto-verified successfully",
+  "tenant.board.slipManualReview":
+    "Slip submitted — awaiting owner review (free plan has no auto verification)",
   "tenant.contact.hint": "Need to contact your landlord?",
   "tenant.contact.line": "Chat on LINE",
   "tenant.contact.phone": "Call landlord",

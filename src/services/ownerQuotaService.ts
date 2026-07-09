@@ -160,3 +160,17 @@ function throwQuotaError(quota: OwnerQuota) {
   });
   throw error;
 }
+
+export async function getPlanTierForPropertyId(propertyId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .select("owner_id")
+    .eq("id", propertyId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.owner_id) throw new Error("ไม่พบโครงการ");
+
+  return getOwnerTier(String(data.owner_id));
+}

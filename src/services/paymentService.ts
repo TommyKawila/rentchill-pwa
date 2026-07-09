@@ -3,6 +3,8 @@ import { INVOICE_SELECT } from "@/services/invoiceFields";
 import { safeNotifyOwnerSlipSubmitted } from "@/services/notificationService";
 import { markInvoiceSlipRejected } from "@/services/invoiceRejectService";
 import { verifyInvoiceSlip } from "@/services/slipVerificationApplyService";
+import { canAutoVerifySlip } from "@/services/planLimits";
+import { getPlanTierForPropertyId } from "@/services/ownerQuotaService";
 import type { Invoice } from "@/services/types";
 
 const SLIP_BUCKET = "slips";
@@ -35,6 +37,7 @@ export type PaymentSubmitResult = {
     message: string;
     transRef: string | null;
   } | null;
+  manual_review_reason?: "PLAN_STARTER" | null;
 };
 
 export async function submitPaymentSlip(
@@ -82,7 +85,11 @@ export async function submitPaymentSlip(
 
   void safeNotifyOwnerSlipSubmitted(invoice.id);
 
-  if (process.env.EASYSLIP_API_KEY) {
+  const planTier = await getPlanTierForPropertyId(invoice.property_id);
+  const autoVerifyEnabled =
+    Boolean(process.env.EASYSLIP_API_KEY) && canAutoVerifySlip(planTier);
+
+  if (autoVerifyEnabled) {
     try {
       const outcome = await verifyInvoiceSlip(invoiceId);
 
@@ -114,5 +121,9 @@ export async function submitPaymentSlip(
     }
   }
 
-  return { invoice, verification: null };
+  return {
+    invoice,
+    verification: null,
+    manual_review_reason: !canAutoVerifySlip(planTier) ? "PLAN_STARTER" : null,
+  };
 }

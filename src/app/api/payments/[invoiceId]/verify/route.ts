@@ -22,6 +22,9 @@ export async function POST(
     return NextResponse.json({ ok: true, ...outcome });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Verification failed";
+    if (message === "SLIP_VERIFY_PLAN_REQUIRED") {
+      return NextResponse.json({ error: message }, { status: 403 });
+    }
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

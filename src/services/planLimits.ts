@@ -21,3 +21,7 @@ export function getRoomLimit(tier: PlanTier) {
 export function getProjectLimit(tier: PlanTier) {
   return TIER_PROJECT_LIMITS[tier];
 }
+
+export function canAutoVerifySlip(tier: PlanTier) {
+  return tier !== "starter";
+}

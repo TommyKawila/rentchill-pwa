@@ -19,6 +19,8 @@ interface RoomDetailModalProps {
   electricRate: number;
   reviewInvoice?: InvoiceOverrideRow | null;
   paidInvoice?: InvoiceOverrideRow | null;
+  autoVerifyEnabled?: boolean;
+  billingHref?: string;
   disabled?: boolean;
   canRemind?: boolean;
   reminderDisabled?: boolean;
@@ -67,6 +69,8 @@ export function RoomDetailModal({
   electricRate,
   reviewInvoice,
   paidInvoice,
+  autoVerifyEnabled,
+  billingHref,
   disabled,
   canRemind,
   reminderDisabled,
@@ -263,6 +267,8 @@ export function RoomDetailModal({
             <OverrideSkin
               invoice={reviewInvoice}
               disabled={disabled}
+              autoVerifyEnabled={autoVerifyEnabled}
+              billingHref={billingHref}
               onSaveMeters={(w, e) => onSaveMeters(reviewInvoice.id, w, e)}
               onAutoVerify={() => onAutoVerify(reviewInvoice.id)}
               onReject={(note) => onReject(reviewInvoice.id, note)}
