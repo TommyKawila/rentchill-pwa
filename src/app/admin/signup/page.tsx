@@ -6,6 +6,91 @@ import { useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 
+function DevOwnerResetPanel({
+  email,
+  onReset,
+}: {
+  email: string;
+  onReset: () => void;
+}) {
+  const [devSecret, setDevSecret] = useState("");
+  const [status, setStatus] = useState<"idle" | "resetting" | "done" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const handleReset = async () => {
+    if (!email.trim() || !devSecret) {
+      setStatus("error");
+      setMessage("กรอกอีเมลและ dev secret");
+      return;
+    }
+
+    if (!window.confirm(`ลบบัญชี ${email} และข้อมูลทั้งหมด?`)) return;
+
+    setStatus("resetting");
+    setMessage(null);
+    onReset();
+
+    try {
+      const response = await fetch("/api/admin/dev/reset-owner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, dev_secret: devSecret }),
+      });
+
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        deleted_properties?: number;
+      };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error ?? "ลบบัญชีไม่สำเร็จ");
+      }
+
+      setStatus("done");
+      setMessage(`ลบแล้ว — สมัครใหม่ได้ (${payload.deleted_properties ?? 0} โครงการ)`);
+      setDevSecret("");
+    } catch (err) {
+      setStatus("error");
+      setMessage(err instanceof Error ? err.message : "ลบบัญชีไม่สำเร็จ");
+    }
+  };
+
+  return (
+    <div className="mt-6 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Dev only</p>
+      <p className="mt-1 text-xs text-zinc-500">
+        ลบบัญชีทดสอบเพื่อสมัครใหม่ (ใช้ ADMIN_SECRET)
+      </p>
+      <label className="mt-3 block space-y-1 text-sm">
+        <span className="text-zinc-600">Dev secret</span>
+        <input
+          type="password"
+          value={devSecret}
+          onChange={(event) => setDevSecret(event.target.value)}
+          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2"
+          placeholder="ADMIN_SECRET"
+        />
+      </label>
+      <button
+        type="button"
+        disabled={status === "resetting"}
+        onClick={() => void handleReset()}
+        className="mt-3 w-full rounded-lg border border-red-200 bg-red-50 py-2 text-sm font-medium text-red-700 disabled:opacity-50"
+      >
+        {status === "resetting" ? "กำลังลบ..." : "Reset บัญชีทดสอบ"}
+      </button>
+      {message && (
+        <p
+          className={`mt-2 text-xs ${status === "done" ? "text-green-700" : "text-red-600"}`}
+        >
+          {message}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function AdminSignupPage() {
   const { t } = useLocale();
   const router = useRouter();
@@ -105,6 +190,10 @@ export default function AdminSignupPage() {
             {t("admin.signup.loginLink")}
           </Link>
         </p>
+
+        {process.env.NEXT_PUBLIC_DEV_TOOLS === "true" && (
+          <DevOwnerResetPanel email={email} onReset={() => setError(null)} />
+        )}
       </form>
     </main>
   );

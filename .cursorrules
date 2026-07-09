@@ -5,11 +5,32 @@
 - Business logic, database calls, and state management must reside in `src/hooks/` or `src/services/`.
 - UI components (`src/components/`) must be "dumb" presentation layers (Headless UI pattern).
 
-## 2. Coding Standard
+## 2. Coding Standard & Philosophy
 - Use Next.js App Router, React Server Components where possible, and Tailwind CSS.
 - Follow the "Less is More" philosophy. Eliminate redundant code. Complexity is the enemy.
 - Do not generate graphical assets or images unless explicitly requested.
 - Always prioritize precision, readability, and performance.
+- RentChill Metaphor: It acts as "The Shield" that protects landlords from operational and emotional hassles. Keep code silent, secure, and effective.
 
-## 3. Communication
+## 3. UI/UX & Design Taste (Linear.app-Inspired Precision)
+- General Aesthetic: Ultra-crisp, high-precision software design. Focus on strict horizontal/vertical alignment and clean vertical rhythms.
+- Color Palette (Light Mode):
+  - Primary Background: Pure white (`bg-white`).
+  - Panel/Secondary Background: Ultra-subtle off-white (`bg-zinc-50`) for sidebars or inner containers.
+  - Text Hierarchy: Deep charcoal (`text-zinc-900`) for primary text, muted zinc (`text-zinc-500`) for labels.
+  - Status Accents: Clean green (`text-green-600` / `bg-green-50`) for paid states, soft red/orange for unpaid. Keep it high-contrast and minimal.
+- Borders & Dividers: Avoid floating boxes or heavy shadows. Delineate sections using sharp, 1px faint borders or dividers (`border border-zinc-100` or `divide-y divide-zinc-100`).
+- Geometry: Use clean, professional radiuses—specifically `rounded-xl` for cards and `rounded-lg` for buttons/inputs. Avoid oversized, bubbly roundings.
+- Spacing & Typography: Tighten header tracking (`tracking-tight`). Pay extra attention to generous padding and gaps (`p-6`, `gap-y-4`) so every component has room to breathe. Ensure currency and room numbers are bold and highly readable.
+- Constraints: Never inject arbitrary icons, flashy multi-colored gradients, or unrequested widgets.
+
+## 4. UX & Interaction Patterns (Zero Friction & Error Prevention)
+- **Form Submission Safety:** Every action button (e.g., "Submit Slip", "Create Invoice") MUST implement a loading state. When an async action is running, disable the button, change its opacity, and change the cursor to `cursor-not-allowed` to strictly prevent double submissions.
+- **Mobile Input Optimization:** For all monetary, room number, or phone number inputs, always enforce appropriate HTML attributes to trigger correct native mobile keyboards (e.g., `type="number"`, `inputmode="decimal"`, or `inputmode="numeric"`).
+- **Thumb-Friendly Touch Targets:** All interactive elements (buttons, links, inputs) on the tenant mobile view (LINE LIFF) must have a minimum touch target size of 44x44 pixels to ensure ease of use for all age groups.
+- **Form Validation & Errors:** Display validation errors inline right below the specific input field using a clean, soft red text. Never use browser alert dialogs. Keep inputs focused on error if possible.
+- **Empty States:** If a dashboard or list has no data (e.g., "No unpaid invoices"), never leave a blank screen. Provide a beautifully padded, silent text message with a clear primary call-to-action button (if applicable) to guide the user on their next step.
+
+## 5. Communication
 - All prompts and technical instructions provided to Cursor Composer/Chat will be in English.
+- Always answer directly, cleanly, and concisely. No fluff, no filler text.

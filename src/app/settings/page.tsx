@@ -3,7 +3,9 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
+import { ContactLineQrSkin } from "@/components/skins/minimal/ContactLineQrSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
+import { OwnerLineNotifySkin } from "@/components/skins/minimal/OwnerLineNotifySkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
 import { useCreateProject } from "@/hooks/useCreateProject";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
@@ -37,12 +39,14 @@ function SettingsContent() {
     router.replace(`/settings?property=${encodeURIComponent(propertySlug)}`);
   }, [propertiesStatus, properties.length, slugFromUrl, propertySlug, router]);
 
-  const { account, status, error, save } = usePropertyPaymentSettings(propertySlug);
+  const { account, status, error, save, reload: reloadSettings } =
+    usePropertyPaymentSettings(propertySlug);
 
   const [promptPay, setPromptPay] = useState("");
   const [bankAccount, setBankAccount] = useState("");
   const [receiverName, setReceiverName] = useState("");
   const [contactLineUrl, setContactLineUrl] = useState("");
+  const [contactLineQrUrl, setContactLineQrUrl] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [ownerLineUserId, setOwnerLineUserId] = useState("");
   const [billingDay, setBillingDay] = useState("1");
@@ -59,6 +63,7 @@ function SettingsContent() {
     setBankAccount(account.bank_account ?? "");
     setReceiverName(account.receiver_name ?? "");
     setContactLineUrl(account.contact_line_url ?? "");
+    setContactLineQrUrl(account.contact_line_qr_url ?? "");
     setContactPhone(account.contact_phone ?? "");
     setOwnerLineUserId(account.owner_line_user_id ?? "");
     setBillingDay(String(account.billing_day));
@@ -67,6 +72,24 @@ function SettingsContent() {
     setWaterRate(String(account.water_rate_per_unit));
     setElectricRate(String(account.electric_rate_per_unit));
   }, [account]);
+
+  useEffect(() => {
+    if (propertiesStatus === "idle" && properties.length === 0) {
+      setShowAddForm(true);
+    }
+  }, [propertiesStatus, properties.length]);
+
+  useEffect(() => {
+    const reloadOnFocus = () => {
+      if (document.visibilityState === "visible" && propertySlug) {
+        void reloadSettings();
+      }
+    };
+    document.addEventListener("visibilitychange", reloadOnFocus);
+    return () => document.removeEventListener("visibilitychange", reloadOnFocus);
+  }, [propertySlug, reloadSettings]);
+
+  const hasProject = properties.length > 0 && Boolean(propertySlug);
 
   const handlePropertyChange = (slug: string) => {
     router.replace(`/settings?property=${encodeURIComponent(slug)}`);
@@ -162,6 +185,10 @@ function SettingsContent() {
         </header>
 
         <section className="mt-8 space-y-4">
+          {!hasProject ? (
+            <p className="text-sm text-zinc-600">{t("owner.noProjectSettingsHint")}</p>
+          ) : (
+            <>
           <p className="text-sm text-zinc-600">{t("settings.desc")}</p>
 
           {status === "loading" && (
@@ -299,7 +326,18 @@ function SettingsContent() {
               placeholder="https://line.me/ti/p/..."
               className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
             />
+            <p className="text-xs text-zinc-500">{t("settings.contactLineUrlHint")}</p>
           </label>
+
+          <ContactLineQrSkin
+            propertySlug={propertySlug}
+            qrUrl={contactLineQrUrl || null}
+            onUploaded={setContactLineQrUrl}
+            onRemove={() => {
+              setContactLineQrUrl("");
+              void save({ contact_line_qr_url: null });
+            }}
+          />
 
           <label className="block space-y-1 text-sm">
             <span className="font-medium">{t("settings.contactPhone")}</span>
@@ -307,20 +345,19 @@ function SettingsContent() {
               value={contactPhone}
               onChange={(event) => setContactPhone(event.target.value)}
               placeholder="0812345678"
+              inputMode="numeric"
               className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
             />
           </label>
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.ownerLineUserId")}</span>
-            <input
-              value={ownerLineUserId}
-              onChange={(event) => setOwnerLineUserId(event.target.value)}
-              placeholder="Uxxxxxxxx..."
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-            />
-            <p className="text-xs text-zinc-500">{t("settings.ownerLineHint")}</p>
-          </label>
+          <OwnerLineNotifySkin
+            propertySlug={propertySlug}
+            ownerLineUserId={ownerLineUserId || null}
+            onDisconnect={() => {
+              setOwnerLineUserId("");
+              void save({ owner_line_user_id: null });
+            }}
+          />
 
           <button
             type="button"
@@ -331,8 +368,9 @@ function SettingsContent() {
                 bank_account: bankAccount,
                 receiver_name: receiverName,
                 contact_line_url: contactLineUrl,
+                contact_line_qr_url: contactLineQrUrl || null,
                 contact_phone: contactPhone,
-                owner_line_user_id: ownerLineUserId,
+                owner_line_user_id: ownerLineUserId || null,
                 billing_day: Number(billingDay),
                 meter_reminder_days_before: Number(meterReminderDays),
                 include_utilities: includeUtilities,
@@ -358,6 +396,8 @@ function SettingsContent() {
           >
             {t("common.backToDashboard")}
           </a>
+            </>
+          )}
         </section>
       </div>
     </main>

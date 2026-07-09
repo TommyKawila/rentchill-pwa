@@ -21,6 +21,26 @@ export function ProjectSelectorSkin({
   addDisabled,
 }: ProjectSelectorSkinProps) {
   const { t } = useLocale();
+  const isEmpty = !loading && properties.length === 0;
+
+  if (isEmpty && onAddClick) {
+    return (
+      <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-4">
+        <p className="text-sm font-medium text-zinc-900">
+          {t("owner.noProjectTitle")}
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">{t("owner.noProjectHint")}</p>
+        <button
+          type="button"
+          disabled={addDisabled}
+          onClick={onAddClick}
+          className="mt-3 w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {t("owner.addProject")}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-3">
@@ -33,9 +53,6 @@ export function ProjectSelectorSkin({
             onChange={(event) => onChange(event.target.value)}
             className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 disabled:bg-zinc-100"
           >
-            {properties.length === 0 && (
-              <option value={value}>{value}</option>
-            )}
             {properties.map((property) => (
               <option key={property.id} value={property.slug}>
                 {property.name}
@@ -48,7 +65,8 @@ export function ProjectSelectorSkin({
               disabled={addDisabled || loading}
               onClick={onAddClick}
               aria-label={t("owner.addProject")}
-              className="shrink-0 rounded-md border border-zinc-300 bg-white px-3 py-2 text-lg font-medium leading-none text-zinc-700 disabled:opacity-50"
+              title={t("owner.addProject")}
+              className="shrink-0 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               +
             </button>

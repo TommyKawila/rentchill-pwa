@@ -10,3 +10,14 @@ export function buildBoardLiffUrl(
 ) {
   return buildLiffUrl(liffId, query);
 }
+
+export function buildOwnerLineConnectLiffUrl(
+  liffId: string,
+  propertySlug: string,
+  token: string,
+) {
+  return buildLiffUrl(liffId, {
+    owner_connect: propertySlug,
+    token,
+  });
+}

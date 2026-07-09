@@ -13,6 +13,7 @@ export interface PropertyPaymentAccount {
   bank_account: string | null;
   receiver_name: string | null;
   contact_line_url: string | null;
+  contact_line_qr_url: string | null;
   contact_phone: string | null;
   owner_line_user_id: string | null;
   billing_day: number;
@@ -27,6 +28,7 @@ export type PropertyPaymentInput = {
   bank_account?: string | null;
   receiver_name?: string | null;
   contact_line_url?: string | null;
+  contact_line_qr_url?: string | null;
   contact_phone?: string | null;
   owner_line_user_id?: string | null;
   billing_day?: number;
@@ -38,6 +40,7 @@ export type PropertyPaymentInput = {
 
 export type PropertyContact = {
   contact_line_url: string | null;
+  contact_line_qr_url: string | null;
   contact_phone: string | null;
 };
 

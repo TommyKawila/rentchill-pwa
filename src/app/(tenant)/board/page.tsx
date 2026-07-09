@@ -8,6 +8,7 @@ import { ContactLandlordSkin } from "@/components/skins/minimal/ContactLandlordS
 import { InviteCodeSkin } from "@/components/skins/minimal/InviteCodeSkin";
 import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
+import { OwnerLineConnectPanel } from "@/components/skins/minimal/OwnerLineConnectPanel";
 import { PdpaConsentSkin } from "@/components/skins/minimal/PdpaConsentSkin";
 import { useLineAuth } from "@/hooks/useLineAuth";
 import { usePaymentEngine } from "@/hooks/usePaymentEngine";
@@ -26,7 +27,7 @@ function AuthLoading({ message }: { message: string }) {
   );
 }
 
-function TenantBoardContent() {
+function TenantBoardMain() {
   const { t } = useLocale();
   const slipInputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
@@ -233,6 +234,23 @@ function TenantBoardContent() {
       {board.contact && <ContactLandlordSkin contact={board.contact} />}
     </MobileFrame>
   );
+}
+
+function TenantBoardContent() {
+  const searchParams = useSearchParams();
+  const ownerConnectSlug = searchParams.get("owner_connect");
+  const ownerConnectToken = searchParams.get("token");
+
+  if (ownerConnectSlug && ownerConnectToken) {
+    return (
+      <OwnerLineConnectPanel
+        propertySlug={ownerConnectSlug}
+        token={ownerConnectToken}
+      />
+    );
+  }
+
+  return <TenantBoardMain />;
 }
 
 export default function TenantBoardPage() {

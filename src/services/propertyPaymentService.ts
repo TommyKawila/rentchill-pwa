@@ -16,6 +16,7 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
     bank_account: row.payment_bank_account ? String(row.payment_bank_account) : null,
     receiver_name: row.payment_receiver_name ? String(row.payment_receiver_name) : null,
     contact_line_url: row.contact_line_url ? String(row.contact_line_url) : null,
+    contact_line_qr_url: row.contact_line_qr_url ? String(row.contact_line_qr_url) : null,
     contact_phone: row.contact_phone ? String(row.contact_phone) : null,
     owner_line_user_id: row.owner_line_user_id ? String(row.owner_line_user_id) : null,
     billing_day: Number(row.billing_day ?? 1),
@@ -27,7 +28,7 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
 }
 
 const paymentSelect =
-  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_phone, owner_line_user_id, billing_day, meter_reminder_days_before, include_utilities, water_rate_per_unit, electric_rate_per_unit";
+  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_line_qr_url, contact_phone, owner_line_user_id, billing_day, meter_reminder_days_before, include_utilities, water_rate_per_unit, electric_rate_per_unit";
 
 export async function getPropertyPaymentBySlug(
   slug: string,
@@ -66,12 +67,27 @@ export async function updatePropertyPayment(
   const { data, error } = await supabase
     .from("properties")
     .update({
-      payment_prompt_pay: input.prompt_pay?.trim() || null,
-      payment_bank_account: input.bank_account?.trim() || null,
-      payment_receiver_name: input.receiver_name?.trim() || null,
-      contact_line_url: input.contact_line_url?.trim() || null,
-      contact_phone: input.contact_phone?.trim() || null,
-      owner_line_user_id: input.owner_line_user_id?.trim() || null,
+      ...(input.prompt_pay !== undefined
+        ? { payment_prompt_pay: input.prompt_pay?.trim() || null }
+        : {}),
+      ...(input.bank_account !== undefined
+        ? { payment_bank_account: input.bank_account?.trim() || null }
+        : {}),
+      ...(input.receiver_name !== undefined
+        ? { payment_receiver_name: input.receiver_name?.trim() || null }
+        : {}),
+      ...(input.contact_line_url !== undefined
+        ? { contact_line_url: input.contact_line_url?.trim() || null }
+        : {}),
+      ...(input.contact_line_qr_url !== undefined
+        ? { contact_line_qr_url: input.contact_line_qr_url?.trim() || null }
+        : {}),
+      ...(input.contact_phone !== undefined
+        ? { contact_phone: input.contact_phone?.trim() || null }
+        : {}),
+      ...(input.owner_line_user_id !== undefined
+        ? { owner_line_user_id: input.owner_line_user_id?.trim() || null }
+        : {}),
       ...(input.billing_day !== undefined
         ? { billing_day: clampBillingDay(input.billing_day) }
         : {}),

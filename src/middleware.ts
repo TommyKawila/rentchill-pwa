@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/api/line/webhook") {
+  if (pathname === "/api/line/webhook" || pathname === "/api/properties/line-connect") {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
@@ -83,5 +83,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/((?!_next/static|_next/image|favicon.ico|api/line/webhook|api/cron).*)",
+  matcher: "/((?!_next/static|_next/image|favicon.ico|api/line/webhook|api/properties/line-connect|api/cron).*)",
 };
