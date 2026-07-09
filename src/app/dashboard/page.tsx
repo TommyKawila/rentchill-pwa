@@ -1,15 +1,14 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { PlanUsageSkin } from "@/components/skins/minimal/PlanUsageSkin";
 import { OwnerDashboardShell } from "@/components/skins/minimal/OwnerDashboardShell";
 import { CsvExportSkin } from "@/components/skins/minimal/CsvExportSkin";
 import { MagicLinkSkin } from "@/components/skins/minimal/MagicLinkSkin";
-import { MonthlyBillingSkin } from "@/components/skins/minimal/MonthlyBillingSkin";
-import { OverrideSkin } from "@/components/skins/minimal/OverrideSkin";
-import { PaidInvoiceSkin } from "@/components/skins/minimal/PaidInvoiceSkin";
+import { RoomListSkin } from "@/components/skins/minimal/RoomListSkin";
+import { RoomDetailModal } from "@/components/skins/minimal/RoomDetailModal";
 import { SubscriptionBannerSkin } from "@/components/skins/minimal/SubscriptionBannerSkin";
 import { useCsvExport } from "@/hooks/useCsvExport";
 import { useInvoiceOverride } from "@/hooks/useInvoiceOverride";
@@ -19,6 +18,7 @@ import { useOwnerProperties } from "@/hooks/useOwnerProperties";
 import { useOwnerSubscription } from "@/hooks/useOwnerSubscription";
 import { usePropertyPlan } from "@/hooks/usePropertyPlan";
 import { usePaymentReminder } from "@/hooks/usePaymentReminder";
+import type { BillingEntry } from "@/services/monthlyBillingService";
 
 function DashboardContent() {
   const { t } = useLocale();
@@ -54,6 +54,63 @@ function DashboardContent() {
   const propertyPlan = usePropertyPlan(propertySlug);
   const ownerSubscription = useOwnerSubscription();
 
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  const [meters, setMeters] = useState<
+    Record<string, { water: string; electric: string }>
+  >({});
+
+  useEffect(() => {
+    setMeters(
+      Object.fromEntries(
+        billing.rows.map((row) => [
+          row.tenant_id,
+          {
+            water: String(row.water_unit),
+            electric: String(row.electric_unit),
+          },
+        ]),
+      ),
+    );
+  }, [billing.rows]);
+
+  const listRows = useMemo(() => {
+    const sorted = [...billing.rows].sort((a, b) =>
+      a.room_number.localeCompare(b.room_number, undefined, { numeric: true }),
+    );
+    return sorted.map((row, index) => ({ ...row, no: index + 1 }));
+  }, [billing.rows]);
+
+  const editableCount = useMemo(
+    () =>
+      billing.rows.filter(
+        (row) =>
+          row.invoice_status !== "paid" && row.invoice_status !== "scanning",
+      ).length,
+    [billing.rows],
+  );
+
+  const selectedRow = useMemo(
+    () => listRows.find((row) => row.tenant_id === selectedTenantId) ?? null,
+    [listRows, selectedTenantId],
+  );
+
+  const reviewInvoice = useMemo(() => {
+    if (!selectedTenantId) return null;
+    return (
+      override.invoices.find((invoice) => invoice.tenant_id === selectedTenantId) ??
+      null
+    );
+  }, [override.invoices, selectedTenantId]);
+
+  const paidInvoice = useMemo(() => {
+    if (!selectedTenantId) return null;
+    return (
+      override.paidInvoices.find(
+        (invoice) => invoice.tenant_id === selectedTenantId,
+      ) ?? null
+    );
+  }, [override.paidInvoices, selectedTenantId]);
+
   const isSaving =
     billing.status === "saving" ||
     override.status === "saving" ||
@@ -85,6 +142,21 @@ function DashboardContent() {
     if (csvExport.error === "NO_DATA") return t("owner.csv.noData");
     return csvExport.error;
   }, [csvExport.error, t]);
+
+  const handleBulkSubmit = () => {
+    const entries: BillingEntry[] = billing.rows
+      .filter(
+        (row) =>
+          row.invoice_status !== "paid" && row.invoice_status !== "scanning",
+      )
+      .map((row) => ({
+        tenant_id: row.tenant_id,
+        water_unit: Number(meters[row.tenant_id]?.water ?? 0),
+        electric_unit: Number(meters[row.tenant_id]?.electric ?? 0),
+      }));
+
+    void billing.generate(entries).then(() => override.reload());
+  };
 
   return (
     <OwnerDashboardShell
@@ -133,66 +205,59 @@ function DashboardContent() {
         </div>
       )}
 
+      {quotaHint && (
+        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          {quotaHint}
+        </p>
+      )}
+
       {billing.status === "loading" && billing.rows.length === 0 && (
         <p className="mt-8 text-sm text-zinc-500">{t("owner.loading.rooms")}</p>
       )}
 
-      <MonthlyBillingSkin
+      <RoomListSkin
         billingMonth={billing.billingMonth}
-        rows={billing.rows}
+        rows={listRows}
         disabled={isSaving}
+        editableCount={editableCount}
         result={billing.result}
-        canRemind={reminder.canRemind}
-        reminderDisabled={reminder.status === "loading"}
-        remindedTenantId={reminder.lastRemindedTenantId}
-        quotaHint={quotaHint}
-        onRemind={(tenantId) => void reminder.remind(tenantId)}
-        onSubmit={(entries) =>
-          void billing.generate(entries).then(() => override.reload())
-        }
+        onSelect={setSelectedTenantId}
+        onSubmit={handleBulkSubmit}
       />
 
-      <section className="mt-10 space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-800">
-          {t("owner.review.title")}
-        </h2>
-
-        {override.status === "loading" && override.invoices.length === 0 && (
-          <p className="text-sm text-zinc-500">{t("owner.review.loading")}</p>
-        )}
-
-        {!override.error &&
-          override.status !== "loading" &&
-          override.invoices.length === 0 && (
-            <p className="text-sm text-zinc-600">{t("owner.review.empty")}</p>
-          )}
-
-        {override.invoices.map((invoice) => (
-          <OverrideSkin
-            key={invoice.id}
-            invoice={invoice}
-            disabled={isSaving}
-            onSaveMeters={(water, electric) =>
-              void override.updateMeters(invoice.id, water, electric)
+      {selectedRow && (
+        <RoomDetailModal
+          row={selectedRow}
+          reviewInvoice={reviewInvoice}
+          paidInvoice={paidInvoice}
+          disabled={isSaving}
+          canRemind={reminder.canRemind}
+          reminderDisabled={reminder.status === "loading"}
+          remindedTenantId={reminder.lastRemindedTenantId}
+          meters={
+            meters[selectedRow.tenant_id] ?? {
+              water: String(selectedRow.water_unit),
+              electric: String(selectedRow.electric_unit),
             }
-            onAutoVerify={() => void override.verifySlipAuto(invoice.id)}
-            onReject={(note) => void override.rejectSlip(invoice.id, note)}
-            onApprove={(slipUrl) => void override.approveInvoice(invoice.id, slipUrl)}
-          />
-        ))}
-      </section>
-
-      <section className="mt-10 space-y-4">
-        <h2 className="text-sm font-semibold text-zinc-800">
-          {t("owner.paid.title")}
-        </h2>
-        {override.paidInvoices.length === 0 && override.status !== "loading" && (
-          <p className="text-sm text-zinc-600">{t("owner.paid.empty")}</p>
-        )}
-        {override.paidInvoices.map((invoice) => (
-          <PaidInvoiceSkin key={invoice.id} invoice={invoice} />
-        ))}
-      </section>
+          }
+          onClose={() => setSelectedTenantId(null)}
+          onMeterChange={(tenantId, water, electric) =>
+            setMeters((prev) => ({
+              ...prev,
+              [tenantId]: { water, electric },
+            }))
+          }
+          onRemind={(tenantId) => void reminder.remind(tenantId)}
+          onSaveMeters={(invoiceId, water, electric) =>
+            void override.updateMeters(invoiceId, water, electric)
+          }
+          onAutoVerify={(invoiceId) => void override.verifySlipAuto(invoiceId)}
+          onReject={(invoiceId, note) => void override.rejectSlip(invoiceId, note)}
+          onApprove={(invoiceId, slipUrl) =>
+            void override.approveInvoice(invoiceId, slipUrl)
+          }
+        />
+      )}
 
       <CsvExportSkin
         billingMonth={billing.billingMonth}
