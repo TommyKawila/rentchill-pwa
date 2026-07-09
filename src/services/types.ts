@@ -15,6 +15,9 @@ export interface PropertyPaymentAccount {
   contact_line_url: string | null;
   contact_phone: string | null;
   owner_line_user_id: string | null;
+  billing_day: number;
+  meter_reminder_days_before: number;
+  include_utilities: boolean;
 }
 
 export type PropertyPaymentInput = {
@@ -24,6 +27,9 @@ export type PropertyPaymentInput = {
   contact_line_url?: string | null;
   contact_phone?: string | null;
   owner_line_user_id?: string | null;
+  billing_day?: number;
+  meter_reminder_days_before?: number;
+  include_utilities?: boolean;
 };
 
 export type PropertyContact = {

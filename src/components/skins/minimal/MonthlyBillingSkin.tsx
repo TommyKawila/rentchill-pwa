@@ -9,6 +9,11 @@ import {
   ELECTRIC_RATE,
 } from "@/services/invoiceCalculator";
 import { statusMessageKey } from "@/services/i18n/translate";
+import {
+  isRowEditable,
+  isRowReadyToBill,
+} from "@/services/propertyBillingSettingsService";
+
 import type {
   BillingEntry,
   MonthlyBillingRow,
@@ -16,6 +21,8 @@ import type {
 
 interface MonthlyBillingSkinProps {
   billingMonth: string;
+  billingDay: number;
+  includeUtilities: boolean;
   rows: MonthlyBillingRow[];
   disabled?: boolean;
   result?: {
@@ -61,6 +68,8 @@ async function copyText(text: string) {
 
 export function MonthlyBillingSkin({
   billingMonth,
+  billingDay,
+  includeUtilities,
   rows,
   disabled,
   result,
@@ -85,8 +94,9 @@ export function MonthlyBillingSkin({
         rows.map((row) => [
           row.tenant_id,
           {
-            water: String(row.water_unit),
-            electric: String(row.electric_unit),
+            water: row.water_unit !== null ? String(row.water_unit) : "",
+            electric:
+              row.electric_unit !== null ? String(row.electric_unit) : "",
           },
         ]),
       ),
@@ -94,17 +104,39 @@ export function MonthlyBillingSkin({
   }, [rows]);
 
   const editableCount = useMemo(
-    () => rows.filter((row) => !isLocked(row.invoice_status)).length,
+    () => rows.filter(isRowEditable).length,
     [rows],
+  );
+
+  const readyCount = useMemo(
+    () =>
+      rows.filter((row) =>
+        isRowReadyToBill(
+          row,
+          meters[row.tenant_id] ?? { water: "", electric: "" },
+          includeUtilities,
+        ),
+      ).length,
+    [rows, meters, includeUtilities],
   );
 
   const handleSubmit = () => {
     const entries = rows
-      .filter((row) => !isLocked(row.invoice_status))
+      .filter((row) =>
+        isRowReadyToBill(
+          row,
+          meters[row.tenant_id] ?? { water: "", electric: "" },
+          includeUtilities,
+        ),
+      )
       .map((row) => ({
         tenant_id: row.tenant_id,
-        water_unit: Number(meters[row.tenant_id]?.water ?? 0),
-        electric_unit: Number(meters[row.tenant_id]?.electric ?? 0),
+        water_unit: includeUtilities
+          ? Number(meters[row.tenant_id]?.water ?? 0)
+          : 0,
+        electric_unit: includeUtilities
+          ? Number(meters[row.tenant_id]?.electric ?? 0)
+          : 0,
       }));
 
     onSubmit(entries);
@@ -118,11 +150,16 @@ export function MonthlyBillingSkin({
             {t("owner.billing.title")}
           </h2>
           <p className="mt-1 text-xs text-zinc-500">
-            {t("owner.billing.rates", {
-              month: billingMonth,
-              water: WATER_RATE,
-              electric: ELECTRIC_RATE,
-            })}
+            {includeUtilities
+              ? t("owner.billing.rates", {
+                  month: billingMonth,
+                  water: WATER_RATE,
+                  electric: ELECTRIC_RATE,
+                })
+              : t("owner.billing.rentOnly")}
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">
+            {t("owner.billing.cycleDay", { day: billingDay })}
           </p>
         </div>
       </div>
@@ -138,8 +175,10 @@ export function MonthlyBillingSkin({
       )}
 
       {rows.map((row) => {
-        const water = Number(meters[row.tenant_id]?.water ?? 0);
-        const electric = Number(meters[row.tenant_id]?.electric ?? 0);
+        const water = includeUtilities ? Number(meters[row.tenant_id]?.water || 0) : 0;
+        const electric = includeUtilities
+          ? Number(meters[row.tenant_id]?.electric || 0)
+          : 0;
         const { total_amount } = calculateInvoiceAmounts(
           row.base_rent_price,
           water,
@@ -235,46 +274,50 @@ export function MonthlyBillingSkin({
               )}
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-              <label className="space-y-1">
-                <span className="text-zinc-500">{t("owner.billing.water")}</span>
-                <input
-                  type="number"
-                  min={0}
-                  disabled={disabled || locked}
-                  value={meters[row.tenant_id]?.water ?? "0"}
-                  onChange={(event) =>
-                    setMeters((prev) => ({
-                      ...prev,
-                      [row.tenant_id]: {
-                        water: event.target.value,
-                        electric: prev[row.tenant_id]?.electric ?? "0",
-                      },
-                    }))
-                  }
-                  className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-zinc-500">{t("owner.billing.electric")}</span>
-                <input
-                  type="number"
-                  min={0}
-                  disabled={disabled || locked}
-                  value={meters[row.tenant_id]?.electric ?? "0"}
-                  onChange={(event) =>
-                    setMeters((prev) => ({
-                      ...prev,
-                      [row.tenant_id]: {
-                        water: prev[row.tenant_id]?.water ?? "0",
-                        electric: event.target.value,
-                      },
-                    }))
-                  }
-                  className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
-                />
-              </label>
-            </div>
+            {includeUtilities ? (
+              <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <label className="space-y-1">
+                  <span className="text-zinc-500">{t("owner.billing.water")}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    disabled={disabled || locked}
+                    value={meters[row.tenant_id]?.water ?? ""}
+                    onChange={(event) =>
+                      setMeters((prev) => ({
+                        ...prev,
+                        [row.tenant_id]: {
+                          water: event.target.value,
+                          electric: prev[row.tenant_id]?.electric ?? "",
+                        },
+                      }))
+                    }
+                    className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-zinc-500">{t("owner.billing.electric")}</span>
+                  <input
+                    type="number"
+                    min={0}
+                    disabled={disabled || locked}
+                    value={meters[row.tenant_id]?.electric ?? ""}
+                    onChange={(event) =>
+                      setMeters((prev) => ({
+                        ...prev,
+                        [row.tenant_id]: {
+                          water: prev[row.tenant_id]?.water ?? "",
+                          electric: event.target.value,
+                        },
+                      }))
+                    }
+                    className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
+                  />
+                </label>
+              </div>
+            ) : (
+              <p className="mt-3 text-xs text-zinc-500">{t("owner.billing.rentOnly")}</p>
+            )}
 
             <p className="mt-3 text-sm font-medium">
               {t("common.total")} ฿{total_amount.toLocaleString("th-TH")}
@@ -302,14 +345,20 @@ export function MonthlyBillingSkin({
         </p>
       )}
 
+      {includeUtilities && editableCount > 0 && readyCount === 0 && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          {t("owner.billing.meterRequired")}
+        </p>
+      )}
+
       {rows.length > 0 && (
         <button
           type="button"
-          disabled={disabled || editableCount === 0}
+          disabled={disabled || readyCount === 0}
           onClick={handleSubmit}
           className="w-full rounded-md bg-green-700 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
-          {t("owner.billing.submit", { count: editableCount })}
+          {t("owner.billing.submit", { count: readyCount })}
         </button>
       )}
 

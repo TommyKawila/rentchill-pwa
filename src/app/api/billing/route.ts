@@ -48,6 +48,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "ออกบิลไม่สำเร็จ";
+    if (message === "METER_REQUIRED") {
+      return NextResponse.json(
+        { error: "METER_REQUIRED", message: "กรุณาใส่ค่ามิเตอร์น้ำ-ไฟก่อนออกบิล" },
+        { status: 400 },
+      );
+    }
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

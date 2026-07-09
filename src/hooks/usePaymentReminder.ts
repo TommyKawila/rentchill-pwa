@@ -85,9 +85,7 @@ export function usePaymentReminder(propertySlug: string) {
     [propertySlug],
   );
 
-  const canRemind =
-    quota?.reminder_limit === null ||
-    (quota?.reminders_remaining ?? 0) > 0;
+  const canRemind = (quota?.line_push_remaining ?? 0) > 0;
 
   return {
     quota,

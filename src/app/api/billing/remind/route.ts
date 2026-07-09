@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "QUOTA_EXCEEDED") {
       return NextResponse.json(
-        { error: "QUOTA_EXCEEDED", message: "ใช้โควต้าแจ้งเตือนครบแล้วเดือนนี้" },
+        { error: "QUOTA_EXCEEDED", message: "โควต้า LINE หมดแล้วเดือนนี้" },
         { status: 403 },
       );
     }

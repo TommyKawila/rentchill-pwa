@@ -1,5 +1,14 @@
+import { getLineOaQuotaSnapshot, type LineOaAlertLevel, type LineOaInferredPlan } from "@/services/line/lineOaQuotaService";
+import {
+  getLinePushByType,
+  getLinePushDailyStats,
+  getLinePushStatsForMonth,
+} from "@/services/linePushQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 import type { PlanTier } from "@/services/propertyQuotaService";
+import { getSuperadminOwnerId } from "@/services/superadminGuard";
+
+export type { LineOaAlertLevel, LineOaInferredPlan };
 
 export type PlatformStats = {
   owners_total: number;
@@ -11,9 +20,22 @@ export type PlatformStats = {
   tenants_line_linked: number;
   pending_payments: number;
   plan_breakdown: Record<PlanTier, number>;
+  line_push_total: number;
+  line_push_charged: number;
+  line_push_top: Array<{ name: string; slug: string; count: number }>;
+  line_internal_total: number;
+  line_log_gap: number;
+  line_oa_available: boolean;
+  line_oa_limit: number | null;
+  line_oa_used: number;
+  line_oa_remaining: number | null;
+  line_oa_percent: number | null;
+  line_oa_plan: LineOaInferredPlan;
+  line_oa_alert: LineOaAlertLevel;
+  line_oa_next_plan: LineOaInferredPlan | null;
+  line_push_daily: Array<{ date: string; total: number; charged: number }>;
+  line_push_by_type: Array<{ message_type: string; count: number }>;
 };
-
-import { getSuperadminOwnerId } from "@/services/superadminGuard";
 
 export async function getPlatformStats(): Promise<PlatformStats> {
   const supabase = createAdminClient();
@@ -73,6 +95,18 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 
   if (paymentsError) throw paymentsError;
 
+  const [linePush, lineOa, lineDaily, lineByType] = await Promise.all([
+    getLinePushStatsForMonth(),
+    getLineOaQuotaSnapshot(),
+    getLinePushDailyStats(),
+    getLinePushByType(),
+  ]);
+
+  const internalTotal = linePush.total_pushes;
+  const logGap = lineOa.available
+    ? Math.max(0, lineOa.quota_used - internalTotal)
+    : 0;
+
   return {
     owners_total: ownerRows.length,
     owners_active: ownersActive,
@@ -83,5 +117,20 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     tenants_line_linked: tenantsLineLinked,
     pending_payments: pendingPayments ?? 0,
     plan_breakdown: planBreakdown,
+    line_push_total: internalTotal,
+    line_push_charged: linePush.charged_pushes,
+    line_push_top: linePush.top_properties,
+    line_internal_total: internalTotal,
+    line_log_gap: logGap,
+    line_oa_available: lineOa.available,
+    line_oa_limit: lineOa.quota_limit,
+    line_oa_used: lineOa.quota_used,
+    line_oa_remaining: lineOa.quota_remaining,
+    line_oa_percent: lineOa.usage_percent,
+    line_oa_plan: lineOa.inferred_plan,
+    line_oa_alert: lineOa.alert_level,
+    line_oa_next_plan: lineOa.next_plan_hint,
+    line_push_daily: lineDaily,
+    line_push_by_type: lineByType,
   };
 }

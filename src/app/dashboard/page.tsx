@@ -18,6 +18,11 @@ import { useOwnerSubscription } from "@/hooks/useOwnerSubscription";
 import { usePropertyPlan } from "@/hooks/usePropertyPlan";
 import { usePaymentReminder } from "@/hooks/usePaymentReminder";
 import type { BillingEntry } from "@/services/monthlyBillingService";
+import {
+  isInMeterReminderWindow,
+  isRowEditable,
+  isRowReadyToBill,
+} from "@/services/propertyBillingSettingsService";
 
 function DashboardContent() {
   const { t } = useLocale();
@@ -65,8 +70,9 @@ function DashboardContent() {
         billing.rows.map((row) => [
           row.tenant_id,
           {
-            water: String(row.water_unit),
-            electric: String(row.electric_unit),
+            water: row.water_unit !== null ? String(row.water_unit) : "",
+            electric:
+              row.electric_unit !== null ? String(row.electric_unit) : "",
           },
         ]),
       ),
@@ -81,13 +87,38 @@ function DashboardContent() {
   }, [billing.rows]);
 
   const editableCount = useMemo(
-    () =>
-      billing.rows.filter(
-        (row) =>
-          row.invoice_status !== "paid" && row.invoice_status !== "scanning",
-      ).length,
+    () => billing.rows.filter(isRowEditable).length,
     [billing.rows],
   );
+
+  const readyCount = useMemo(
+    () =>
+      billing.rows.filter((row) =>
+        isRowReadyToBill(
+          row,
+          meters[row.tenant_id] ?? { water: "", electric: "" },
+          billing.settings.include_utilities,
+        ),
+      ).length,
+    [billing.rows, meters, billing.settings.include_utilities],
+  );
+
+  const showMeterReminder = useMemo(() => {
+    const inWindow = isInMeterReminderWindow(
+      billing.settings.billing_day,
+      billing.settings.meter_reminder_days_before,
+    );
+    if (!inWindow || !billing.settings.include_utilities) return false;
+    return billing.rows.some(
+      (row) =>
+        isRowEditable(row) &&
+        !isRowReadyToBill(
+          row,
+          meters[row.tenant_id] ?? { water: "", electric: "" },
+          true,
+        ),
+    );
+  }, [billing.rows, billing.settings, meters]);
 
   const selectedRow = useMemo(
     () => listRows.find((row) => row.tenant_id === selectedTenantId) ?? null,
@@ -118,12 +149,14 @@ function DashboardContent() {
     csvExport.status === "exporting" ||
     magicLink.status === "creating";
 
-  const quotaHint = useMemo(() => {
+  const lineQuotaHint = useMemo(() => {
     if (!reminder.quota) return null;
-    if (reminder.quota.reminder_limit === null) return null;
-    return t("owner.reminder.quota", {
-      remaining: reminder.quota.reminders_remaining ?? 0,
-      limit: reminder.quota.reminder_limit,
+    if (reminder.quota.line_push_remaining > reminder.quota.line_push_limit * 0.2) {
+      return null;
+    }
+    return t("owner.line.quota", {
+      remaining: reminder.quota.line_push_remaining,
+      limit: reminder.quota.line_push_limit,
     });
   }, [reminder.quota, t]);
 
@@ -136,14 +169,21 @@ function DashboardContent() {
 
   const handleBulkSubmit = () => {
     const entries: BillingEntry[] = billing.rows
-      .filter(
-        (row) =>
-          row.invoice_status !== "paid" && row.invoice_status !== "scanning",
+      .filter((row) =>
+        isRowReadyToBill(
+          row,
+          meters[row.tenant_id] ?? { water: "", electric: "" },
+          billing.settings.include_utilities,
+        ),
       )
       .map((row) => ({
         tenant_id: row.tenant_id,
-        water_unit: Number(meters[row.tenant_id]?.water ?? 0),
-        electric_unit: Number(meters[row.tenant_id]?.electric ?? 0),
+        water_unit: billing.settings.include_utilities
+          ? Number(meters[row.tenant_id]?.water ?? 0)
+          : 0,
+        electric_unit: billing.settings.include_utilities
+          ? Number(meters[row.tenant_id]?.electric ?? 0)
+          : 0,
       }));
 
     void billing.generate(entries).then(() => override.reload());
@@ -191,8 +231,10 @@ function DashboardContent() {
         exportErrorMessage ||
         magicLink.error) && (
         <div className="mt-8 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {reminder.error === "QUOTA_EXCEEDED"
-            ? t("owner.reminder.quotaExceeded")
+          {billing.error === "METER_REQUIRED"
+            ? t("owner.billing.meterRequired")
+            : reminder.error === "QUOTA_EXCEEDED"
+            ? t("owner.line.quotaExceeded")
             : (billing.error ??
               override.error ??
               reminder.error ??
@@ -201,9 +243,17 @@ function DashboardContent() {
         </div>
       )}
 
-      {quotaHint && (
+      {showMeterReminder && (
+        <p className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          {t("owner.billing.meterReminder", {
+            day: billing.settings.billing_day,
+          })}
+        </p>
+      )}
+
+      {lineQuotaHint && (
         <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {quotaHint}
+          {lineQuotaHint}
         </p>
       )}
 
@@ -213,9 +263,12 @@ function DashboardContent() {
 
       <RoomListSkin
         billingMonth={billing.billingMonth}
+        billingDay={billing.settings.billing_day}
+        includeUtilities={billing.settings.include_utilities}
         rows={listRows}
         disabled={isSaving}
         editableCount={editableCount}
+        readyCount={readyCount}
         result={billing.result}
         onSelect={setSelectedTenantId}
         onSubmit={handleBulkSubmit}
@@ -224,6 +277,7 @@ function DashboardContent() {
       {selectedRow && (
         <RoomDetailModal
           row={selectedRow}
+          includeUtilities={billing.settings.include_utilities}
           reviewInvoice={reviewInvoice}
           paidInvoice={paidInvoice}
           disabled={isSaving}
@@ -232,8 +286,14 @@ function DashboardContent() {
           remindedTenantId={reminder.lastRemindedTenantId}
           meters={
             meters[selectedRow.tenant_id] ?? {
-              water: String(selectedRow.water_unit),
-              electric: String(selectedRow.electric_unit),
+              water:
+                selectedRow.water_unit !== null
+                  ? String(selectedRow.water_unit)
+                  : "",
+              electric:
+                selectedRow.electric_unit !== null
+                  ? String(selectedRow.electric_unit)
+                  : "",
             }
           }
           onClose={() => setSelectedTenantId(null)}

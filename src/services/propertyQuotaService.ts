@@ -1,22 +1,22 @@
 import { getCurrentBillingMonth } from "@/services/invoiceCalculator";
+import { getLinePushLimit } from "@/services/linePushQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 
 export type PlanTier = "starter" | "micro" | "growth" | "pro";
 
 export type PropertyQuota = {
   plan_tier: PlanTier;
-  reminder_used: number;
+  line_push_used: number;
+  line_push_limit: number;
+  line_push_remaining: number;
   csv_used: number;
-  reminder_limit: number | null;
-  reminders_remaining: number | null;
   csv_limit: number | null;
   csv_remaining: number | null;
 };
 
-const REMINDER_LIMIT_STARTER = 1;
 const CSV_LIMIT_STARTER = 1;
 
-function isUnlimited(tier: PlanTier) {
+function isUnlimitedCsv(tier: PlanTier) {
   return tier !== "starter";
 }
 
@@ -25,7 +25,7 @@ async function getPropertyQuotaRow(propertySlug: string) {
   const { data, error } = await supabase
     .from("properties")
     .select(
-      "id, plan_tier, quota_month, reminder_used_this_month, csv_used_this_month",
+      "id, plan_tier, quota_month, line_push_used_this_month, csv_used_this_month",
     )
     .eq("slug", propertySlug)
     .maybeSingle();
@@ -49,6 +49,7 @@ async function resetQuotaIfNewMonth(
       quota_month: currentMonth,
       reminder_used_this_month: 0,
       csv_used_this_month: 0,
+      line_push_used_this_month: 0,
     })
     .eq("id", propertyId);
 
@@ -70,42 +71,20 @@ export async function getPropertyQuota(
 
   const refreshed = await getPropertyQuotaRow(propertySlug);
   const tier = String(refreshed.plan_tier) as PlanTier;
-  const reminderUsed = Number(refreshed.reminder_used_this_month);
+  const linePushUsed = Number(refreshed.line_push_used_this_month);
+  const linePushLimit = getLinePushLimit(tier);
   const csvUsed = Number(refreshed.csv_used_this_month);
-  const unlimited = isUnlimited(tier);
+  const csvUnlimited = isUnlimitedCsv(tier);
 
   return {
     plan_tier: tier,
-    reminder_used: reminderUsed,
+    line_push_used: linePushUsed,
+    line_push_limit: linePushLimit,
+    line_push_remaining: Math.max(0, linePushLimit - linePushUsed),
     csv_used: csvUsed,
-    reminder_limit: unlimited ? null : REMINDER_LIMIT_STARTER,
-    reminders_remaining: unlimited
-      ? null
-      : Math.max(0, REMINDER_LIMIT_STARTER - reminderUsed),
-    csv_limit: unlimited ? null : CSV_LIMIT_STARTER,
-    csv_remaining: unlimited ? null : Math.max(0, CSV_LIMIT_STARTER - csvUsed),
+    csv_limit: csvUnlimited ? null : CSV_LIMIT_STARTER,
+    csv_remaining: csvUnlimited ? null : Math.max(0, CSV_LIMIT_STARTER - csvUsed),
   };
-}
-
-export async function consumeReminderQuota(propertySlug: string) {
-  const quota = await getPropertyQuota(propertySlug);
-  if (
-    quota.reminder_limit !== null &&
-    quota.reminder_used >= quota.reminder_limit
-  ) {
-    throw new Error("QUOTA_EXCEEDED");
-  }
-
-  const row = await getPropertyQuotaRow(propertySlug);
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("properties")
-    .update({
-      reminder_used_this_month: Number(row.reminder_used_this_month) + 1,
-    })
-    .eq("id", row.id);
-
-  if (error) throw error;
 }
 
 export async function consumeCsvQuota(propertySlug: string) {

@@ -14,6 +14,7 @@ import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
 
 interface RoomDetailModalProps {
   row: MonthlyBillingRow;
+  includeUtilities: boolean;
   reviewInvoice?: InvoiceOverrideRow | null;
   paidInvoice?: InvoiceOverrideRow | null;
   disabled?: boolean;
@@ -59,6 +60,7 @@ async function copyText(text: string) {
 
 export function RoomDetailModal({
   row,
+  includeUtilities,
   reviewInvoice,
   paidInvoice,
   disabled,
@@ -80,8 +82,8 @@ export function RoomDetailModal({
   const canShare = typeof navigator !== "undefined" && !!navigator.share;
   const locked = isLocked(row.invoice_status);
 
-  const water = Number(meters.water ?? 0);
-  const electric = Number(meters.electric ?? 0);
+  const water = includeUtilities ? Number(meters.water || 0) : 0;
+  const electric = includeUtilities ? Number(meters.electric || 0) : 0;
   const { total_amount } = calculateInvoiceAmounts(
     row.base_rent_price,
     water,
@@ -200,34 +202,38 @@ export function RoomDetailModal({
 
           {!reviewInvoice && !paidInvoice && (
             <>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <label className="space-y-1">
-                  <span className="text-zinc-500">{t("owner.billing.water")}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    disabled={disabled || locked}
-                    value={meters.water}
-                    onChange={(event) =>
-                      onMeterChange(row.tenant_id, event.target.value, meters.electric)
-                    }
-                    className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
-                  />
-                </label>
-                <label className="space-y-1">
-                  <span className="text-zinc-500">{t("owner.billing.electric")}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    disabled={disabled || locked}
-                    value={meters.electric}
-                    onChange={(event) =>
-                      onMeterChange(row.tenant_id, meters.water, event.target.value)
-                    }
-                    className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
-                  />
-                </label>
-              </div>
+              {includeUtilities ? (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <label className="space-y-1">
+                    <span className="text-zinc-500">{t("owner.billing.water")}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      disabled={disabled || locked}
+                      value={meters.water}
+                      onChange={(event) =>
+                        onMeterChange(row.tenant_id, event.target.value, meters.electric)
+                      }
+                      className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-zinc-500">{t("owner.billing.electric")}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      disabled={disabled || locked}
+                      value={meters.electric}
+                      onChange={(event) =>
+                        onMeterChange(row.tenant_id, meters.water, event.target.value)
+                      }
+                      className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
+                    />
+                  </label>
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500">{t("owner.billing.rentOnly")}</p>
+              )}
               <p className="text-sm font-medium">
                 {t("common.total")} ฿{total_amount.toLocaleString("th-TH")}
               </p>

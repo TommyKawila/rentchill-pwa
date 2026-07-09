@@ -1,9 +1,6 @@
 import { getCurrentBillingMonth } from "@/services/invoiceCalculator";
 import { notifyPaymentReminder } from "@/services/notificationService";
-import {
-  consumeReminderQuota,
-  getPropertyQuota,
-} from "@/services/propertyQuotaService";
+import { getPropertyQuota } from "@/services/propertyQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 
 export type ReminderTarget = {
@@ -72,9 +69,8 @@ export async function sendPaymentReminder(
     throw new Error("ไม่พบบิลรอชำระสำหรับลูกบ้านนี้");
   }
 
-  await consumeReminderQuota(propertySlug);
-
   await notifyPaymentReminder({
+    propertySlug,
     lineUserId: target.line_user_id,
     roomNumber: target.room_number,
     billingMonth,

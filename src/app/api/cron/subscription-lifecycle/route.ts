@@ -52,6 +52,7 @@ export async function GET(request: Request) {
 
       const billingUrl = baseUrl ? `${baseUrl}/billing` : "/billing";
       const result = await safeNotifySubscriptionGrace({
+        ownerId: owner.id,
         lineUserId,
         planTier: owner.plan_tier,
         graceDaysRemaining: lifecycle.grace_days_remaining ?? 0,

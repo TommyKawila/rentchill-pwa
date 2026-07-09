@@ -1,3 +1,4 @@
+import { getPropertyQuota } from "@/services/propertyQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 import type { PlanTier } from "@/services/propertyQuotaService";
 
@@ -21,6 +22,9 @@ export type PropertyPlanUsage = {
   room_count: number;
   room_limit: number;
   rooms_remaining: number;
+  line_push_used: number;
+  line_push_limit: number;
+  line_push_remaining: number;
 };
 
 export function getRoomLimit(tier: PlanTier) {
@@ -52,11 +56,16 @@ export async function getPropertyPlanUsage(
   if (countError) throw countError;
 
   const roomCount = count ?? 0;
+  const quota = await getPropertyQuota(propertySlug);
+
   return {
     plan_tier: tier,
     room_count: roomCount,
     room_limit: roomLimit,
     rooms_remaining: Math.max(0, roomLimit - roomCount),
+    line_push_used: quota.line_push_used,
+    line_push_limit: quota.line_push_limit,
+    line_push_remaining: quota.line_push_remaining,
   };
 }
 

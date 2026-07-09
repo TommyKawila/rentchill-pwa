@@ -18,6 +18,9 @@ function SettingsContent() {
   const [contactLineUrl, setContactLineUrl] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [ownerLineUserId, setOwnerLineUserId] = useState("");
+  const [billingDay, setBillingDay] = useState("1");
+  const [meterReminderDays, setMeterReminderDays] = useState("3");
+  const [includeUtilities, setIncludeUtilities] = useState(true);
 
   useEffect(() => {
     if (!account) return;
@@ -27,6 +30,9 @@ function SettingsContent() {
     setContactLineUrl(account.contact_line_url ?? "");
     setContactPhone(account.contact_phone ?? "");
     setOwnerLineUserId(account.owner_line_user_id ?? "");
+    setBillingDay(String(account.billing_day));
+    setMeterReminderDays(String(account.meter_reminder_days_before));
+    setIncludeUtilities(account.include_utilities);
   }, [account]);
 
   return (
@@ -89,6 +95,59 @@ function SettingsContent() {
           </label>
 
           <div className="border-t border-zinc-200 pt-6">
+            <h2 className="text-sm font-semibold">{t("settings.billingTitle")}</h2>
+            <p className="mt-1 text-xs text-zinc-500">{t("settings.billingDesc")}</p>
+          </div>
+
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium">{t("settings.billingDay")}</span>
+            <input
+              type="number"
+              min={1}
+              max={28}
+              value={billingDay}
+              onChange={(event) => setBillingDay(event.target.value)}
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+            />
+          </label>
+
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium">{t("settings.meterReminder")}</span>
+            <input
+              type="number"
+              min={1}
+              max={7}
+              value={meterReminderDays}
+              onChange={(event) => setMeterReminderDays(event.target.value)}
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+            />
+          </label>
+
+          <label className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-white px-3 py-3 text-sm">
+            <span className="font-medium">{t("settings.includeUtilities")}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={includeUtilities}
+              onClick={() => setIncludeUtilities((prev) => !prev)}
+              className={`relative h-6 w-11 rounded-full transition ${
+                includeUtilities ? "bg-green-600" : "bg-zinc-300"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition ${
+                  includeUtilities ? "left-5" : "left-0.5"
+                }`}
+              />
+            </button>
+          </label>
+          <p className="text-xs text-zinc-500">
+            {includeUtilities
+              ? t("settings.includeUtilitiesOn")
+              : t("settings.includeUtilitiesOff")}
+          </p>
+
+          <div className="border-t border-zinc-200 pt-6">
             <h2 className="text-sm font-semibold">{t("settings.contactTitle")}</h2>
             <p className="mt-1 text-xs text-zinc-500">{t("settings.contactDesc")}</p>
           </div>
@@ -135,6 +194,9 @@ function SettingsContent() {
                 contact_line_url: contactLineUrl,
                 contact_phone: contactPhone,
                 owner_line_user_id: ownerLineUserId,
+                billing_day: Number(billingDay),
+                meter_reminder_days_before: Number(meterReminderDays),
+                include_utilities: includeUtilities,
               })
             }
             className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"

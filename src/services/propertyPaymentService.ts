@@ -1,3 +1,7 @@
+import {
+  clampBillingDay,
+  clampReminderDays,
+} from "@/services/propertyBillingSettingsService";
 import { createAdminClient } from "@/services/supabase/admin";
 import { createServerClient } from "@/services/supabase/server";
 import type { PropertyPaymentAccount, PropertyPaymentInput } from "@/services/types";
@@ -13,11 +17,14 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
     contact_line_url: row.contact_line_url ? String(row.contact_line_url) : null,
     contact_phone: row.contact_phone ? String(row.contact_phone) : null,
     owner_line_user_id: row.owner_line_user_id ? String(row.owner_line_user_id) : null,
+    billing_day: Number(row.billing_day ?? 1),
+    meter_reminder_days_before: Number(row.meter_reminder_days_before ?? 3),
+    include_utilities: row.include_utilities !== false,
   };
 }
 
 const paymentSelect =
-  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_phone, owner_line_user_id";
+  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_phone, owner_line_user_id, billing_day, meter_reminder_days_before, include_utilities";
 
 export async function getPropertyPaymentBySlug(
   slug: string,
@@ -62,6 +69,19 @@ export async function updatePropertyPayment(
       contact_line_url: input.contact_line_url?.trim() || null,
       contact_phone: input.contact_phone?.trim() || null,
       owner_line_user_id: input.owner_line_user_id?.trim() || null,
+      ...(input.billing_day !== undefined
+        ? { billing_day: clampBillingDay(input.billing_day) }
+        : {}),
+      ...(input.meter_reminder_days_before !== undefined
+        ? {
+            meter_reminder_days_before: clampReminderDays(
+              input.meter_reminder_days_before,
+            ),
+          }
+        : {}),
+      ...(input.include_utilities !== undefined
+        ? { include_utilities: input.include_utilities }
+        : {}),
     })
     .eq("slug", slug)
     .select(paymentSelect)

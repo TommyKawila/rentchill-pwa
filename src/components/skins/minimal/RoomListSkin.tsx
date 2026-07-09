@@ -12,9 +12,12 @@ export type RoomListRow = MonthlyBillingRow & {
 
 interface RoomListSkinProps {
   billingMonth: string;
+  billingDay: number;
+  includeUtilities: boolean;
   rows: RoomListRow[];
   disabled?: boolean;
   editableCount: number;
+  readyCount: number;
   result?: {
     created: number;
     updated: number;
@@ -33,14 +36,19 @@ function statusTone(status: InvoiceStatus | null) {
 
 export function RoomListSkin({
   billingMonth,
+  billingDay,
+  includeUtilities,
   rows,
   disabled,
   editableCount,
+  readyCount,
   result,
   onSelect,
   onSubmit,
 }: RoomListSkinProps) {
   const { t } = useLocale();
+  const showMeterHint =
+    includeUtilities && editableCount > 0 && readyCount === 0;
 
   return (
     <section className="mt-8 space-y-3">
@@ -49,11 +57,16 @@ export function RoomListSkin({
           {t("owner.rooms.listTitle")}
         </h2>
         <p className="mt-1 text-xs text-zinc-500">
-          {t("owner.billing.rates", {
-            month: billingMonth,
-            water: WATER_RATE,
-            electric: ELECTRIC_RATE,
-          })}
+          {includeUtilities
+            ? t("owner.billing.rates", {
+                month: billingMonth,
+                water: WATER_RATE,
+                electric: ELECTRIC_RATE,
+              })
+            : t("owner.billing.rentOnly")}
+        </p>
+        <p className="mt-1 text-xs text-zinc-500">
+          {t("owner.billing.cycleDay", { day: billingDay })}
         </p>
       </div>
 
@@ -99,14 +112,20 @@ export function RoomListSkin({
         </div>
       )}
 
+      {showMeterHint && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          {t("owner.billing.meterRequired")}
+        </p>
+      )}
+
       {rows.length > 0 && (
         <button
           type="button"
-          disabled={disabled || editableCount === 0}
+          disabled={disabled || readyCount === 0}
           onClick={onSubmit}
           className="w-full rounded-md bg-green-700 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
-          {t("owner.billing.submit", { count: editableCount })}
+          {t("owner.billing.submit", { count: readyCount })}
         </button>
       )}
 

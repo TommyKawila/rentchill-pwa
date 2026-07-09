@@ -1,5 +1,5 @@
 import { buildBoardLiffUrl } from "@/services/line/liffUrls";
-import { pushLineMessages } from "@/services/line/pushMessageService";
+import { pushWithQuota } from "@/services/linePushQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 
 function formatAmount(amount: number) {
@@ -13,7 +13,19 @@ function boardUrl() {
   return base ? `${base}/board` : "/board";
 }
 
+function billingUrl() {
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  return base ? `${base}/billing` : "/billing";
+}
+
+function dashboardUrl(propertySlug: string) {
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const path = `/dashboard?property=${encodeURIComponent(propertySlug)}`;
+  return base ? `${base}${path}` : path;
+}
+
 export async function notifyBillIssued(input: {
+  propertySlug: string;
   lineUserId: string;
   roomNumber: string;
   billingMonth: string;
@@ -31,10 +43,16 @@ export async function notifyBillIssued(input: {
     boardUrl(),
   ].join("\n");
 
-  return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
+  return pushWithQuota({
+    type: "bill_issued",
+    propertySlug: input.propertySlug,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text }],
+  });
 }
 
 export async function notifySlipRejected(input: {
+  propertySlug: string;
   lineUserId: string;
   roomNumber: string;
   billingMonth: string;
@@ -51,10 +69,16 @@ export async function notifySlipRejected(input: {
     boardUrl(),
   ].join("\n");
 
-  return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
+  return pushWithQuota({
+    type: "slip_rejected",
+    propertySlug: input.propertySlug,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text }],
+  });
 }
 
 export async function notifyPaymentReminder(input: {
+  propertySlug: string;
   lineUserId: string;
   roomNumber: string;
   billingMonth: string;
@@ -74,15 +98,16 @@ export async function notifyPaymentReminder(input: {
     boardUrl(),
   ].join("\n");
 
-  return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
-}
-
-function billingUrl() {
-  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
-  return base ? `${base}/billing` : "/billing";
+  return pushWithQuota({
+    type: "payment_reminder",
+    propertySlug: input.propertySlug,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text }],
+  });
 }
 
 export async function notifySubscriptionGrace(input: {
+  ownerId: string;
   lineUserId: string;
   planTier: string;
   graceDaysRemaining: number;
@@ -100,7 +125,12 @@ export async function notifySubscriptionGrace(input: {
     renewUrl,
   ].join("\n");
 
-  return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
+  return pushWithQuota({
+    type: "subscription_grace",
+    ownerId: input.ownerId,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text }],
+  });
 }
 
 export async function safeNotifySubscriptionGrace(
@@ -116,6 +146,7 @@ export async function safeNotifySubscriptionGrace(
 }
 
 export async function notifyPaymentConfirmed(input: {
+  propertySlug: string;
   lineUserId: string;
   roomNumber: string;
   billingMonth: string;
@@ -135,22 +166,21 @@ export async function notifyPaymentConfirmed(input: {
     boardUrl(),
   ].join("\n");
 
-  return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
-}
-
-function dashboardUrl(propertySlug: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
-  const path = `/dashboard?property=${encodeURIComponent(propertySlug)}`;
-  return base ? `${base}${path}` : path;
+  return pushWithQuota({
+    type: "payment_confirmed",
+    propertySlug: input.propertySlug,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text }],
+  });
 }
 
 export async function notifyOwnerSlipSubmitted(input: {
+  propertySlug: string;
   lineUserId: string;
   tenantName: string;
   roomNumber: string;
   billingMonth: string;
   totalAmount: number;
-  propertySlug: string;
 }) {
   const total = formatAmount(input.totalAmount);
   const text = [
@@ -165,7 +195,12 @@ export async function notifyOwnerSlipSubmitted(input: {
     dashboardUrl(input.propertySlug),
   ].join("\n");
 
-  return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
+  return pushWithQuota({
+    type: "owner_slip_submitted",
+    propertySlug: input.propertySlug,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text }],
+  });
 }
 
 export async function safeNotifyOwnerSlipSubmitted(invoiceId: string) {
@@ -180,7 +215,9 @@ export async function safeNotifyOwnerSlipSubmitted(invoiceId: string) {
       .eq("id", invoiceId)
       .maybeSingle();
 
-    if (error || !data?.properties) return { sent: false as const, reason: "not_found" as const };
+    if (error || !data?.properties) {
+      return { sent: false as const, reason: "not_found" as const };
+    }
 
     const propertyRaw = data.properties as
       | { owner_line_user_id: string | null; slug: string }
@@ -196,12 +233,12 @@ export async function safeNotifyOwnerSlipSubmitted(invoiceId: string) {
     const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
 
     return await notifyOwnerSlipSubmitted({
+      propertySlug: property.slug,
       lineUserId: property.owner_line_user_id,
       tenantName: tenant?.name ?? "-",
       roomNumber: room?.room_number ?? "-",
       billingMonth: String(data.billing_month),
       totalAmount: Number(data.total_amount),
-      propertySlug: property.slug,
     });
   } catch (error) {
     console.error("[notifyOwnerSlipSubmitted]", error);
@@ -238,7 +275,7 @@ export async function safeNotifyPaymentConfirmed(invoiceId: string) {
     const { data, error } = await supabase
       .from("invoices")
       .select(
-        "billing_month, total_amount, tenants(line_user_id), rooms(room_number)",
+        "billing_month, total_amount, tenants(line_user_id), rooms(room_number), properties(slug)",
       )
       .eq("id", invoiceId)
       .maybeSingle();
@@ -250,14 +287,17 @@ export async function safeNotifyPaymentConfirmed(invoiceId: string) {
       | { line_user_id: string | null }[]
       | null;
     const roomRaw = data.rooms as { room_number: string } | { room_number: string }[] | null;
+    const propertyRaw = data.properties as { slug: string } | { slug: string }[] | null;
     const tenant = Array.isArray(tenantRaw) ? tenantRaw[0] : tenantRaw;
     const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+    const property = Array.isArray(propertyRaw) ? propertyRaw[0] : propertyRaw;
 
-    if (!tenant?.line_user_id) {
+    if (!tenant?.line_user_id || !property?.slug) {
       return { sent: false as const, reason: "no_tenant_line" as const };
     }
 
     return await notifyPaymentConfirmed({
+      propertySlug: property.slug,
       lineUserId: tenant.line_user_id,
       roomNumber: room?.room_number ?? "-",
       billingMonth: String(data.billing_month),

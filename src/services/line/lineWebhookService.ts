@@ -4,7 +4,7 @@ import {
   buildDemoWelcomeTextMessages,
   isDemoTriggerMessage,
 } from "@/services/line/demoFunnelService";
-import { pushLineMessages } from "@/services/line/pushMessageService";
+import { pushPlatformFallback } from "@/services/linePushQuotaService";
 import {
   replyLineMessages,
   type LineReplyMessage,
@@ -58,7 +58,7 @@ async function deliverMessages(
       throw replyError;
     }
 
-    await pushLineMessages(lineUserId, textMessages);
+    await pushPlatformFallback({ lineUserId, messages: textMessages });
   }
 }
 

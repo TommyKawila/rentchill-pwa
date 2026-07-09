@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { PropertyBillingSettings } from "@/services/propertyBillingSettingsService";
 import type {
   BillingEntry,
   MonthlyBillingRow,
@@ -15,9 +16,17 @@ type BillingResult = {
   skipped: number;
 };
 
+const defaultSettings: PropertyBillingSettings = {
+  billing_day: 1,
+  meter_reminder_days_before: 3,
+  include_utilities: true,
+};
+
 export function useMonthlyBilling(propertySlug: string) {
   const [rows, setRows] = useState<MonthlyBillingRow[]>([]);
   const [billingMonth, setBillingMonth] = useState("");
+  const [settings, setSettings] =
+    useState<PropertyBillingSettings>(defaultSettings);
   const [status, setStatus] = useState<BillingStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BillingResult | null>(null);
@@ -37,6 +46,7 @@ export function useMonthlyBilling(propertySlug: string) {
         error?: string;
         billingMonth?: string;
         rows?: MonthlyBillingRow[];
+        settings?: PropertyBillingSettings;
       };
 
       if (!response.ok || !payload.ok) {
@@ -45,6 +55,7 @@ export function useMonthlyBilling(propertySlug: string) {
 
       setBillingMonth(payload.billingMonth ?? "");
       setRows(payload.rows ?? []);
+      setSettings(payload.settings ?? defaultSettings);
       setStatus("idle");
     } catch (err) {
       setStatus("error");
@@ -75,11 +86,15 @@ export function useMonthlyBilling(propertySlug: string) {
         const payload = (await response.json()) as {
           ok?: boolean;
           error?: string;
+          message?: string;
           result?: BillingResult;
         };
 
         if (!response.ok || !payload.ok || !payload.result) {
-          throw new Error(payload.error ?? "ออกบิลไม่สำเร็จ");
+          if (payload.error === "METER_REQUIRED") {
+            throw new Error("METER_REQUIRED");
+          }
+          throw new Error(payload.message ?? payload.error ?? "ออกบิลไม่สำเร็จ");
         }
 
         setResult(payload.result);
@@ -96,6 +111,7 @@ export function useMonthlyBilling(propertySlug: string) {
   return {
     rows,
     billingMonth,
+    settings,
     status,
     error,
     result,

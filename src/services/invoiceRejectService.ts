@@ -60,16 +60,23 @@ async function notifySlipRejected(invoice: Invoice, note: string) {
   const supabase = createAdminClient();
   const { data: tenant, error } = await supabase
     .from("tenants")
-    .select("line_user_id, rooms(room_number)")
+    .select("line_user_id, rooms(room_number, property_id, properties(slug))")
     .eq("id", invoice.tenant_id)
     .maybeSingle();
 
   if (error || !tenant?.line_user_id) return;
 
-  const roomRaw = tenant.rooms as { room_number: string } | { room_number: string }[] | null;
+  const roomRaw = tenant.rooms as
+    | { room_number: string; properties: { slug: string } | { slug: string }[] | null }
+    | { room_number: string; properties: { slug: string } | { slug: string }[] | null }[]
+    | null;
   const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+  const propertyRaw = room?.properties;
+  const property = Array.isArray(propertyRaw) ? propertyRaw[0] : propertyRaw;
+  if (!property?.slug) return;
 
   await safeNotifySlipRejected({
+    propertySlug: property.slug,
     lineUserId: String(tenant.line_user_id),
     roomNumber: room?.room_number ?? "-",
     billingMonth: invoice.billing_month,

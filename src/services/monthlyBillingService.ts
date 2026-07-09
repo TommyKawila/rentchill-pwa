@@ -4,6 +4,7 @@ import {
   getCurrentBillingMonth,
 } from "@/services/invoiceCalculator";
 import { safeNotifyBillIssued } from "@/services/notificationService";
+import type { PropertyBillingSettings } from "@/services/propertyBillingSettingsService";
 import { buildTenantInviteUrl } from "@/services/tenantLinkService";
 import type { InvoiceStatus } from "@/services/types";
 
@@ -15,8 +16,8 @@ export type MonthlyBillingRow = {
   base_rent_price: number;
   invoice_id: string | null;
   invoice_status: InvoiceStatus | null;
-  water_unit: number;
-  electric_unit: number;
+  water_unit: number | null;
+  electric_unit: number | null;
   invite_code: string;
   line_linked: boolean;
   invite_url: string;
@@ -28,21 +29,30 @@ export type BillingEntry = {
   electric_unit: number;
 };
 
-async function getPropertyId(propertySlug: string) {
+async function getPropertyContext(propertySlug: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("properties")
-    .select("id")
+    .select(
+      "id, billing_day, meter_reminder_days_before, include_utilities",
+    )
     .eq("slug", propertySlug)
     .maybeSingle();
 
   if (error) throw error;
   if (!data) throw new Error("ไม่พบหอพัก");
-  return data.id as string;
+
+  const settings: PropertyBillingSettings = {
+    billing_day: Number(data.billing_day ?? 1),
+    meter_reminder_days_before: Number(data.meter_reminder_days_before ?? 3),
+    include_utilities: data.include_utilities !== false,
+  };
+
+  return { propertyId: String(data.id), settings };
 }
 
 export async function getMonthlyBillingRows(propertySlug: string) {
-  const propertyId = await getPropertyId(propertySlug);
+  const { propertyId, settings } = await getPropertyContext(propertySlug);
   const billingMonth = getCurrentBillingMonth();
   const supabase = createAdminClient();
 
@@ -97,8 +107,8 @@ export async function getMonthlyBillingRows(propertySlug: string) {
         base_rent_price: Number(room.base_rent_price),
         invoice_id: invoice?.id ?? null,
         invoice_status: invoice?.status ?? null,
-        water_unit: invoice?.water_unit ?? 0,
-        electric_unit: invoice?.electric_unit ?? 0,
+        water_unit: invoice ? invoice.water_unit : null,
+        electric_unit: invoice ? invoice.electric_unit : null,
         invite_code: String(row.invite_code ?? ""),
         line_linked: Boolean(row.line_user_id),
         invite_url: row.invite_code
@@ -108,14 +118,14 @@ export async function getMonthlyBillingRows(propertySlug: string) {
     })
     .sort((a, b) => a.room_number.localeCompare(b.room_number, "th"));
 
-  return { billingMonth, rows };
+  return { billingMonth, rows, settings };
 }
 
 export async function generateMonthlyInvoices(
   propertySlug: string,
   entries: BillingEntry[],
 ) {
-  const propertyId = await getPropertyId(propertySlug);
+  const { propertyId, settings } = await getPropertyContext(propertySlug);
   const billingMonth = getCurrentBillingMonth();
   const supabase = createAdminClient();
 
@@ -124,8 +134,21 @@ export async function generateMonthlyInvoices(
   let skipped = 0;
 
   for (const entry of entries) {
-    if (entry.water_unit < 0 || entry.electric_unit < 0) {
-      throw new Error("หน่วยมิเตอร์ต้องไม่ติดลบ");
+    const waterUnit = settings.include_utilities ? entry.water_unit : 0;
+    const electricUnit = settings.include_utilities ? entry.electric_unit : 0;
+
+    if (settings.include_utilities) {
+      if (
+        entry.water_unit === undefined ||
+        entry.electric_unit === undefined ||
+        entry.water_unit < 0 ||
+        entry.electric_unit < 0 ||
+        Number.isNaN(entry.water_unit) ||
+        Number.isNaN(entry.electric_unit)
+      ) {
+        const error = new Error("METER_REQUIRED");
+        throw error;
+      }
     }
 
     const { data: tenant, error: tenantError } = await supabase
@@ -143,11 +166,7 @@ export async function generateMonthlyInvoices(
       | { base_rent_price: number; room_number: string }[];
     const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
     const baseRent = Number(room.base_rent_price);
-    const amounts = calculateInvoiceAmounts(
-      baseRent,
-      entry.water_unit,
-      entry.electric_unit,
-    );
+    const amounts = calculateInvoiceAmounts(baseRent, waterUnit, electricUnit);
 
     const { data: existing, error: existingError } = await supabase
       .from("invoices")
@@ -167,20 +186,14 @@ export async function generateMonthlyInvoices(
       const { error } = await supabase
         .from("invoices")
         .update({
-          water_unit: entry.water_unit,
-          electric_unit: entry.electric_unit,
+          water_unit: waterUnit,
+          electric_unit: electricUnit,
           ...amounts,
         })
         .eq("id", existing.id);
 
       if (error) throw error;
       updated++;
-      void notifyBillIssued({
-        lineUserId: tenant.line_user_id ? String(tenant.line_user_id) : null,
-        roomNumber: room.room_number,
-        billingMonth,
-        totalAmount: amounts.total_amount,
-      });
       continue;
     }
 
@@ -189,8 +202,8 @@ export async function generateMonthlyInvoices(
       tenant_id: entry.tenant_id,
       room_id: tenant.room_id,
       billing_month: billingMonth,
-      water_unit: entry.water_unit,
-      electric_unit: entry.electric_unit,
+      water_unit: waterUnit,
+      electric_unit: electricUnit,
       base_rent_amount: baseRent,
       ...amounts,
       status: "pending",
@@ -199,6 +212,7 @@ export async function generateMonthlyInvoices(
     if (error) throw error;
     created++;
     void notifyBillIssued({
+      propertySlug,
       lineUserId: tenant.line_user_id ? String(tenant.line_user_id) : null,
       roomNumber: room.room_number,
       billingMonth,
@@ -210,6 +224,7 @@ export async function generateMonthlyInvoices(
 }
 
 async function notifyBillIssued(input: {
+  propertySlug: string;
   lineUserId: string | null;
   roomNumber: string;
   billingMonth: string;
@@ -217,6 +232,7 @@ async function notifyBillIssued(input: {
 }) {
   if (!input.lineUserId) return;
   await safeNotifyBillIssued({
+    propertySlug: input.propertySlug,
     lineUserId: input.lineUserId,
     roomNumber: input.roomNumber,
     billingMonth: input.billingMonth,
