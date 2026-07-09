@@ -25,6 +25,7 @@ import {
   isRowReadyToBill,
 } from "@/services/propertyBillingSettingsService";
 import { computeBillingOverview } from "@/services/billingOverviewService";
+import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
 
 function DashboardContent() {
   const { t } = useLocale();
@@ -35,19 +36,19 @@ function DashboardContent() {
   const { properties, status: propertiesStatus, error: propertiesError } =
     useOwnerProperties();
 
-  const propertySlug = useMemo(() => {
-    if (
-      slugFromUrl &&
-      (properties.length === 0 ||
-        properties.some((property) => property.slug === slugFromUrl))
-    ) {
-      return slugFromUrl;
-    }
-    return properties[0]?.slug ?? "demo-apartment";
-  }, [slugFromUrl, properties]);
+  const propertySlug = useMemo(
+    () =>
+      resolveOwnerPropertySlug(
+        slugFromUrl,
+        properties,
+        propertiesStatus === "loading",
+      ),
+    [slugFromUrl, properties, propertiesStatus],
+  );
 
   useEffect(() => {
     if (propertiesStatus !== "idle" || properties.length === 0) return;
+    if (!propertySlug) return;
     if (slugFromUrl === propertySlug) return;
     router.replace(`/dashboard?property=${encodeURIComponent(propertySlug)}`);
   }, [propertiesStatus, properties.length, slugFromUrl, propertySlug, router]);
@@ -236,7 +237,26 @@ function DashboardContent() {
         />
       )}
 
-      {propertyPlan.plan && <PlanUsageSkin plan={propertyPlan.plan} />}
+      {propertiesStatus === "idle" && properties.length === 0 && (
+        <div className="mt-8 rounded-xl border border-zinc-100 bg-white p-6 text-center">
+          <p className="text-sm font-medium text-zinc-900">
+            {t("owner.onboarding.noProjectTitle")}
+          </p>
+          <p className="mt-2 text-sm text-zinc-500">
+            {t("owner.onboarding.noProjectDesc")}
+          </p>
+          <a
+            href="/settings"
+            className="mt-4 inline-block rounded-lg bg-green-600 px-6 py-3 text-sm font-medium text-white"
+          >
+            {t("owner.onboarding.createProject")}
+          </a>
+        </div>
+      )}
+
+      {propertyPlan.plan && propertySlug && (
+        <PlanUsageSkin plan={propertyPlan.plan} />
+      )}
 
       {propertiesError && (
         <div className="mt-8 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -244,7 +264,7 @@ function DashboardContent() {
         </div>
       )}
 
-      {(billing.error ||
+      {propertySlug && (billing.error ||
         override.error ||
         reminder.error ||
         exportErrorMessage ||
@@ -262,7 +282,7 @@ function DashboardContent() {
         </div>
       )}
 
-      {showMeterReminder && (
+      {propertySlug && showMeterReminder && (
         <p className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           {t("owner.billing.meterReminder", {
             day: billing.settings.billing_day,
@@ -270,16 +290,17 @@ function DashboardContent() {
         </p>
       )}
 
-      {lineQuotaHint && (
+      {propertySlug && lineQuotaHint && (
         <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           {lineQuotaHint}
         </p>
       )}
 
-      {billing.status === "loading" && billing.rows.length === 0 && (
+      {propertySlug && billing.status === "loading" && billing.rows.length === 0 && (
         <p className="mt-8 text-sm text-zinc-500">{t("owner.loading.rooms")}</p>
       )}
 
+      {propertySlug && (
       <RoomListSkin
         propertySlug={propertySlug}
         billingMonth={billing.billingMonth}
@@ -298,8 +319,9 @@ function DashboardContent() {
         addRoomSaving={addRoomTenant.status === "saving"}
         addRoomError={addRoomTenant.error}
       />
+      )}
 
-      {selectedRow && (
+      {propertySlug && selectedRow && (
         <RoomDetailModal
           row={selectedRow}
           includeUtilities={billing.settings.include_utilities}
@@ -342,7 +364,7 @@ function DashboardContent() {
         />
       )}
 
-      {shareModalOpen && (
+      {propertySlug && shareModalOpen && (
         <ShareLinkModal
           disabled={isSaving || magicLink.status === "creating"}
           linkUrl={magicLink.link?.url}

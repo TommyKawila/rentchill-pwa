@@ -8,6 +8,7 @@ import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorS
 import { useCreateProject } from "@/hooks/useCreateProject";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
 import { usePropertyPaymentSettings } from "@/hooks/usePropertyPaymentSettings";
+import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
 
 function SettingsContent() {
   const { t } = useLocale();
@@ -19,19 +20,19 @@ function SettingsContent() {
     useOwnerProperties();
   const createProject = useCreateProject();
 
-  const propertySlug = useMemo(() => {
-    if (
-      slugFromUrl &&
-      (properties.length === 0 ||
-        properties.some((property) => property.slug === slugFromUrl))
-    ) {
-      return slugFromUrl;
-    }
-    return properties[0]?.slug ?? "demo-apartment";
-  }, [slugFromUrl, properties]);
+  const propertySlug = useMemo(
+    () =>
+      resolveOwnerPropertySlug(
+        slugFromUrl,
+        properties,
+        propertiesStatus === "loading",
+      ),
+    [slugFromUrl, properties, propertiesStatus],
+  );
 
   useEffect(() => {
     if (propertiesStatus !== "idle" || properties.length === 0) return;
+    if (!propertySlug) return;
     if (slugFromUrl === propertySlug) return;
     router.replace(`/settings?property=${encodeURIComponent(propertySlug)}`);
   }, [propertiesStatus, properties.length, slugFromUrl, propertySlug, router]);
