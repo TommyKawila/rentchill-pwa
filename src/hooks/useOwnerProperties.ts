@@ -26,11 +26,14 @@ export function useOwnerProperties() {
         throw new Error(payload.error ?? "โหลดโครงการไม่สำเร็จ");
       }
 
-      setProperties(payload.properties ?? []);
+      const list = payload.properties ?? [];
+      setProperties(list);
       setStatus("idle");
+      return list;
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "โหลดโครงการไม่สำเร็จ");
+      return [];
     }
   }, []);
 

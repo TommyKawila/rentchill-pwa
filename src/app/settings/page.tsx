@@ -6,9 +6,11 @@ import { useLocale } from "@/components/LocaleProvider";
 import { ContactLineQrSkin } from "@/components/skins/minimal/ContactLineQrSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { OwnerLineNotifySkin } from "@/components/skins/minimal/OwnerLineNotifySkin";
+import { ProjectManageSkin } from "@/components/skins/minimal/ProjectManageSkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
 import { useCreateProject } from "@/hooks/useCreateProject";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
+import { useProjectManage } from "@/hooks/useProjectManage";
 import { usePropertyPaymentSettings } from "@/hooks/usePropertyPaymentSettings";
 import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
 
@@ -31,6 +33,8 @@ function SettingsContent() {
       ),
     [slugFromUrl, properties, propertiesStatus],
   );
+
+  const projectManage = useProjectManage(propertySlug);
 
   useEffect(() => {
     if (propertiesStatus !== "idle" || properties.length === 0) return;
@@ -181,6 +185,35 @@ function SettingsContent() {
                 </button>
               </div>
             </div>
+          )}
+
+          {hasProject && account && (
+            <ProjectManageSkin
+              propertyName={account.property_name}
+              propertySlug={propertySlug}
+              renaming={projectManage.status === "renaming"}
+              deleting={projectManage.status === "deleting"}
+              error={projectManage.error}
+              onRename={async (name) => {
+                const result = await projectManage.rename(name);
+                await reloadProperties();
+                router.replace(
+                  `/settings?property=${encodeURIComponent(result.property.slug)}`,
+                );
+              }}
+              onDelete={async () => {
+                await projectManage.remove();
+                const remaining = await reloadProperties();
+                if (remaining && remaining.length > 0) {
+                  router.replace(
+                    `/settings?property=${encodeURIComponent(remaining[0].slug)}`,
+                  );
+                } else {
+                  router.replace("/settings");
+                  setShowAddForm(true);
+                }
+              }}
+            />
           )}
         </header>
 

@@ -1,5 +1,8 @@
 import * as XLSX from "xlsx";
 import type { RoomStatus } from "@/services/types";
+import { slugify } from "@/services/propertySlugUtils";
+
+export { slugify };
 
 export type ImportRow = {
   property_name: string;
@@ -24,15 +27,6 @@ const HEADER_MAP: Record<string, keyof ImportRow> = {
 };
 
 const VALID_STATUS = new Set<RoomStatus>(["available", "occupied", "maintenance"]);
-
-export function slugify(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
 
 function normalizeStatus(value: unknown): RoomStatus {
   const raw = String(value ?? "available").trim().toLowerCase();

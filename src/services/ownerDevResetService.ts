@@ -1,4 +1,5 @@
 import { getDemoOwnerId } from "@/services/ownerAuthService";
+import { deletePropertyById } from "@/services/propertyDeleteService";
 import { getSuperadminOwnerId } from "@/services/superadminGuard";
 import { createAdminClient } from "@/services/supabase/admin";
 
@@ -32,41 +33,13 @@ export async function resetOwnerByEmail(email: string) {
 
   const { data: properties, error: propertiesError } = await supabase
     .from("properties")
-    .select("id")
+    .select("id, slug")
     .eq("owner_id", ownerId);
 
   if (propertiesError) throw propertiesError;
 
   for (const property of properties ?? []) {
-    const propertyId = String(property.id);
-
-    const { data: rooms, error: roomsError } = await supabase
-      .from("rooms")
-      .select("id")
-      .eq("property_id", propertyId);
-
-    if (roomsError) throw roomsError;
-
-    const roomIds = (rooms ?? []).map((room) => String(room.id));
-
-    await supabase.from("invoices").delete().eq("property_id", propertyId);
-
-    if (roomIds.length > 0) {
-      const { error: tenantsError } = await supabase
-        .from("tenants")
-        .delete()
-        .in("room_id", roomIds);
-      if (tenantsError) throw tenantsError;
-    }
-
-    await supabase.from("rooms").delete().eq("property_id", propertyId);
-    await supabase.from("line_push_log").delete().eq("property_id", propertyId);
-
-    const { error: propertyError } = await supabase
-      .from("properties")
-      .delete()
-      .eq("id", propertyId);
-    if (propertyError) throw propertyError;
+    await deletePropertyById(String(property.id), String(property.slug));
   }
 
   await supabase.from("line_push_log").delete().eq("owner_id", ownerId);

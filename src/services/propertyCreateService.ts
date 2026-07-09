@@ -1,5 +1,8 @@
-import { slugify } from "@/services/excel/parseWorkbook";
 import { assertOwnerCanAddProject } from "@/services/ownerQuotaService";
+import {
+  slugFromPropertyName,
+  uniquePropertySlug,
+} from "@/services/propertySlugService";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 
@@ -8,26 +11,6 @@ export type CreatedProperty = {
   name: string;
   slug: string;
 };
-
-async function uniqueSlug(base: string) {
-  const supabase = createAdminClient();
-  let slug = base || "project";
-  let suffix = 1;
-
-  while (true) {
-    const { data, error } = await supabase
-      .from("properties")
-      .select("id")
-      .eq("slug", slug)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!data) return slug;
-
-    suffix += 1;
-    slug = `${base}-${suffix}`;
-  }
-}
 
 export async function createOwnerProperty(
   ownerId: string,
@@ -49,8 +32,7 @@ export async function createOwnerProperty(
   if (!owner) throw new Error("ไม่พบบัญชีเจ้าของ");
 
   const planTier = String(owner.plan_tier) as PlanTier;
-  const baseSlug = slugify(trimmed) || "project";
-  const slug = await uniqueSlug(baseSlug);
+  const slug = await uniquePropertySlug(slugFromPropertyName(trimmed));
 
   const { data, error } = await supabase
     .from("properties")
