@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { BillingOverviewSkin } from "@/components/skins/minimal/BillingOverviewSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
+import { OwnerToolsMenuSkin } from "@/components/skins/minimal/OwnerToolsMenuSkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
 import type { BillingOverview } from "@/services/billingOverviewService";
 import type { OwnerPropertyOption } from "@/services/ownerPropertyService";
@@ -40,20 +41,7 @@ export function OwnerDashboardShell({
   children,
 }: OwnerDashboardShellProps) {
   const { t } = useLocale();
-
-  const navItems = [
-    { href: "/import", label: t("owner.nav.import"), externalProperty: false },
-    {
-      href: "/billing",
-      label: t("owner.nav.billing"),
-      externalProperty: true,
-    },
-    {
-      href: "/settings",
-      label: t("owner.nav.settings"),
-      externalProperty: true,
-    },
-  ] as const;
+  const settingsHref = `/settings?property=${encodeURIComponent(propertySlug)}`;
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
@@ -63,7 +51,16 @@ export function OwnerDashboardShell({
             <p className="text-xs font-medium uppercase tracking-wide text-green-600">
               RentChill
             </p>
-            <LocaleToggleSkin />
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onLogout}
+                className="text-xs text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline"
+              >
+                {t("owner.nav.logout")}
+              </button>
+              <LocaleToggleSkin />
+            </div>
           </div>
           <h1 className="mt-2 text-2xl font-bold">{t("owner.dashboard.title")}</h1>
 
@@ -76,54 +73,21 @@ export function OwnerDashboardShell({
 
           <BillingOverviewSkin billingMonth={billingMonth} overview={overview} />
 
-          <nav className="mt-4 flex flex-wrap gap-2">
-            {navItems.map((item) => {
-              const href = item.externalProperty
-                ? `${item.href}?property=${encodeURIComponent(propertySlug)}`
-                : item.href;
-              return (
-                <a
-                  key={item.href}
-                  href={href}
-                  className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700"
-                >
-                  {item.label}
-                </a>
-              );
-            })}
-            {onExportCsv && (
-              <button
-                type="button"
-                disabled={csvDisabled || csvLoading}
-                onClick={onExportCsv}
-                className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 disabled:opacity-50"
-              >
-                {csvLoading ? t("owner.csv.exporting") : t("owner.nav.csvExport")}
-              </button>
-            )}
-            {onOpenShareLink && (
-              <button
-                type="button"
-                disabled={shareDisabled}
-                onClick={onOpenShareLink}
-                className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 disabled:opacity-50"
-              >
-                {t("owner.nav.shareLink")}
-              </button>
-            )}
+          <nav className="mt-4 flex gap-2">
             <a
-              href={`/${propertySlug}`}
-              className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700"
+              href={settingsHref}
+              className="min-w-0 flex-1 rounded-full border border-green-300 bg-green-50 px-3 py-1.5 text-center text-xs font-medium text-green-800"
             >
-              {t("owner.nav.propertyPage")}
+              {t("owner.nav.settingsShort")}
             </a>
-            <button
-              type="button"
-              onClick={onLogout}
-              className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700"
-            >
-              {t("owner.nav.logout")}
-            </button>
+            <OwnerToolsMenuSkin
+              propertySlug={propertySlug}
+              onExportCsv={onExportCsv}
+              csvDisabled={csvDisabled}
+              csvLoading={csvLoading}
+              onOpenShareLink={onOpenShareLink}
+              shareDisabled={shareDisabled}
+            />
           </nav>
         </header>
 
