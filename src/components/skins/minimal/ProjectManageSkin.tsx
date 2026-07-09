@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import {
   isProjectSlugPayloadValid,
   ProjectSlugEditorSkin,
   type ProjectSlugPayload,
 } from "@/components/skins/minimal/ProjectSlugEditorSkin";
-import { slugValidationMessageKey } from "@/services/propertySlugUtils";
+import {
+  normalizeManualSlug,
+  slugValidationMessageKey,
+} from "@/services/propertySlugUtils";
 import type { MessageKey } from "@/services/i18n/messages";
 
 interface ProjectManageSkinProps {
@@ -36,6 +39,14 @@ function formatSlugError(
   return error;
 }
 
+function projectUrl(slug: string) {
+  const base =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  return `${base}/${slug}`;
+}
+
 export function ProjectManageSkin({
   propertyName,
   propertySlug,
@@ -46,28 +57,73 @@ export function ProjectManageSkin({
   onDelete,
 }: ProjectManageSkinProps) {
   const { t } = useLocale();
+  const [expanded, setExpanded] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
   const [name, setName] = useState(propertyName);
   const [confirmName, setConfirmName] = useState("");
   const [showDelete, setShowDelete] = useState(false);
   const [slugPayload, setSlugPayload] = useState<ProjectSlugPayload>({
     manualSlug: null,
   });
+  const skipSlugResetRef = useRef(false);
 
   const handleSlugChange = useCallback((payload: ProjectSlugPayload) => {
     setSlugPayload(payload);
   }, []);
 
+  const resetForm = useCallback(() => {
+    setName(propertyName);
+    setSlugPayload({ manualSlug: null });
+    setShowDelete(false);
+    setConfirmName("");
+  }, [propertyName]);
+
   useEffect(() => {
     setName(propertyName);
   }, [propertyName]);
 
+  useEffect(() => {
+    if (skipSlugResetRef.current) {
+      skipSlugResetRef.current = false;
+      resetForm();
+      return;
+    }
+    setExpanded(false);
+    resetForm();
+    setSavedFlash(false);
+  }, [propertySlug, resetForm]);
+
+  useEffect(() => {
+    if (!savedFlash) return;
+    const timer = window.setTimeout(() => setSavedFlash(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [savedFlash]);
+
   const nameChanged = name.trim() !== propertyName.trim();
+  const normalizedManual = slugPayload.manualSlug
+    ? normalizeManualSlug(slugPayload.manualSlug)
+    : null;
+  const slugChanged =
+    normalizedManual !== null && normalizedManual !== propertySlug;
   const slugValid = isProjectSlugPayloadValid(slugPayload);
-  const canSave = name.trim() && (nameChanged || slugPayload.manualSlug !== null);
+  const canSave = Boolean(name.trim()) && (nameChanged || slugChanged);
 
   const handleRename = async () => {
     if (!canSave || !slugValid) return;
-    await onRename(name.trim(), slugPayload.manualSlug);
+    try {
+      await onRename(name.trim(), slugPayload.manualSlug);
+      skipSlugResetRef.current = true;
+      setExpanded(false);
+      resetForm();
+      setSavedFlash(true);
+    } catch {
+      // keep panel open; error shown via props
+    }
+  };
+
+  const handleClose = () => {
+    setExpanded(false);
+    resetForm();
   };
 
   const handleDelete = async () => {
@@ -75,9 +131,40 @@ export function ProjectManageSkin({
     await onDelete();
   };
 
+  if (!expanded) {
+    return (
+      <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
+        <p className="text-sm font-semibold text-zinc-900">{propertyName}</p>
+        <p className="mt-1 break-all font-mono text-xs text-zinc-500">
+          {projectUrl(propertySlug)}
+        </p>
+        {savedFlash && (
+          <p className="mt-1 text-xs text-green-600">{t("settings.projectSaved")}</p>
+        )}
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-3 w-full rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-zinc-700"
+        >
+          {t("settings.projectManageTitle")}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
-      <h2 className="text-sm font-semibold">{t("settings.projectManageTitle")}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold">{t("settings.projectManageTitle")}</h2>
+        <button
+          type="button"
+          disabled={renaming || deleting}
+          onClick={handleClose}
+          className="text-sm text-zinc-500 underline disabled:opacity-50"
+        >
+          {t("owner.rooms.close")}
+        </button>
+      </div>
 
       <label className="mt-4 block space-y-1 text-sm">
         <span className="font-medium">{t("settings.projectRename")}</span>
@@ -91,6 +178,7 @@ export function ProjectManageSkin({
 
       <div className="mt-3">
         <ProjectSlugEditorSkin
+          key={propertySlug}
           name={name}
           currentSlug={propertySlug}
           disabled={renaming || deleting}
