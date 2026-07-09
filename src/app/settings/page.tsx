@@ -94,58 +94,58 @@ function SettingsContent() {
             />
           </label>
 
-          <div className="border-t border-zinc-200 pt-6">
+          <div id="billing" className="scroll-mt-6 border-t border-zinc-200 pt-6">
             <h2 className="text-sm font-semibold">{t("settings.billingTitle")}</h2>
             <p className="mt-1 text-xs text-zinc-500">{t("settings.billingDesc")}</p>
-          </div>
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.billingDay")}</span>
-            <input
-              type="number"
-              min={1}
-              max={28}
-              value={billingDay}
-              onChange={(event) => setBillingDay(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-            />
-          </label>
-
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.meterReminder")}</span>
-            <input
-              type="number"
-              min={1}
-              max={7}
-              value={meterReminderDays}
-              onChange={(event) => setMeterReminderDays(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-            />
-          </label>
-
-          <label className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-white px-3 py-3 text-sm">
-            <span className="font-medium">{t("settings.includeUtilities")}</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={includeUtilities}
-              onClick={() => setIncludeUtilities((prev) => !prev)}
-              className={`relative h-6 w-11 rounded-full transition ${
-                includeUtilities ? "bg-green-600" : "bg-zinc-300"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition ${
-                  includeUtilities ? "left-5" : "left-0.5"
-                }`}
+            <label className="mt-4 block space-y-1 text-sm">
+              <span className="font-medium">{t("settings.billingDay")}</span>
+              <input
+                type="number"
+                min={1}
+                max={28}
+                value={billingDay}
+                onChange={(event) => setBillingDay(event.target.value)}
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
               />
-            </button>
-          </label>
-          <p className="text-xs text-zinc-500">
-            {includeUtilities
-              ? t("settings.includeUtilitiesOn")
-              : t("settings.includeUtilitiesOff")}
-          </p>
+            </label>
+
+            <label className="mt-4 block space-y-1 text-sm">
+              <span className="font-medium">{t("settings.meterReminder")}</span>
+              <input
+                type="number"
+                min={1}
+                max={7}
+                value={meterReminderDays}
+                onChange={(event) => setMeterReminderDays(event.target.value)}
+                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+              />
+            </label>
+
+            <label className="mt-4 flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-white px-3 py-3 text-sm">
+              <span className="font-medium">{t("settings.includeUtilities")}</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={includeUtilities}
+                onClick={() => setIncludeUtilities((prev) => !prev)}
+                className={`relative h-6 w-11 rounded-full transition ${
+                  includeUtilities ? "bg-green-600" : "bg-zinc-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition ${
+                    includeUtilities ? "left-5" : "left-0.5"
+                  }`}
+                />
+              </button>
+            </label>
+            <p className="mt-1 text-xs text-zinc-500">
+              {includeUtilities
+                ? t("settings.includeUtilitiesOn")
+                : t("settings.includeUtilitiesOff")}
+            </p>
+          </div>
 
           <div className="border-t border-zinc-200 pt-6">
             <h2 className="text-sm font-semibold">{t("settings.contactTitle")}</h2>

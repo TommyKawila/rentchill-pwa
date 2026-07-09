@@ -11,6 +11,7 @@ export type RoomListRow = MonthlyBillingRow & {
 };
 
 interface RoomListSkinProps {
+  propertySlug: string;
   billingMonth: string;
   billingDay: number;
   includeUtilities: boolean;
@@ -35,6 +36,7 @@ function statusTone(status: InvoiceStatus | null) {
 }
 
 export function RoomListSkin({
+  propertySlug,
   billingMonth,
   billingDay,
   includeUtilities,
@@ -68,6 +70,12 @@ export function RoomListSkin({
         <p className="mt-1 text-xs text-zinc-500">
           {t("owner.billing.cycleDay", { day: billingDay })}
         </p>
+        <a
+          href={`/settings?property=${encodeURIComponent(propertySlug)}#billing`}
+          className="mt-1 inline-block text-xs text-green-700 underline"
+        >
+          {t("owner.billing.editCycle")}
+        </a>
       </div>
 
       {rows.length === 0 && (

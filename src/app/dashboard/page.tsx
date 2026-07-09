@@ -262,6 +262,7 @@ function DashboardContent() {
       )}
 
       <RoomListSkin
+        propertySlug={propertySlug}
         billingMonth={billing.billingMonth}
         billingDay={billing.settings.billing_day}
         includeUtilities={billing.settings.include_utilities}
