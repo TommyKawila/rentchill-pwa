@@ -2,8 +2,10 @@
 
 import type { ReactNode } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { BillingOverviewSkin } from "@/components/skins/minimal/BillingOverviewSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
+import type { BillingOverview } from "@/services/billingOverviewService";
 import type { OwnerPropertyOption } from "@/services/ownerPropertyService";
 
 interface OwnerDashboardShellProps {
@@ -12,8 +14,8 @@ interface OwnerDashboardShellProps {
   propertiesLoading?: boolean;
   onPropertyChange: (slug: string) => void;
   onLogout: () => void;
-  pendingCount: number;
-  paidCount: number;
+  billingMonth: string;
+  overview: BillingOverview;
   onExportCsv?: () => void;
   csvDisabled?: boolean;
   csvLoading?: boolean;
@@ -28,8 +30,8 @@ export function OwnerDashboardShell({
   propertiesLoading,
   onPropertyChange,
   onLogout,
-  pendingCount,
-  paidCount,
+  billingMonth,
+  overview,
   onExportCsv,
   csvDisabled,
   csvLoading,
@@ -72,16 +74,7 @@ export function OwnerDashboardShell({
             onChange={onPropertyChange}
           />
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="text-xs text-amber-800">{t("owner.pending")}</p>
-              <p className="text-2xl font-bold text-amber-900">{pendingCount}</p>
-            </div>
-            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-              <p className="text-xs text-green-800">{t("owner.paid")}</p>
-              <p className="text-2xl font-bold text-green-900">{paidCount}</p>
-            </div>
-          </div>
+          <BillingOverviewSkin billingMonth={billingMonth} overview={overview} />
 
           <nav className="mt-4 flex flex-wrap gap-2">
             {navItems.map((item) => {

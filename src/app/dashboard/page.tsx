@@ -23,6 +23,7 @@ import {
   isRowEditable,
   isRowReadyToBill,
 } from "@/services/propertyBillingSettingsService";
+import { computeBillingOverview } from "@/services/billingOverviewService";
 
 function DashboardContent() {
   const { t } = useLocale();
@@ -101,6 +102,11 @@ function DashboardContent() {
         ),
       ).length,
     [billing.rows, meters, billing.settings.include_utilities],
+  );
+
+  const overview = useMemo(
+    () => computeBillingOverview(billing.rows),
+    [billing.rows],
   );
 
   const showMeterReminder = useMemo(() => {
@@ -202,8 +208,8 @@ function DashboardContent() {
           router.replace("/admin/login");
         });
       }}
-      pendingCount={override.invoices.length}
-      paidCount={override.paidInvoices.length}
+      billingMonth={billing.billingMonth}
+      overview={overview}
       onExportCsv={() => void csvExport.exportCsv()}
       csvDisabled={isSaving || !csvExport.canExport}
       csvLoading={csvExport.status === "exporting"}

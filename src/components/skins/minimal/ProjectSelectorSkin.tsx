@@ -10,7 +10,6 @@ interface ProjectSelectorSkinProps {
   onChange: (slug: string) => void;
   onAddClick?: () => void;
   addDisabled?: boolean;
-  showSlug?: boolean;
 }
 
 export function ProjectSelectorSkin({
@@ -20,11 +19,8 @@ export function ProjectSelectorSkin({
   onChange,
   onAddClick,
   addDisabled,
-  showSlug = true,
 }: ProjectSelectorSkinProps) {
   const { t } = useLocale();
-  const activeProperty =
-    properties.find((property) => property.slug === value) ?? null;
 
   return (
     <div className="mt-3">
@@ -59,9 +55,6 @@ export function ProjectSelectorSkin({
           )}
         </div>
       </label>
-      {showSlug && activeProperty && (
-        <p className="mt-1 text-xs text-zinc-500">/{activeProperty.slug}</p>
-      )}
     </div>
   );
 }
