@@ -87,12 +87,6 @@ function SettingsContent() {
   }, [account]);
 
   useEffect(() => {
-    if (propertiesStatus === "idle" && properties.length === 0) {
-      setShowAddForm(true);
-    }
-  }, [propertiesStatus, properties.length]);
-
-  useEffect(() => {
     const reloadOnFocus = () => {
       if (document.visibilityState === "visible" && propertySlug) {
         void reloadSettings();
@@ -246,7 +240,6 @@ function SettingsContent() {
                   );
                 } else {
                   router.replace("/settings");
-                  setShowAddForm(true);
                 }
               }}
             />
