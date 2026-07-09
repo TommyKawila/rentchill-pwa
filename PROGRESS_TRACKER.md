@@ -98,3 +98,9 @@ Flow:
 - [x] Owner upgrade UI (`/billing` + `PlanBillingSkin`)
 - [x] Superadmin slip approval (`/admin/slips` + `PlatformSlipsSkin`)
 - [ ] Automated slip verification (future — only when volume warrants)
+
+### Subscription Lifecycle (COMPLETED)
+- [x] Phase logic: active → expiring_soon (D-7) → grace (7 days) → lapsed → Starter downgrade
+- [x] In-app amber/red banners on `/dashboard` and `/billing`
+- [x] Daily Vercel Cron: LINE grace reminders + auto-downgrade (`CRON_SECRET`)
+- [x] Migration `00017_subscription_lifecycle` — `last_grace_notify_at`

@@ -77,6 +77,44 @@ export async function notifyPaymentReminder(input: {
   return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
 }
 
+function billingUrl() {
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  return base ? `${base}/billing` : "/billing";
+}
+
+export async function notifySubscriptionGrace(input: {
+  lineUserId: string;
+  planTier: string;
+  graceDaysRemaining: number;
+  billingUrl?: string;
+}) {
+  const renewUrl = input.billingUrl ?? billingUrl();
+  const text = [
+    `แผน ${input.planTier} หมดอายุแล้ว`,
+    `คุณยังใช้งานได้อีก ${input.graceDaysRemaining} วัน — ต่ออายุเพื่อไม่ให้โควต้าห้องลดลง`,
+    "",
+    `Your ${input.planTier} plan has expired`,
+    `You can still use it for ${input.graceDaysRemaining} more day(s) — renew to keep your room quota`,
+    "",
+    "ต่ออายุ / Renew:",
+    renewUrl,
+  ].join("\n");
+
+  return pushLineMessages(input.lineUserId, [{ type: "text", text }]);
+}
+
+export async function safeNotifySubscriptionGrace(
+  input: Parameters<typeof notifySubscriptionGrace>[0],
+) {
+  try {
+    await notifySubscriptionGrace(input);
+    return { sent: true as const };
+  } catch (error) {
+    console.error("[notifySubscriptionGrace]", error);
+    return { sent: false as const, reason: "error" as const };
+  }
+}
+
 export async function notifyPaymentConfirmed(input: {
   lineUserId: string;
   roomNumber: string;

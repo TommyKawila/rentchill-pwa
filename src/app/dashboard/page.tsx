@@ -10,11 +10,13 @@ import { MagicLinkSkin } from "@/components/skins/minimal/MagicLinkSkin";
 import { MonthlyBillingSkin } from "@/components/skins/minimal/MonthlyBillingSkin";
 import { OverrideSkin } from "@/components/skins/minimal/OverrideSkin";
 import { PaidInvoiceSkin } from "@/components/skins/minimal/PaidInvoiceSkin";
+import { SubscriptionBannerSkin } from "@/components/skins/minimal/SubscriptionBannerSkin";
 import { useCsvExport } from "@/hooks/useCsvExport";
 import { useInvoiceOverride } from "@/hooks/useInvoiceOverride";
 import { useMagicLink } from "@/hooks/useMagicLink";
 import { useMonthlyBilling } from "@/hooks/useMonthlyBilling";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
+import { useOwnerSubscription } from "@/hooks/useOwnerSubscription";
 import { usePropertyPlan } from "@/hooks/usePropertyPlan";
 import { usePaymentReminder } from "@/hooks/usePaymentReminder";
 
@@ -50,6 +52,7 @@ function DashboardContent() {
   const csvExport = useCsvExport(propertySlug);
   const magicLink = useMagicLink(propertySlug);
   const propertyPlan = usePropertyPlan(propertySlug);
+  const ownerSubscription = useOwnerSubscription();
 
   const isSaving =
     billing.status === "saving" ||
@@ -99,6 +102,13 @@ function DashboardContent() {
       pendingCount={override.invoices.length}
       paidCount={override.paidInvoices.length}
     >
+      {ownerSubscription.subscription && (
+        <SubscriptionBannerSkin
+          subscription={ownerSubscription.subscription}
+          propertySlug={propertySlug}
+        />
+      )}
+
       {propertyPlan.plan && <PlanUsageSkin plan={propertyPlan.plan} />}
 
       {propertiesError && (

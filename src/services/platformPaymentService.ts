@@ -1,6 +1,11 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import type { UpgradeTier } from "@/services/planTierService";
+import {
+  resolveSubscriptionPhase,
+  type SubscriptionLifecycle,
+  type SubscriptionPhase,
+} from "@/services/subscriptionLifecycleService";
 
 const SLIP_BUCKET = "slips";
 
@@ -10,7 +15,12 @@ export type OwnerSubscription = {
   expires_at: string | null;
   pending_payment: boolean;
   pending_plan_requested: UpgradeTier | null;
+  phase: SubscriptionPhase;
+  days_until_expiry: number | null;
+  grace_days_remaining: number | null;
 };
+
+export type { SubscriptionLifecycle, SubscriptionPhase };
 
 export type PlatformPaymentRow = {
   id: string;
@@ -52,14 +62,21 @@ export async function getOwnerSubscription(ownerId: string): Promise<OwnerSubscr
     .limit(1)
     .maybeSingle();
 
+  const planTier = String(owner.plan_tier) as PlanTier;
+  const expiresAt = owner.expires_at ? String(owner.expires_at) : null;
+  const lifecycle = resolveSubscriptionPhase(planTier, expiresAt);
+
   return {
-    plan_tier: String(owner.plan_tier) as PlanTier,
+    plan_tier: planTier,
     status: String(owner.status) as OwnerSubscription["status"],
-    expires_at: owner.expires_at ? String(owner.expires_at) : null,
+    expires_at: expiresAt,
     pending_payment: Boolean(pending),
     pending_plan_requested: pending
       ? (String(pending.plan_requested) as UpgradeTier)
       : null,
+    phase: lifecycle.phase,
+    days_until_expiry: lifecycle.days_until_expiry,
+    grace_days_remaining: lifecycle.grace_days_remaining,
   };
 }
 

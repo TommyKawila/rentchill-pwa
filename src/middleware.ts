@@ -19,6 +19,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
+  if (pathname.startsWith("/api/cron/")) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   const adminSecret = process.env.ADMIN_SECRET;
 
   if (isAdminProtectedPath(pathname)) {
@@ -79,5 +83,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/((?!_next/static|_next/image|favicon.ico|api/line/webhook).*)",
+  matcher: "/((?!_next/static|_next/image|favicon.ico|api/line/webhook|api/cron).*)",
 };

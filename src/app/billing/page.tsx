@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { PlanBillingSkin } from "@/components/skins/minimal/PlanBillingSkin";
+import { SubscriptionBannerSkin } from "@/components/skins/minimal/SubscriptionBannerSkin";
 import { usePlatformBilling } from "@/hooks/usePlatformBilling";
 
 function BillingContent() {
@@ -32,6 +33,13 @@ function BillingContent() {
         <section className="mt-8">
           {billing.status === "loading" && !billing.subscription && (
             <p className="text-sm text-zinc-500">{t("common.loading")}</p>
+          )}
+
+          {billing.subscription && (
+            <SubscriptionBannerSkin
+              subscription={billing.subscription}
+              propertySlug={propertySlug}
+            />
           )}
 
           {billing.subscription && billing.account && (
