@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { assertOwnerRoomCapacity } from "@/services/ownerQuotaService";
 import { assertOwnerPropertyAccess } from "@/services/ownerPropertyService";
+import { createMoveInReadings } from "@/services/meterReadingService";
 import { createAdminClient } from "@/services/supabase/admin";
 import { buildTenantInviteUrl } from "@/services/tenantLinkService";
 
@@ -10,6 +11,9 @@ export type AddRoomTenantInput = {
   base_rent_price: number;
   tenant_name: string;
   phone_number: string;
+  move_in_date?: string;
+  water_reading?: number;
+  electric_reading?: number;
 };
 
 export type AddRoomTenantResult = {
@@ -56,6 +60,21 @@ export async function createRoomWithTenant(
     throw new Error("INVALID_RENT");
   }
 
+  const moveInDate = input.move_in_date?.trim() || todayIsoDate();
+  const waterReading = input.water_reading;
+  const electricReading = input.electric_reading;
+
+  if (
+    waterReading === undefined ||
+    electricReading === undefined ||
+    !Number.isFinite(waterReading) ||
+    !Number.isFinite(electricReading) ||
+    waterReading < 0 ||
+    electricReading < 0
+  ) {
+    throw new Error("METER_BASELINE_REQUIRED");
+  }
+
   const { id: propertyId } = await assertOwnerPropertyAccess(
     ownerId,
     input.property_slug,
@@ -93,7 +112,7 @@ export async function createRoomWithTenant(
       room_id: room.id,
       name: tenantName,
       phone_number: phoneNumber,
-      move_in_date: todayIsoDate(),
+      move_in_date: moveInDate,
       invite_code: inviteCode,
     })
     .select("id, name, invite_code")
@@ -103,6 +122,14 @@ export async function createRoomWithTenant(
     await supabase.from("rooms").delete().eq("id", room.id);
     throw new Error(tenantError?.message ?? "สร้างผู้เช่าไม่สำเร็จ");
   }
+
+  await createMoveInReadings({
+    propertyId,
+    roomId: String(room.id),
+    tenantId: String(tenant.id),
+    waterReading,
+    electricReading,
+  });
 
   const code = String(tenant.invite_code);
 

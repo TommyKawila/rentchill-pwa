@@ -49,6 +49,14 @@ export function useInvoiceEngine() {
           status: "pending",
           slip_image_url: null,
           slip_rejection_note: null,
+          water_prev: null,
+          water_curr: null,
+          water_recorded_at: null,
+          electric_prev: null,
+          electric_curr: null,
+          electric_recorded_at: null,
+          water_rate_locked: null,
+          electric_rate_locked: null,
         };
 
         await delay(1000);

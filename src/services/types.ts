@@ -67,6 +67,23 @@ export interface Tenant {
 
 export type InvoiceStatus = "pending" | "scanning" | "paid";
 
+export type MeterKind = "water" | "electric";
+export type MeterReadingSource = "move_in" | "billing" | "override";
+
+export interface MeterReading {
+  id: string;
+  property_id: string;
+  room_id: string;
+  tenant_id: string | null;
+  kind: MeterKind;
+  reading_value: number;
+  recorded_at: string;
+  source: MeterReadingSource;
+  billing_month: string | null;
+  invoice_id: string | null;
+  photo_media_id: string | null;
+}
+
 export interface Invoice {
   id: string;
   property_id: string;
@@ -82,4 +99,12 @@ export interface Invoice {
   status: InvoiceStatus;
   slip_image_url: string | null;
   slip_rejection_note: string | null;
+  water_prev: number | null;
+  water_curr: number | null;
+  water_recorded_at: string | null;
+  electric_prev: number | null;
+  electric_curr: number | null;
+  electric_recorded_at: string | null;
+  water_rate_locked: number | null;
+  electric_rate_locked: number | null;
 }

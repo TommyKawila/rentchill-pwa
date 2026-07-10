@@ -25,6 +25,7 @@
 - Geometry: Use clean, professional radiuses—specifically `rounded-xl` for cards and `rounded-lg` for buttons/inputs. Avoid oversized, bubbly roundings.
 - Spacing & Typography: Tighten header tracking (`tracking-tight`). Pay extra attention to generous padding and gaps (`p-6`, `gap-y-4`) so every component has room to breathe. Ensure currency and room numbers are bold and highly readable.
 - Constraints: Never inject arbitrary icons, flashy multi-colored gradients, or unrequested widgets.
+- **Accessible Easy Mode Ready:** All UI components should be ready for an "Easy Mode" toggle (for older users aged 60+). Do not hardcode small text sizes (`text-sm`). Ensure font scaling and high-contrast color switching (e.g., shifting from `text-zinc-500` to `text-black` with bold weights) can be applied conditionally via a global accessible state.
 
 ## 4. UX & Interaction Patterns (Zero Friction & Error Prevention)
 - **Form Submission Safety:** Every action button (e.g., "Submit Slip", "Create Invoice") MUST implement a loading state. When an async action is running, disable the button, change its opacity, and change the cursor to `cursor-not-allowed` to strictly prevent double submissions.

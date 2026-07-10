@@ -8,6 +8,9 @@ export type AddRoomTenantForm = {
   base_rent_price: number;
   tenant_name: string;
   phone_number: string;
+  move_in_date: string;
+  water_reading: number;
+  electric_reading: number;
 };
 
 type AddStatus = "idle" | "saving" | "error";

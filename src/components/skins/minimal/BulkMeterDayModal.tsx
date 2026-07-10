@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { MeterReadCard } from "@/components/skins/minimal/MeterReadCard";
 import type { MeterUtilityType } from "@/services/meterPhotoService";
 import type { RoomListRow } from "@/components/skins/minimal/RoomListSkin";
 
@@ -9,6 +10,8 @@ interface BulkMeterDayModalProps {
   rows: RoomListRow[];
   billingMonth: string;
   includeUtilities: boolean;
+  waterRate: number;
+  electricRate: number;
   meters: Record<string, { water: string; electric: string }>;
   disabled?: boolean;
   uploading?: boolean;
@@ -25,6 +28,8 @@ export function BulkMeterDayModal({
   rows,
   billingMonth,
   includeUtilities,
+  waterRate,
+  electricRate,
   meters,
   disabled,
   uploading,
@@ -57,7 +62,7 @@ export function BulkMeterDayModal({
         className="absolute inset-0 bg-zinc-900/40"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-lg rounded-t-xl border border-zinc-200 bg-white p-4 shadow-lg sm:rounded-xl">
+      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-xl border border-zinc-200 bg-white p-4 shadow-lg sm:rounded-xl">
         <p className="text-xs text-zinc-500">
           {t("owner.bulkMeter.progress", { current: index + 1, total: rows.length })}
         </p>
@@ -67,75 +72,71 @@ export function BulkMeterDayModal({
         <p className="mt-1 text-xs text-zinc-500">{billingMonth}</p>
 
         {includeUtilities && (
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <label className="space-y-1 text-xs">
-              <span className="text-zinc-500">{t("owner.billing.water")}</span>
-              <input
-                type="number"
-                min={0}
-                inputMode="numeric"
-                disabled={disabled}
-                value={meter.water}
-                onChange={(e) =>
-                  onMeterChange(row.tenant_id, e.target.value, meter.electric)
-                }
-                className="w-full rounded-md border border-zinc-200 px-3 py-2"
-              />
-              <button
-                type="button"
-                disabled={disabled || uploading}
-                onClick={() => waterRef.current?.click()}
-                className="min-h-11 w-full rounded-md border border-zinc-200 text-xs font-medium disabled:opacity-50"
-              >
-                {t("owner.meterPhoto.capture")}
-              </button>
-              <input
-                ref={waterRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = "";
-                  if (file) void upload("water", file);
-                }}
-              />
-            </label>
-            <label className="space-y-1 text-xs">
-              <span className="text-zinc-500">{t("owner.billing.electric")}</span>
-              <input
-                type="number"
-                min={0}
-                inputMode="numeric"
-                disabled={disabled}
-                value={meter.electric}
-                onChange={(e) =>
-                  onMeterChange(row.tenant_id, meter.water, e.target.value)
-                }
-                className="w-full rounded-md border border-zinc-200 px-3 py-2"
-              />
-              <button
-                type="button"
-                disabled={disabled || uploading}
-                onClick={() => electricRef.current?.click()}
-                className="min-h-11 w-full rounded-md border border-zinc-200 text-xs font-medium disabled:opacity-50"
-              >
-                {t("owner.meterPhoto.capture")}
-              </button>
-              <input
-                ref={electricRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = "";
-                  if (file) void upload("electric", file);
-                }}
-              />
-            </label>
+          <div className="mt-4 space-y-3">
+            <MeterReadCard
+              kind="water"
+              prev={row.water_prev}
+              currValue={meter.water}
+              rate={waterRate}
+              disabled={disabled}
+              onCurrChange={(value) =>
+                onMeterChange(row.tenant_id, value, meter.electric)
+              }
+              photoSlot={
+                <button
+                  type="button"
+                  disabled={disabled || uploading}
+                  onClick={() => waterRef.current?.click()}
+                  className="min-h-11 w-full rounded-md border border-zinc-200 text-xs font-medium disabled:opacity-50"
+                >
+                  {t("owner.meterPhoto.capture")}
+                </button>
+              }
+            />
+            <input
+              ref={waterRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void upload("water", file);
+              }}
+            />
+            <MeterReadCard
+              kind="electric"
+              prev={row.electric_prev}
+              currValue={meter.electric}
+              rate={electricRate}
+              disabled={disabled}
+              onCurrChange={(value) =>
+                onMeterChange(row.tenant_id, meter.water, value)
+              }
+              photoSlot={
+                <button
+                  type="button"
+                  disabled={disabled || uploading}
+                  onClick={() => electricRef.current?.click()}
+                  className="min-h-11 w-full rounded-md border border-zinc-200 text-xs font-medium disabled:opacity-50"
+                >
+                  {t("owner.meterPhoto.capture")}
+                </button>
+              }
+            />
+            <input
+              ref={electricRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void upload("electric", file);
+              }}
+            />
           </div>
         )}
 

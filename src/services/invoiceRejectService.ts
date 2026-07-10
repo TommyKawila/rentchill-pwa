@@ -1,27 +1,10 @@
 import { createAdminClient } from "@/services/supabase/admin";
-import { INVOICE_SELECT } from "@/services/invoiceFields";
+import { INVOICE_SELECT, mapInvoiceRow } from "@/services/invoiceFields";
 import { safeNotifySlipRejected } from "@/services/notificationService";
 import type { Invoice } from "@/services/types";
 
 function mapInvoice(row: Record<string, unknown>): Invoice {
-  return {
-    id: String(row.id),
-    property_id: String(row.property_id),
-    tenant_id: String(row.tenant_id),
-    room_id: String(row.room_id),
-    billing_month: String(row.billing_month),
-    water_unit: Number(row.water_unit),
-    electric_unit: Number(row.electric_unit),
-    base_rent_amount: Number(row.base_rent_amount),
-    water_amount: Number(row.water_amount),
-    electric_amount: Number(row.electric_amount),
-    total_amount: Number(row.total_amount),
-    status: row.status as Invoice["status"],
-    slip_image_url: row.slip_image_url ? String(row.slip_image_url) : null,
-    slip_rejection_note: row.slip_rejection_note
-      ? String(row.slip_rejection_note)
-      : null,
-  };
+  return mapInvoiceRow(row);
 }
 
 export async function markInvoiceSlipRejected(

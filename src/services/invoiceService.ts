@@ -1,5 +1,5 @@
 import { createBrowserClient } from "@/services/supabase/client";
-import { INVOICE_SELECT } from "@/services/invoiceFields";
+import { INVOICE_SELECT, mapInvoiceRow } from "@/services/invoiceFields";
 import type { Invoice } from "@/services/types";
 
 const getBillingMonth = () => {
@@ -22,19 +22,23 @@ export async function getInvoiceForTenantMonth(
 
   if (error) throw error;
   if (!data) return null;
+  return mapInvoiceRow(data);
+}
 
-  return {
-    ...data,
-    water_unit: Number(data.water_unit),
-    electric_unit: Number(data.electric_unit),
-    base_rent_amount: Number(data.base_rent_amount),
-    water_amount: Number(data.water_amount),
-    electric_amount: Number(data.electric_amount),
-    total_amount: Number(data.total_amount),
-    slip_rejection_note: data.slip_rejection_note
-      ? String(data.slip_rejection_note)
-      : null,
-  };
+export async function getTenantInvoiceHistory(
+  tenantId: string,
+  limit = 12,
+): Promise<Invoice[]> {
+  const supabase = createBrowserClient();
+  const { data, error } = await supabase
+    .from("invoices")
+    .select(INVOICE_SELECT)
+    .eq("tenant_id", tenantId)
+    .order("billing_month", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data ?? []).map(mapInvoiceRow);
 }
 
 export async function saveInvoice(invoice: Invoice): Promise<Invoice> {
@@ -47,16 +51,5 @@ export async function saveInvoice(invoice: Invoice): Promise<Invoice> {
 
   if (error) throw error;
 
-  return {
-    ...data,
-    water_unit: Number(data.water_unit),
-    electric_unit: Number(data.electric_unit),
-    base_rent_amount: Number(data.base_rent_amount),
-    water_amount: Number(data.water_amount),
-    electric_amount: Number(data.electric_amount),
-    total_amount: Number(data.total_amount),
-    slip_rejection_note: data.slip_rejection_note
-      ? String(data.slip_rejection_note)
-      : null,
-  };
+  return mapInvoiceRow(data);
 }

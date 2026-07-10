@@ -15,6 +15,8 @@ interface MeterPhotoVaultSkinProps {
   disabled?: boolean;
   uploading?: boolean;
   error?: string | null;
+  utilityOnly?: MeterUtilityType;
+  compact?: boolean;
   onUpload: (utilityType: MeterUtilityType, file: File) => void;
 }
 
@@ -28,6 +30,8 @@ export function MeterPhotoVaultSkin({
   disabled,
   uploading,
   error,
+  utilityOnly,
+  compact,
   onUpload,
 }: MeterPhotoVaultSkinProps) {
   const { t } = useLocale();
@@ -44,16 +48,28 @@ export function MeterPhotoVaultSkin({
 
   const busy = disabled || uploading;
 
-  return (
-    <div className="space-y-3 rounded-md border border-zinc-100 bg-zinc-50 px-3 py-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-zinc-700">{t("owner.meterPhoto.title")}</p>
-        {!canHistory && (
-          <span className="text-[11px] text-zinc-500">{t("owner.meterPhoto.currentOnly")}</span>
-        )}
-      </div>
+  const utilities = utilityOnly
+    ? ([utilityOnly] as const)
+    : (["water", "electric"] as const);
 
-      {(["water", "electric"] as const).map((utility) => {
+  return (
+    <div
+      className={
+        compact
+          ? "space-y-2"
+          : "space-y-3 rounded-md border border-zinc-100 bg-zinc-50 px-3 py-3"
+      }
+    >
+      {!compact && (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-medium text-zinc-700">{t("owner.meterPhoto.title")}</p>
+          {!canHistory && (
+            <span className="text-[11px] text-zinc-500">{t("owner.meterPhoto.currentOnly")}</span>
+          )}
+        </div>
+      )}
+
+      {utilities.map((utility) => {
         const utilityPhotos = photosForUtility(photos, utility);
         const inputRef = utility === "water" ? waterRef : electricRef;
 

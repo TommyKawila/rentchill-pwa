@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { MeterPhotoVaultSkin } from "@/components/skins/minimal/MeterPhotoVaultSkin";
+import { MeterReadCard } from "@/components/skins/minimal/MeterReadCard";
+import { MeterHistoryList } from "@/components/skins/minimal/MeterHistoryList";
 import { DocumentVaultSkin } from "@/components/skins/minimal/DocumentVaultSkin";
 import { ContractLeaseSkin } from "@/components/skins/minimal/ContractLeaseSkin";
 import { DepositTrackerSkin } from "@/components/skins/minimal/DepositTrackerSkin";
@@ -11,10 +13,11 @@ import { RoomInviteQrSkin } from "@/components/skins/minimal/RoomInviteQrSkin";
 import { OverrideSkin } from "@/components/skins/minimal/OverrideSkin";
 import { PaidInvoiceSkin } from "@/components/skins/minimal/PaidInvoiceSkin";
 import {
-  calculateInvoiceAmounts,
+  calculateFromDialReadings,
 } from "@/services/invoiceCalculator";
 import { statusMessageKey } from "@/services/i18n/translate";
 import { useMeterPhotos } from "@/hooks/useMeterPhotos";
+import { useMeterHistory } from "@/hooks/useMeterHistory";
 import { useTenantDocuments } from "@/hooks/useTenantDocuments";
 import { useLeaseContract } from "@/hooks/useLeaseContract";
 import { useDepositTracker } from "@/hooks/useDepositTracker";
@@ -103,6 +106,7 @@ export function RoomDetailModal({
   const { t } = useLocale();
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const meterHistory = useMeterHistory(propertySlug, row.room_id, true);
   const meterPhotos = useMeterPhotos(
     propertySlug,
     row.room_id,
@@ -131,15 +135,28 @@ export function RoomDetailModal({
   const canShare = typeof navigator !== "undefined" && !!navigator.share;
   const locked = isLocked(row.invoice_status);
 
-  const water = includeUtilities ? Number(meters.water || 0) : 0;
-  const electric = includeUtilities ? Number(meters.electric || 0) : 0;
-  const { total_amount } = calculateInvoiceAmounts(
-    row.base_rent_price,
-    water,
-    electric,
-    waterRate,
-    electricRate,
-  );
+  let total_amount = row.base_rent_price;
+  if (
+    includeUtilities &&
+    row.water_prev &&
+    row.electric_prev &&
+    meters.water.trim() !== "" &&
+    meters.electric.trim() !== ""
+  ) {
+    try {
+      total_amount = calculateFromDialReadings(
+        row.base_rent_price,
+        row.water_prev.value,
+        Number(meters.water),
+        row.electric_prev.value,
+        Number(meters.electric),
+        waterRate,
+        electricRate,
+      ).total_amount;
+    } catch {
+      total_amount = row.base_rent_price;
+    }
+  }
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -254,46 +271,71 @@ export function RoomDetailModal({
           {!reviewInvoice && !paidInvoice && (
             <>
               {includeUtilities ? (
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <label className="space-y-1">
-                    <span className="text-zinc-500">{t("owner.billing.water")}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      disabled={disabled || locked}
-                      value={meters.water}
-                      onChange={(event) =>
-                        onMeterChange(row.tenant_id, event.target.value, meters.electric)
-                      }
-                      className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
-                    />
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-zinc-500">{t("owner.billing.electric")}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      disabled={disabled || locked}
-                      value={meters.electric}
-                      onChange={(event) =>
-                        onMeterChange(row.tenant_id, meters.water, event.target.value)
-                      }
-                      className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
-                    />
-                  </label>
+                <div className="space-y-3">
+                  <p className="text-xs text-zinc-500">
+                    {t("owner.meter.moveInStatus", {
+                      date: row.move_in_date,
+                    })}
+                  </p>
+                  <MeterReadCard
+                    kind="water"
+                    prev={row.water_prev}
+                    currValue={meters.water}
+                    rate={waterRate}
+                    disabled={disabled || locked}
+                    onCurrChange={(value) =>
+                      onMeterChange(row.tenant_id, value, meters.electric)
+                    }
+                    photoSlot={
+                      <MeterPhotoVaultSkin
+                        planTier={planTier}
+                        photos={meterPhotos.photos.filter(
+                          (p) => p.utility_type === "water",
+                        )}
+                        utilityOnly="water"
+                        compact
+                        disabled={disabled || locked}
+                        uploading={meterPhotos.status === "uploading"}
+                        error={meterPhotos.error}
+                        onUpload={(_, file) =>
+                          void meterPhotos.upload("water", file)
+                        }
+                      />
+                    }
+                  />
+                  <MeterReadCard
+                    kind="electric"
+                    prev={row.electric_prev}
+                    currValue={meters.electric}
+                    rate={electricRate}
+                    disabled={disabled || locked}
+                    onCurrChange={(value) =>
+                      onMeterChange(row.tenant_id, meters.water, value)
+                    }
+                    photoSlot={
+                      <MeterPhotoVaultSkin
+                        planTier={planTier}
+                        photos={meterPhotos.photos.filter(
+                          (p) => p.utility_type === "electric",
+                        )}
+                        utilityOnly="electric"
+                        compact
+                        disabled={disabled || locked}
+                        uploading={meterPhotos.status === "uploading"}
+                        error={meterPhotos.error}
+                        onUpload={(_, file) =>
+                          void meterPhotos.upload("electric", file)
+                        }
+                      />
+                    }
+                  />
+                  <MeterHistoryList
+                    rows={meterHistory.rows}
+                    loading={meterHistory.status === "loading"}
+                  />
                 </div>
               ) : (
                 <p className="text-xs text-zinc-500">{t("owner.billing.rentOnly")}</p>
-              )}
-              {includeUtilities && (
-                <MeterPhotoVaultSkin
-                  planTier={planTier}
-                  photos={meterPhotos.photos}
-                  disabled={disabled || locked}
-                  uploading={meterPhotos.status === "uploading"}
-                  error={meterPhotos.error}
-                  onUpload={(utility, file) => void meterPhotos.upload(utility, file)}
-                />
               )}
               <p className="text-sm font-medium">
                 {t("common.total")} ฿{total_amount.toLocaleString("th-TH")}

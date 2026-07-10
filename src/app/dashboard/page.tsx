@@ -82,9 +82,10 @@ function DashboardContent() {
         billing.rows.map((row) => [
           row.tenant_id,
           {
-            water: row.water_unit !== null ? String(row.water_unit) : "",
+            water:
+              row.water_curr !== null ? String(row.water_curr) : "",
             electric:
-              row.electric_unit !== null ? String(row.electric_unit) : "",
+              row.electric_curr !== null ? String(row.electric_curr) : "",
           },
         ]),
       ),
@@ -201,10 +202,11 @@ function DashboardContent() {
       )
       .map((row) => ({
         tenant_id: row.tenant_id,
-        water_unit: billing.settings.include_utilities
+        room_id: row.room_id,
+        water_curr: billing.settings.include_utilities
           ? Number(meters[row.tenant_id]?.water ?? 0)
           : 0,
-        electric_unit: billing.settings.include_utilities
+        electric_curr: billing.settings.include_utilities
           ? Number(meters[row.tenant_id]?.electric ?? 0)
           : 0,
       }));
@@ -288,6 +290,8 @@ function DashboardContent() {
         <div className="mt-8 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {billing.error === "METER_REQUIRED"
             ? t("owner.billing.meterRequired")
+            : billing.error === "BASELINE_REQUIRED"
+              ? t("owner.billing.baselineRequired")
             : reminder.error === "QUOTA_EXCEEDED"
             ? t("owner.line.quotaExceeded")
             : override.error === "SLIP_VERIFY_PLAN_REQUIRED"
@@ -398,12 +402,12 @@ function DashboardContent() {
           meters={
             meters[selectedRow.tenant_id] ?? {
               water:
-                selectedRow.water_unit !== null
-                  ? String(selectedRow.water_unit)
+                selectedRow.water_curr !== null
+                  ? String(selectedRow.water_curr)
                   : "",
               electric:
-                selectedRow.electric_unit !== null
-                  ? String(selectedRow.electric_unit)
+                selectedRow.electric_curr !== null
+                  ? String(selectedRow.electric_curr)
                   : "",
             }
           }
@@ -444,6 +448,8 @@ function DashboardContent() {
           rows={bulkMeterRows}
           billingMonth={billing.billingMonth}
           includeUtilities={billing.settings.include_utilities}
+          waterRate={billing.settings.water_rate_per_unit}
+          electricRate={billing.settings.electric_rate_per_unit}
           meters={meters}
           disabled={isSaving}
           uploading={bulkMeterUploading}

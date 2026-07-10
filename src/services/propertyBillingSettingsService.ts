@@ -35,6 +35,14 @@ export function isMeterInputComplete(water: string, electric: string) {
   return Number.isFinite(w) && w >= 0 && Number.isFinite(e) && e >= 0;
 }
 
+export function isMeterDialComplete(water: string, electric: string) {
+  return isMeterInputComplete(water, electric);
+}
+
+export function hasMeterBaseline(row: MonthlyBillingRow) {
+  return Boolean(row.water_prev && row.electric_prev);
+}
+
 export function clampBillingDay(value: number) {
   return Math.min(28, Math.max(1, Math.round(value)));
 }
@@ -59,5 +67,6 @@ export function isRowReadyToBill(
 ) {
   if (!isRowEditable(row)) return false;
   if (!includeUtilities) return true;
-  return isMeterInputComplete(meters.water, meters.electric);
+  if (!hasMeterBaseline(row)) return false;
+  return isMeterDialComplete(meters.water, meters.electric);
 }

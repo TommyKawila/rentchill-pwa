@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useRef } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { MobileFrame } from "@/components/frames/MobileFrame";
+import { BillHistoryList } from "@/components/skins/minimal/BillHistoryList";
 import { ContactLandlordSkin } from "@/components/skins/minimal/ContactLandlordSkin";
 import { InviteCodeSkin } from "@/components/skins/minimal/InviteCodeSkin";
 import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
@@ -22,6 +23,7 @@ import { usePaymentEngine } from "@/hooks/usePaymentEngine";
 import { usePdpaConsent } from "@/hooks/usePdpaConsent";
 import { useTenantBoard } from "@/hooks/useTenantBoard";
 import { useTenantLink } from "@/hooks/useTenantLink";
+import type { Invoice } from "@/services/types";
 
 function AuthLoading({ message }: { message: string }) {
   return (
@@ -37,6 +39,7 @@ function AuthLoading({ message }: { message: string }) {
 function TenantBoardMain() {
   const { t } = useLocale();
   const slipInputRef = useRef<HTMLInputElement>(null);
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const searchParams = useSearchParams();
   const inviteFromUrl = searchParams.get("invite") ?? "";
 
@@ -155,6 +158,10 @@ function TenantBoardMain() {
   }
 
   const welcomeName = profile?.displayName ?? board.tenant.name;
+  const displayInvoice = viewingInvoice ?? board.invoice;
+  const isCurrentInvoice =
+    !viewingInvoice ||
+    viewingInvoice.billing_month === board.invoice?.billing_month;
 
   if (!board.tenant.pdpa_consented_at) {
     return (
@@ -194,7 +201,7 @@ function TenantBoardMain() {
         </div>
       </header>
 
-      {board.invoice ? (
+      {displayInvoice ? (
         <>
           <input
             ref={slipInputRef}
@@ -204,45 +211,72 @@ function TenantBoardMain() {
             onChange={(event) => {
               const file = event.target.files?.[0];
               event.target.value = "";
-              if (!file || !board.invoice) return;
+              if (!file || !board.invoice || !isCurrentInvoice) return;
 
               void submitSlip(board.invoice.id, board.tenant.id, file).then(
                 (invoice) => {
                   if (!invoice) return;
                   patchInvoice(invoice);
+                  setViewingInvoice(null);
                   void reload();
                 },
               );
             }}
           />
+          {viewingInvoice && (
+            <div className="border-b border-zinc-200 bg-white px-4 py-2">
+              <button
+                type="button"
+                onClick={() => setViewingInvoice(null)}
+                className="text-xs text-zinc-600 underline"
+              >
+                {t("tenant.history.backToCurrent")}
+              </button>
+            </div>
+          )}
           <InvoiceSkin
-            invoice={board.invoice}
+            invoice={displayInvoice}
             tenantName={board.tenant.name}
             roomNumber={board.room.room_number}
             isPaying={paymentStatus === "uploading"}
-            onPay={() => slipInputRef.current?.click()}
+            meterPhotos={isCurrentInvoice ? board.meterPhotos : []}
+            onPay={() => {
+              if (isCurrentInvoice) slipInputRef.current?.click();
+            }}
           />
-          <TenantMeterPhotosSkin photos={board.meterPhotos} />
-          {paymentError && (
+          {isCurrentInvoice && <TenantMeterPhotosSkin photos={board.meterPhotos} />}
+          {board.invoiceHistory.length > 0 && (
+            <BillHistoryList
+              invoices={board.invoiceHistory}
+              selectedMonth={viewingInvoice?.billing_month ?? null}
+              onSelect={(invoice) => setViewingInvoice(invoice)}
+            />
+          )}
+          {paymentError && isCurrentInvoice && (
             <p className="px-6 pb-4 text-center text-sm text-red-600">
               {paymentError}
             </p>
           )}
-          {paymentFeedback?.autoVerified && board.invoice.status === "paid" && (
+          {paymentFeedback?.autoVerified &&
+            isCurrentInvoice &&
+            board.invoice?.status === "paid" && (
             <p className="px-6 pb-4 text-center text-sm text-green-700">
               {t("tenant.board.slipVerified")}
             </p>
           )}
           {paymentFeedback?.manualReviewOnly &&
-            board.invoice.status === "scanning" && (
+            isCurrentInvoice &&
+            board.invoice?.status === "scanning" && (
               <p className="px-6 pb-4 text-center text-sm text-zinc-600">
                 {t("tenant.board.slipManualReview")}
               </p>
             )}
           {(paymentFeedback?.message && !paymentFeedback.autoVerified) ||
-          (board.invoice.slip_rejection_note && board.invoice.status === "pending") ? (
+          (isCurrentInvoice &&
+            board.invoice?.slip_rejection_note &&
+            board.invoice.status === "pending") ? (
             <p className="px-6 pb-4 text-center text-sm text-red-600">
-              {board.invoice.slip_rejection_note ?? paymentFeedback?.message}
+              {board.invoice?.slip_rejection_note ?? paymentFeedback?.message}
             </p>
           ) : null}
         </>

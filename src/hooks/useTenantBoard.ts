@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getInvoiceForTenantMonth } from "@/services/invoiceService";
+import { getInvoiceForTenantMonth, getTenantInvoiceHistory } from "@/services/invoiceService";
 import { getPropertyContactById } from "@/services/propertyContactService";
 import {
   getRoomById,
@@ -22,6 +22,7 @@ type BoardState = {
   tenant: Tenant;
   room: Room;
   invoice: Invoice | null;
+  invoiceHistory: Invoice[];
   contact: PropertyContact | null;
   meterPhotos: MeterPhotoRow[];
   documents: TenantDocumentRow[];
@@ -83,6 +84,7 @@ export function useTenantBoard({
       }
 
       const invoice = await getInvoiceForTenantMonth(tenant.id);
+      const invoiceHistory = await getTenantInvoiceHistory(tenant.id);
       const contact = await getPropertyContactById(room.property_id);
       const propertyMeta = await getPropertyVaultMeta(room.property_id);
       const meterPhotos =
@@ -98,6 +100,9 @@ export function useTenantBoard({
         tenant,
         room,
         invoice,
+        invoiceHistory: invoiceHistory.filter(
+          (item) => item.billing_month !== invoice?.billing_month,
+        ),
         contact,
         meterPhotos,
         documents,

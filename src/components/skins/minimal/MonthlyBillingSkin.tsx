@@ -133,10 +133,11 @@ export function MonthlyBillingSkin({
       )
       .map((row) => ({
         tenant_id: row.tenant_id,
-        water_unit: includeUtilities
+        room_id: row.room_id,
+        water_curr: includeUtilities
           ? Number(meters[row.tenant_id]?.water ?? 0)
           : 0,
-        electric_unit: includeUtilities
+        electric_curr: includeUtilities
           ? Number(meters[row.tenant_id]?.electric ?? 0)
           : 0,
       }));

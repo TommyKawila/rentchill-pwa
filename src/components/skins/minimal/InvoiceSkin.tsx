@@ -3,28 +3,114 @@
 import { useLocale } from "@/components/LocaleProvider";
 import type { Invoice } from "@/services/types";
 import { statusMessageKey } from "@/services/i18n/translate";
+import { formatMeterDate, formatMeterNumber } from "@/services/meterFormat";
+import type { MeterPhotoRow } from "@/services/meterPhotoService";
 
 interface InvoiceSkinProps {
   invoice: Invoice;
   tenantName: string;
   roomNumber: string;
   isPaying?: boolean;
+  meterPhotos?: MeterPhotoRow[];
   onPay: () => void;
 }
 
 const formatAmount = (amount: number) =>
   amount.toLocaleString("th-TH", { minimumFractionDigits: 0 });
 
+function UtilityBreakdown({
+  label,
+  prev,
+  curr,
+  units,
+  amount,
+  rate,
+  recordedAt,
+  photoUrl,
+}: {
+  label: string;
+  prev: number | null;
+  curr: number | null;
+  units: number;
+  amount: number;
+  rate: number | null;
+  recordedAt: string | null;
+  photoUrl?: string | null;
+}) {
+  const { t, locale } = useLocale();
+  const hasDial = prev != null && curr != null;
+  const effectiveRate =
+    rate ?? (units > 0 ? Math.round((amount / units) * 100) / 100 : null);
+
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between gap-2">
+        <span className="text-zinc-600">
+          {label}
+          {effectiveRate != null && (
+            <span className="block text-xs text-zinc-400">
+              {t("tenant.invoice.ratePerUnit", {
+                rate: formatMeterNumber(effectiveRate),
+              })}
+            </span>
+          )}
+        </span>
+        <span className="shrink-0 font-medium">฿{formatAmount(amount)}</span>
+      </div>
+      {hasDial ? (
+        <p className="text-xs text-zinc-500">
+          {formatMeterNumber(prev)} → {formatMeterNumber(curr)} (
+          {formatMeterNumber(units)} {t("owner.meter.unitLabel")}
+          {effectiveRate != null
+            ? ` × ${formatMeterNumber(effectiveRate)} ฿`
+            : ""}
+          )
+        </p>
+      ) : units > 0 ? (
+        <p className="text-xs text-zinc-500">
+          {formatMeterNumber(units)} {t("owner.meter.unitLabel")}
+          {effectiveRate != null
+            ? ` × ${formatMeterNumber(effectiveRate)} ฿`
+            : ""}
+        </p>
+      ) : null}
+      {recordedAt && (
+        <p className="text-xs text-zinc-400">
+          {t("owner.meter.recordedAt", {
+            date: formatMeterDate(recordedAt, locale),
+          })}
+          {photoUrl && (
+            <>
+              {" · "}
+              <a
+                href={photoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                {t("tenant.invoice.viewPhoto")}
+              </a>
+            </>
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function InvoiceSkin({
   invoice,
   tenantName,
   roomNumber,
   isPaying,
+  meterPhotos = [],
   onPay,
 }: InvoiceSkinProps) {
   const { t } = useLocale();
   const canPay = invoice.status === "pending" && !isPaying;
   const hasRejection = Boolean(invoice.slip_rejection_note?.trim());
+  const waterPhoto = meterPhotos.find((p) => p.utility_type === "water")?.public_url;
+  const electricPhoto = meterPhotos.find((p) => p.utility_type === "electric")?.public_url;
 
   return (
     <article className="bg-zinc-50 p-6 text-zinc-900">
@@ -48,22 +134,26 @@ export function InvoiceSkin({
             ฿{formatAmount(invoice.base_rent_amount)}
           </span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-zinc-600">
-            {t("tenant.invoice.water", { units: invoice.water_unit })}
-          </span>
-          <span className="font-medium">
-            ฿{formatAmount(invoice.water_amount)}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-zinc-600">
-            {t("tenant.invoice.electric", { units: invoice.electric_unit })}
-          </span>
-          <span className="font-medium">
-            ฿{formatAmount(invoice.electric_amount)}
-          </span>
-        </div>
+        <UtilityBreakdown
+          label={t("tenant.invoice.waterLabel")}
+          prev={invoice.water_prev}
+          curr={invoice.water_curr}
+          units={invoice.water_unit}
+          amount={invoice.water_amount}
+          rate={invoice.water_rate_locked}
+          recordedAt={invoice.water_recorded_at}
+          photoUrl={waterPhoto}
+        />
+        <UtilityBreakdown
+          label={t("tenant.invoice.electricLabel")}
+          prev={invoice.electric_prev}
+          curr={invoice.electric_curr}
+          units={invoice.electric_unit}
+          amount={invoice.electric_amount}
+          rate={invoice.electric_rate_locked}
+          recordedAt={invoice.electric_recorded_at}
+          photoUrl={electricPhoto}
+        />
       </section>
 
       <div className="mt-4 border-t border-zinc-200 pt-4">

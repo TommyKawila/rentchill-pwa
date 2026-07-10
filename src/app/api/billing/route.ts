@@ -54,6 +54,24 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    if (message === "BASELINE_REQUIRED") {
+      return NextResponse.json(
+        {
+          error: "BASELINE_REQUIRED",
+          message: "ห้องนี้ยังไม่มีมิเตอร์เริ่มต้น — จดมิเตอร์วันเข้าอยู่ก่อน",
+        },
+        { status: 400 },
+      );
+    }
+    if (message === "METER_ROLLED_BACK") {
+      return NextResponse.json(
+        {
+          error: "METER_ROLLED_BACK",
+          message: "เลขมิเตอร์น้อยกว่าครั้งก่อน ตรวจหน้าปัดอีกครั้ง",
+        },
+        { status: 400 },
+      );
+    }
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
