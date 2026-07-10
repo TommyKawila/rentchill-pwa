@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
 import { TenantLineInvitePanel } from "@/components/skins/minimal/TenantLineInvitePanel";
 import {
   calculateInvoiceAmounts,
@@ -248,6 +249,7 @@ export function MonthlyBillingSkin({
                 onClick={() => onRemind(row.tenant_id)}
                 className="mt-3 w-full rounded-md border border-amber-300 bg-amber-50 py-2 text-sm font-medium text-amber-900 disabled:opacity-50"
               >
+                <EasyModeCtaIcon name="remind" />
                 {remindedTenantId === row.tenant_id
                   ? t("owner.reminder.sent")
                   : t("owner.reminder.send")}
@@ -270,6 +272,7 @@ export function MonthlyBillingSkin({
           onClick={handleSubmit}
           className="w-full rounded-md bg-green-700 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
+          <EasyModeCtaIcon name="bill" />
           {t("owner.billing.submit", { count: readyCount })}
         </button>
       )}

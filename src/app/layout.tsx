@@ -1,4 +1,5 @@
 import { AppSerwistProvider } from "@/components/AppSerwistProvider";
+import { EasyModeProvider } from "@/components/EasyModeProvider";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
@@ -55,7 +56,9 @@ export default function RootLayout({
     <html lang="th" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <LocaleProvider>
-          <AppSerwistProvider>{children}</AppSerwistProvider>
+          <EasyModeProvider>
+            <AppSerwistProvider>{children}</AppSerwistProvider>
+          </EasyModeProvider>
         </LocaleProvider>
       </body>
     </html>

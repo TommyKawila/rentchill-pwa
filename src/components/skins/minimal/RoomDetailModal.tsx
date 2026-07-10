@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
 import { MeterPhotoVaultSkin } from "@/components/skins/minimal/MeterPhotoVaultSkin";
 import { MeterReadCard } from "@/components/skins/minimal/MeterReadCard";
 import { MeterHistoryList } from "@/components/skins/minimal/MeterHistoryList";
@@ -268,6 +269,7 @@ export function RoomDetailModal({
               onClick={() => onRemind(row.tenant_id)}
               className="w-full rounded-md border border-amber-300 bg-amber-50 py-2 text-sm font-medium text-amber-900 disabled:opacity-50"
             >
+              <EasyModeCtaIcon name="remind" />
               {remindedTenantId === row.tenant_id
                 ? t("owner.reminder.sent")
                 : t("owner.reminder.send")}

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { BillingOverviewSkin } from "@/components/skins/minimal/BillingOverviewSkin";
+import { EasyModeToggleSkin } from "@/components/skins/minimal/EasyModeToggleSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { OwnerToolsMenuSkin } from "@/components/skins/minimal/OwnerToolsMenuSkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
@@ -51,7 +52,7 @@ export function OwnerDashboardShell({
             <p className="text-xs font-medium uppercase tracking-wide text-green-600">
               RentChill
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={onLogout}
@@ -59,6 +60,7 @@ export function OwnerDashboardShell({
               >
                 {t("owner.nav.logout")}
               </button>
+              <EasyModeToggleSkin />
               <LocaleToggleSkin />
             </div>
           </div>

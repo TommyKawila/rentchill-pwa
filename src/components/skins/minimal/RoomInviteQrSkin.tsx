@@ -17,7 +17,7 @@ export function RoomInviteQrSkin({
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(inviteUrl)}`;
 
   const handlePrint = () => {
-    const popup = window.open("", "_blank", "noopener,noreferrer,width=480,height=640");
+    const popup = window.open("", "_blank", "width=480,height=640");
     if (!popup) return;
 
     popup.document.write(`<!DOCTYPE html>
@@ -31,13 +31,24 @@ export function RoomInviteQrSkin({
   <h1>RentChill</h1>
   <p><strong>${t("owner.qr.room", { number: roomNumber })}</strong></p>
   <p>${tenantName}</p>
-  <img src="${qrSrc}" width="240" height="240" alt="${t("owner.qr.alt")}" />
+  <img id="qr" src="${qrSrc}" width="240" height="240" alt="${t("owner.qr.alt")}" />
   <p style="font-size:12px">${t("owner.qr.scanHint")}</p>
 </body></html>`);
     popup.document.close();
-    popup.focus();
-    popup.print();
-    popup.close();
+
+    const img = popup.document.getElementById("qr");
+    const printAndClose = () => {
+      popup.focus();
+      popup.print();
+      popup.addEventListener("afterprint", () => popup.close(), { once: true });
+    };
+
+    if (img instanceof HTMLImageElement && !img.complete) {
+      img.onload = printAndClose;
+      img.onerror = printAndClose;
+    } else {
+      printAndClose();
+    }
   };
 
   return (

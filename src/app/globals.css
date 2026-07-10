@@ -12,3 +12,19 @@
     @apply bg-zinc-50 text-zinc-900;
   }
 }
+
+html[data-easy-mode="on"] {
+  font-size: 125%;
+}
+
+html[data-easy-mode="on"] .text-zinc-500,
+html[data-easy-mode="on"] .text-zinc-400 {
+  color: #18181b;
+  font-weight: 600;
+}
+
+html[data-easy-mode="on"] button,
+html[data-easy-mode="on"] a[role="button"],
+html[data-easy-mode="on"] [role="button"] {
+  min-height: 48px;
+}

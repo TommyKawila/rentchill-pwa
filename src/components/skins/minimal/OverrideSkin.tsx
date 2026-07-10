@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
 import { statusMessageKey } from "@/services/i18n/translate";
 
@@ -148,6 +149,7 @@ export function OverrideSkin({
           }
           className="rounded-md border border-zinc-300 py-2 text-sm font-medium disabled:opacity-50"
         >
+          <EasyModeCtaIcon name="meter" />
           {t("owner.override.saveMeters")}
         </button>
 
@@ -169,6 +171,7 @@ export function OverrideSkin({
               onClick={() => onReject(rejectNote)}
               className="rounded-md border border-red-300 bg-red-50 py-2 text-sm font-medium text-red-700 disabled:opacity-50"
             >
+              <EasyModeCtaIcon name="reject" />
               {t("owner.override.reject")}
             </button>
           </>
@@ -180,6 +183,7 @@ export function OverrideSkin({
           onClick={() => onApprove(slipUrl || undefined)}
           className="rounded-md bg-zinc-900 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
+          <EasyModeCtaIcon name="approve" />
           {t("owner.override.approve")}
         </button>
       </div>

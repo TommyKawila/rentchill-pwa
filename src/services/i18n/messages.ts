@@ -304,6 +304,9 @@ const th = {
   "owner.nav.propertyPage": "หน้าหอ",
   "owner.nav.projectPage": "ดูหน้าโครงการ",
   "owner.nav.logout": "ออกจากระบบ",
+  "a11y.easyMode.label": "โหมด สว.",
+  "a11y.easyMode.on": "โหมด สว. เปิด",
+  "a11y.easyMode.off": "ปกติ",
   "owner.billing.title": "ออกบิลรายเดือน",
   "owner.billing.rates":
     "เดือน {month} · น้ำ {water} บ./หน่วย · ไฟ {electric} บ./หน่วย",
@@ -843,6 +846,9 @@ const en: Record<keyof typeof th, string> = {
   "owner.nav.propertyPage": "Property page",
   "owner.nav.projectPage": "View project page",
   "owner.nav.logout": "Log out",
+  "a11y.easyMode.label": "Senior mode",
+  "a11y.easyMode.on": "Senior mode on",
+  "a11y.easyMode.off": "Normal",
   "owner.billing.title": "Monthly billing",
   "owner.billing.rates":
     "Month {month} · Water {water}/unit · Electric {electric}/unit",
