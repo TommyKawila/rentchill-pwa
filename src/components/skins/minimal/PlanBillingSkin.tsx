@@ -3,7 +3,12 @@
 import { useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import {
+  PLAN_TAGLINES,
+  PLAN_UPGRADE_FEATURES,
+} from "@/services/planFeatureCopy";
+import {
   TIER_PRICES_THB,
+  TIER_PROJECT_LIMITS,
   TIER_ROOM_LIMITS,
   type UpgradeTier,
 } from "@/services/planTierService";
@@ -43,21 +48,34 @@ export function PlanBillingSkin({
 
   return (
     <section className="space-y-4">
-      <div className="rounded-lg border border-zinc-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-zinc-800">{t("owner.planBilling.planTitle")}</h2>
-        <p className="mt-1 text-sm">
+      <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
+        <h2 className="font-semibold tracking-tight text-zinc-900">
+          {t("owner.planBilling.planTitle")}
+        </h2>
+        <p className="mt-2 font-medium text-zinc-900">
           {t(`owner.plan.tier.${subscription.plan_tier}`)}
           {expiresLabel && (
-            <span className="ml-2 text-xs text-zinc-500">
+            <span className="ml-2 font-normal text-zinc-500">
               · {t("owner.planBilling.expires", { date: expiresLabel })}
             </span>
           )}
         </p>
+        <p className="mt-1 text-zinc-500">
+          {t("owner.upgrade.rooms", {
+            count: TIER_ROOM_LIMITS[subscription.plan_tier],
+          })}
+          {" · "}
+          {t("owner.upgrade.projects", {
+            count: TIER_PROJECT_LIMITS[subscription.plan_tier],
+          })}
+        </p>
         {subscription.status === "expired" && (
-          <p className="mt-2 text-xs text-amber-800">{t("owner.planBilling.expired")}</p>
+          <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+            {t("owner.planBilling.expired")}
+          </p>
         )}
         {subscription.pending_payment && (
-          <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 space-y-1">
+          <div className="mt-3 space-y-1 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
             <p>{t("owner.planBilling.pendingReview")}</p>
             {subscription.pending_plan_requested && (
               <p>
@@ -69,22 +87,24 @@ export function PlanBillingSkin({
           </div>
         )}
         {submitted && (
-          <p className="mt-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
+          <p className="mt-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-800">
             {t("owner.planBilling.slipSubmitted")}
           </p>
         )}
         {error && (
-          <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800">
             {error}
           </p>
         )}
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-zinc-800">{t("owner.upgrade.title")}</h2>
-        <p className="mt-1 text-xs text-zinc-500">{t("owner.planBilling.upgradeDesc")}</p>
+      <div>
+        <h2 className="text-base font-semibold tracking-tight text-zinc-900">
+          {t("owner.upgrade.title")}
+        </h2>
+        <p className="mt-1 text-zinc-500">{t("owner.planBilling.upgradeDesc")}</p>
 
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 space-y-3">
           {UPGRADE_OPTIONS.map((tier) => {
             const isCurrent = subscription.plan_tier === tier;
             const canUpgrade = TIER_ROOM_LIMITS[tier] > currentLimit;
@@ -93,32 +113,60 @@ export function PlanBillingSkin({
             return (
               <div
                 key={tier}
-                className={`rounded-md border px-3 py-2 ${
-                  isSelected ? "border-green-300 bg-green-50" : "border-zinc-100 bg-zinc-50"
+                className={`rounded-xl border p-4 ${
+                  isSelected
+                    ? "border-zinc-900 bg-white"
+                    : "border-zinc-100 bg-white"
                 }`}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium">{t(`owner.plan.tier.${tier}`)}</p>
-                    <p className="text-xs text-zinc-500">
-                      {t("owner.upgrade.rooms", { count: TIER_ROOM_LIMITS[tier] })}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-zinc-900">
+                      {t(`owner.plan.tier.${tier}`)}
                     </p>
+                    <p className="mt-1 text-zinc-500">{t(PLAN_TAGLINES[tier])}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">฿{TIER_PRICES_THB[tier]}/mo</p>
-                    {isCurrent ? (
-                      <p className="text-xs text-green-700">{t("owner.upgrade.current")}</p>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={disabled || !canUpgrade || subscription.pending_payment}
-                        onClick={() => setSelectedTier(tier)}
-                        className="mt-1 rounded-md border border-green-300 bg-white px-2 py-1 text-xs font-medium text-green-800 disabled:opacity-50"
-                      >
-                        {isSelected ? t("owner.planBilling.selected") : t("owner.upgrade.upgrade")}
-                      </button>
-                    )}
-                  </div>
+                  <p className="shrink-0 text-2xl font-bold tabular-nums text-zinc-900">
+                    {t("owner.planBilling.perMonth", {
+                      price: TIER_PRICES_THB[tier],
+                    })}
+                  </p>
+                </div>
+
+                <p className="mt-3 font-medium text-zinc-900">
+                  {t("owner.upgrade.rooms", { count: TIER_ROOM_LIMITS[tier] })}
+                  {" · "}
+                  {t("owner.upgrade.projects", {
+                    count: TIER_PROJECT_LIMITS[tier],
+                  })}
+                </p>
+
+                <ul className="mt-3 space-y-2 text-zinc-700">
+                  {PLAN_UPGRADE_FEATURES[tier].map((key) => (
+                    <li key={key} className="flex gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
+                      <span>{t(key)}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-4">
+                  {isCurrent ? (
+                    <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-center font-medium text-green-800">
+                      {t("owner.upgrade.current")}
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={disabled || !canUpgrade || subscription.pending_payment}
+                      onClick={() => setSelectedTier(tier)}
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-3 font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {isSelected
+                        ? t("owner.planBilling.selected")
+                        : t("owner.upgrade.upgrade")}
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -127,21 +175,23 @@ export function PlanBillingSkin({
       </div>
 
       {selectedTier && (
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 space-y-3">
-          <h3 className="text-sm font-semibold">{t("owner.planBilling.payTo")}</h3>
-          <p className="text-sm">
+        <div className="space-y-4 rounded-xl border border-zinc-100 bg-zinc-50 p-4">
+          <h3 className="font-semibold tracking-tight text-zinc-900">
+            {t("owner.planBilling.payTo")}
+          </h3>
+          <p>
             <span className="text-zinc-500">{t("settings.promptPay")}: </span>
-            {account.prompt_pay}
+            <span className="font-medium text-zinc-900">{account.prompt_pay}</span>
           </p>
-          <p className="text-sm">
+          <p>
             <span className="text-zinc-500">{t("settings.bankAccount")}: </span>
-            {account.bank_account}
+            <span className="font-medium text-zinc-900">{account.bank_account}</span>
           </p>
-          <p className="text-sm">
+          <p>
             <span className="text-zinc-500">{t("settings.receiverName")}: </span>
-            {account.receiver_name}
+            <span className="font-medium text-zinc-900">{account.receiver_name}</span>
           </p>
-          <p className="text-sm font-medium">
+          <p className="text-2xl font-bold tabular-nums text-zinc-900">
             {t("owner.planBilling.amount")}: ฿{TIER_PRICES_THB[selectedTier]}
           </p>
 
@@ -160,9 +210,11 @@ export function PlanBillingSkin({
             type="button"
             disabled={disabled}
             onClick={() => fileRef.current?.click()}
-            className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="w-full rounded-lg bg-zinc-900 py-3 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {disabled ? t("tenant.invoice.uploading") : t("owner.planBilling.uploadSlip")}
+            {disabled
+              ? t("tenant.invoice.uploading")
+              : t("owner.planBilling.uploadSlip")}
           </button>
         </div>
       )}
