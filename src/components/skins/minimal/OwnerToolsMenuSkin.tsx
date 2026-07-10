@@ -1,7 +1,16 @@
 "use client";
 
+import {
+  Building2,
+  CreditCard,
+  Download,
+  FileSpreadsheet,
+  Share2,
+  Wrench,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { NavMenuItemLabel } from "@/components/skins/minimal/NavMenuItemLabel";
 
 interface OwnerToolsMenuSkinProps {
   propertySlug: string;
@@ -46,7 +55,7 @@ export function OwnerToolsMenuSkin({
   }, [open]);
 
   const itemClass =
-    "flex min-h-11 w-full items-center rounded-lg px-3 py-2 text-left font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50";
+    "group flex min-h-11 w-full items-center gap-x-3 rounded-lg px-3 py-2 text-left font-medium hover:bg-zinc-50 disabled:opacity-50";
 
   return (
     <div ref={rootRef} className="relative min-w-0 flex-1">
@@ -54,15 +63,20 @@ export function OwnerToolsMenuSkin({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className="flex min-h-11 w-full items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2.5 font-medium text-zinc-700"
+        className="group flex min-h-11 w-full items-center justify-center gap-x-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 font-medium"
       >
-        {t("owner.nav.tools")} ▾
+        <NavMenuItemLabel icon={Wrench}>{t("owner.nav.tools")}</NavMenuItemLabel>
+        <span className="text-zinc-500 group-hover:text-zinc-900" aria-hidden>
+          ▾
+        </span>
       </button>
 
       {open && (
         <div className="absolute left-0 right-0 z-20 mt-1 rounded-xl border border-zinc-100 bg-white p-1">
           <a href="/import" className={itemClass} onClick={() => setOpen(false)}>
-            {t("owner.nav.import")}
+            <NavMenuItemLabel icon={FileSpreadsheet}>
+              {t("owner.nav.import")}
+            </NavMenuItemLabel>
           </a>
           {onExportCsv && (
             <button
@@ -74,7 +88,9 @@ export function OwnerToolsMenuSkin({
               }}
               className={itemClass}
             >
-              {csvLoading ? t("owner.csv.exporting") : t("owner.nav.csvExport")}
+              <NavMenuItemLabel icon={Download}>
+                {csvLoading ? t("owner.csv.exporting") : t("owner.nav.csvExport")}
+              </NavMenuItemLabel>
             </button>
           )}
           {onOpenShareLink && (
@@ -87,7 +103,9 @@ export function OwnerToolsMenuSkin({
               }}
               className={itemClass}
             >
-              {t("owner.nav.shareLink")}
+              <NavMenuItemLabel icon={Share2}>
+                {t("owner.nav.shareLink")}
+              </NavMenuItemLabel>
             </button>
           )}
           <a
@@ -95,14 +113,18 @@ export function OwnerToolsMenuSkin({
             className={itemClass}
             onClick={() => setOpen(false)}
           >
-            {t("owner.nav.projectPage")}
+            <NavMenuItemLabel icon={Building2}>
+              {t("owner.nav.projectPage")}
+            </NavMenuItemLabel>
           </a>
           <a
             href={`/billing?property=${encodeURIComponent(propertySlug)}`}
             className={itemClass}
             onClick={() => setOpen(false)}
           >
-            {t("owner.nav.billing")}
+            <NavMenuItemLabel icon={CreditCard}>
+              {t("owner.nav.billing")}
+            </NavMenuItemLabel>
           </a>
         </div>
       )}

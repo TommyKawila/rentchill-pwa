@@ -1,10 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Settings } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
 import { BillingOverviewSkin } from "@/components/skins/minimal/BillingOverviewSkin";
 import { EasyModeToggleSkin } from "@/components/skins/minimal/EasyModeToggleSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
+import { NavMenuItemLabel } from "@/components/skins/minimal/NavMenuItemLabel";
 import { OwnerToolsMenuSkin } from "@/components/skins/minimal/OwnerToolsMenuSkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
 import type { BillingOverview } from "@/services/billingOverviewService";
@@ -83,9 +85,11 @@ export function OwnerDashboardShell({
             <nav className="mt-4 flex gap-2">
               <a
                 href={settingsHref}
-                className="flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-center font-medium text-zinc-800"
+                className="group flex min-h-11 min-w-0 flex-1 items-center justify-center gap-x-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 font-medium"
               >
-                {t("owner.nav.settingsShort")}
+                <NavMenuItemLabel icon={Settings}>
+                  {t("owner.nav.settingsShort")}
+                </NavMenuItemLabel>
               </a>
               <OwnerToolsMenuSkin
                 propertySlug={propertySlug}
