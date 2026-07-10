@@ -10,6 +10,7 @@ import { DocumentVaultSkin } from "@/components/skins/minimal/DocumentVaultSkin"
 import { ContractLeaseSkin } from "@/components/skins/minimal/ContractLeaseSkin";
 import { DepositTrackerSkin } from "@/components/skins/minimal/DepositTrackerSkin";
 import { MoveChecklistSkin } from "@/components/skins/minimal/MoveChecklistSkin";
+import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
 import { TenantLineInvitePanel } from "@/components/skins/minimal/TenantLineInvitePanel";
 import { OverrideSkin } from "@/components/skins/minimal/OverrideSkin";
 import { PaidInvoiceSkin } from "@/components/skins/minimal/PaidInvoiceSkin";
@@ -24,6 +25,10 @@ import { useLeaseContract } from "@/hooks/useLeaseContract";
 import { useDepositTracker } from "@/hooks/useDepositTracker";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
+import {
+  formatTenantDisplayName,
+  genderFromTitlePrefix,
+} from "@/services/tenantTitleUtils";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
 
 interface RoomDetailModalProps {
@@ -82,6 +87,10 @@ export function RoomDetailModal({
   onApprove,
 }: RoomDetailModalProps) {
   const { t } = useLocale();
+  const tenantDisplayName = formatTenantDisplayName(
+    row.tenant_title_prefix,
+    row.tenant_name,
+  );
   const meterHistory = useMeterHistory(propertySlug, row.room_id, true);
   const meterPhotos = useMeterPhotos(
     propertySlug,
@@ -160,14 +169,20 @@ export function RoomDetailModal({
         className="relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col rounded-t-xl border border-zinc-200 bg-white sm:rounded-xl"
       >
         <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
-          <div>
-            <p className="text-sm font-semibold text-zinc-900">{row.tenant_name}</p>
-            <p className="text-xs text-zinc-500">
-              {t("common.room", { number: row.room_number })}
-              {row.invoice_status
-                ? ` · ${t(statusMessageKey(row.invoice_status))}`
-                : ` · ${t("status.noBill")}`}
-            </p>
+          <div className="flex min-w-0 items-start gap-x-3">
+            <TenantPersonIcon
+              gender={genderFromTitlePrefix(row.tenant_title_prefix)}
+              className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500"
+            />
+            <div>
+              <p className="text-sm font-semibold text-zinc-900">{tenantDisplayName}</p>
+              <p className="text-xs text-zinc-500">
+                {t("common.room", { number: row.room_number })}
+                {row.invoice_status
+                  ? ` · ${t(statusMessageKey(row.invoice_status))}`
+                  : ` · ${t("status.noBill")}`}
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -180,7 +195,7 @@ export function RoomDetailModal({
 
         <div className="space-y-4 overflow-y-auto px-4 py-4">
           <TenantLineInvitePanel
-            tenantName={row.tenant_name}
+            tenantName={tenantDisplayName}
             roomNumber={row.room_number}
             inviteCode={row.invite_code}
             inviteUrl={row.invite_url}

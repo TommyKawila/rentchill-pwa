@@ -19,6 +19,7 @@ import type { MeterDialSnapshot } from "@/services/meterReadingService";
 export type MonthlyBillingRow = {
   tenant_id: string;
   tenant_name: string;
+  tenant_title_prefix: string | null;
   room_id: string;
   room_number: string;
   base_rent_price: number;
@@ -75,7 +76,7 @@ export async function getMonthlyBillingRows(propertySlug: string) {
   const { data: tenants, error } = await supabase
     .from("tenants")
     .select(
-      "id, name, room_id, line_user_id, invite_code, move_in_date, rooms!inner(id, room_number, base_rent_price, status, property_id)",
+      "id, name, title_prefix, room_id, line_user_id, invite_code, move_in_date, rooms!inner(id, room_number, base_rent_price, status, property_id)",
     )
     .eq("rooms.property_id", propertyId)
     .eq("rooms.status", "occupied");
@@ -156,6 +157,7 @@ export async function getMonthlyBillingRows(propertySlug: string) {
       return {
         tenant_id: String(row.id),
         tenant_name: String(row.name),
+        tenant_title_prefix: row.title_prefix ? String(row.title_prefix) : null,
         room_id: room.id,
         room_number: room.room_number,
         base_rent_price: Number(room.base_rent_price),

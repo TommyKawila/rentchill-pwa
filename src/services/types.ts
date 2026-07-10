@@ -60,6 +60,7 @@ export interface Tenant {
   line_user_id: string | null;
   phone_number: string;
   name: string;
+  title_prefix: string | null;
   move_in_date: string;
   pdpa_consented_at: string | null;
   invite_code: string | null;

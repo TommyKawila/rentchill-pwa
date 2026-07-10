@@ -3,11 +3,16 @@
 import { useEffect, useState } from "react";
 import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
 import { EmptyProjectOnboardingSkin } from "@/components/skins/minimal/EmptyProjectOnboardingSkin";
+import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
 import { useLocale } from "@/components/LocaleProvider";
 import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
 import { statusMessageKey } from "@/services/i18n/translate";
 import type { InvoiceStatus } from "@/services/types";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
+import {
+  formatTenantDisplayName,
+  genderFromTitlePrefix,
+} from "@/services/tenantTitleUtils";
 
 export type RoomListRow = MonthlyBillingRow & {
   no: number;
@@ -128,7 +133,18 @@ export function RoomListSkin({
                 className="w-full rounded-xl border border-zinc-100 bg-white px-4 py-4 text-left hover:bg-zinc-50"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <p className="font-semibold text-zinc-900">{row.tenant_name}</p>
+                  <div className="flex min-w-0 items-start gap-x-3">
+                    <TenantPersonIcon
+                      gender={genderFromTitlePrefix(row.tenant_title_prefix)}
+                      className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500"
+                    />
+                    <p className="font-semibold text-zinc-900">
+                      {formatTenantDisplayName(
+                        row.tenant_title_prefix,
+                        row.tenant_name,
+                      )}
+                    </p>
+                  </div>
                   <span
                     className={`shrink-0 rounded-lg px-2 py-1 font-medium ${statusTone(row.invoice_status)}`}
                   >

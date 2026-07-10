@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
+import { TENANT_TITLE_OPTIONS } from "@/services/tenantTitleUtils";
 
 interface EmptyProjectOnboardingSkinProps {
   propertySlug: string;
@@ -31,6 +32,7 @@ function AddRoomForm({
   const [step, setStep] = useState<1 | 2>(1);
   const [roomNumber, setRoomNumber] = useState("");
   const [rent, setRent] = useState("");
+  const [titlePrefix, setTitlePrefix] = useState("");
   const [tenantName, setTenantName] = useState("");
   const [phone, setPhone] = useState("");
   const [moveInDate, setMoveInDate] = useState(todayIso());
@@ -39,7 +41,7 @@ function AddRoomForm({
   const isAdditional = variant === "additional";
 
   const stepOneValid =
-    roomNumber.trim() && tenantName.trim() && phone.trim();
+    titlePrefix.trim() && roomNumber.trim() && tenantName.trim() && phone.trim();
   const stepTwoValid =
     moveInDate.trim() &&
     waterReading.trim() !== "" &&
@@ -52,6 +54,7 @@ function AddRoomForm({
       room_number: roomNumber.trim(),
       base_rent_price: Number(rent || 0),
       tenant_name: tenantName.trim(),
+      title_prefix: titlePrefix.trim(),
       phone_number: phone.trim(),
       move_in_date: moveInDate,
       water_reading: Number(waterReading),
@@ -111,6 +114,21 @@ function AddRoomForm({
             />
           </label>
           <label className="block space-y-1 text-sm">
+            <span className="font-medium">{t("owner.onboarding.titlePrefix")}</span>
+            <select
+              value={titlePrefix}
+              onChange={(e) => setTitlePrefix(e.target.value)}
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+            >
+              <option value="">{t("owner.onboarding.titlePrefixChoose")}</option>
+              {TENANT_TITLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.value}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block space-y-1 text-sm sm:col-span-2">
             <span className="font-medium">{t("owner.onboarding.tenantName")}</span>
             <input
               value={tenantName}

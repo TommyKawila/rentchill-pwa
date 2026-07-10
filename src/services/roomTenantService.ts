@@ -10,6 +10,7 @@ export type AddRoomTenantInput = {
   room_number: string;
   base_rent_price: number;
   tenant_name: string;
+  title_prefix: string;
   phone_number: string;
   move_in_date?: string;
   water_reading?: number;
@@ -51,9 +52,11 @@ export async function createRoomWithTenant(
 ): Promise<AddRoomTenantResult> {
   const roomNumber = input.room_number.trim();
   const tenantName = input.tenant_name.trim();
+  const titlePrefix = input.title_prefix.trim();
   const phoneNumber = input.phone_number.trim();
 
   if (!roomNumber) throw new Error("ROOM_NUMBER_REQUIRED");
+  if (!titlePrefix) throw new Error("TITLE_PREFIX_REQUIRED");
   if (!tenantName) throw new Error("TENANT_NAME_REQUIRED");
   if (!phoneNumber) throw new Error("PHONE_REQUIRED");
   if (!Number.isFinite(input.base_rent_price) || input.base_rent_price < 0) {
@@ -111,6 +114,7 @@ export async function createRoomWithTenant(
     .insert({
       room_id: room.id,
       name: tenantName,
+      title_prefix: titlePrefix,
       phone_number: phoneNumber,
       move_in_date: moveInDate,
       invite_code: inviteCode,

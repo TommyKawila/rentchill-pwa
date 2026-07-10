@@ -5,7 +5,7 @@ export async function getTenantById(tenantId: string): Promise<Tenant | null> {
   const supabase = createBrowserClient();
   const { data, error } = await supabase
     .from("tenants")
-    .select("id, room_id, line_user_id, phone_number, name, move_in_date, pdpa_consented_at, invite_code")
+    .select("id, room_id, line_user_id, phone_number, name, title_prefix, move_in_date, pdpa_consented_at, invite_code")
     .eq("id", tenantId)
     .maybeSingle();
 
@@ -19,7 +19,7 @@ export async function getTenantByLineUserId(
   const supabase = createBrowserClient();
   const { data, error } = await supabase
     .from("tenants")
-    .select("id, room_id, line_user_id, phone_number, name, move_in_date, pdpa_consented_at, invite_code")
+    .select("id, room_id, line_user_id, phone_number, name, title_prefix, move_in_date, pdpa_consented_at, invite_code")
     .eq("line_user_id", lineUserId)
     .maybeSingle();
 
