@@ -12,6 +12,7 @@
 - Always prioritize precision, readability, and performance.
 - RentChill Metaphor: It acts as "The Shield" that protects landlords from operational and emotional hassles. Keep code silent, secure, and effective.
 - **Global Ready Architecture:** Write clean, modular functions for notifications and authentication. Do not hardcode LINE-specific logic directly into core database services. Prepare the schema to accept multi-currency (`currency` column) and standard UTC timestamptz for international scaling.
+- **Error Logging:** Unexpected failures must `console.error("[module.action]", context, error)` before returning. Never swallow catch blocks. Never log secrets. See `.cursor/rules/error-logging.mdc`.
 
 ## 3. UI/UX & Design Taste (Linear.app-Inspired Precision)
 - General Aesthetic: Ultra-crisp, high-precision software design. Focus on strict horizontal/vertical alignment and clean vertical rhythms.

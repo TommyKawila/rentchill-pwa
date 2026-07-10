@@ -1,4 +1,5 @@
 import { getCurrentBillingMonth } from "@/services/invoiceCalculator";
+import { getCsvLimit } from "@/services/planLimits";
 import { getLinePushLimit } from "@/services/linePushQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 
@@ -14,10 +15,8 @@ export type PropertyQuota = {
   csv_remaining: number | null;
 };
 
-const CSV_LIMIT_STARTER = 1;
-
 function isUnlimitedCsv(tier: PlanTier) {
-  return tier !== "starter";
+  return getCsvLimit(tier) === null;
 }
 
 async function getPropertyQuotaRow(propertySlug: string) {
@@ -82,8 +81,10 @@ export async function getPropertyQuota(
     line_push_limit: linePushLimit,
     line_push_remaining: Math.max(0, linePushLimit - linePushUsed),
     csv_used: csvUsed,
-    csv_limit: csvUnlimited ? null : CSV_LIMIT_STARTER,
-    csv_remaining: csvUnlimited ? null : Math.max(0, CSV_LIMIT_STARTER - csvUsed),
+    csv_limit: csvUnlimited ? null : getCsvLimit(tier),
+    csv_remaining: csvUnlimited
+      ? null
+      : Math.max(0, (getCsvLimit(tier) ?? 0) - csvUsed),
   };
 }
 

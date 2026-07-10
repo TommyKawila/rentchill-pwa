@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@theme {
+  --color-rc-green: #32b04d;
+  --color-rc-green-dark: #28943f;
+  --color-rc-green-soft: #eef8f0;
+  --color-rc-charcoal: #4a4a4f;
+}
+
 @layer base {
   body {
     @apply bg-zinc-50 text-zinc-900;

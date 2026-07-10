@@ -8,6 +8,14 @@ import {
   getTenantById,
   getTenantByLineUserId,
 } from "@/services/tenantService";
+import { fetchTenantMeterPhotos } from "@/services/meterPhotoClientService";
+import {
+  fetchTenantVaultDocuments,
+  getPropertyVaultMeta,
+} from "@/services/documentVaultClientService";
+import type { MeterPhotoRow } from "@/services/meterPhotoService";
+import type { TenantDocumentRow } from "@/services/documentVaultService";
+import type { PlanTier } from "@/services/propertyQuotaService";
 import type { Invoice, PropertyContact, Room, Tenant } from "@/services/types";
 
 type BoardState = {
@@ -15,6 +23,10 @@ type BoardState = {
   room: Room;
   invoice: Invoice | null;
   contact: PropertyContact | null;
+  meterPhotos: MeterPhotoRow[];
+  documents: TenantDocumentRow[];
+  propertySlug: string;
+  planTier: PlanTier;
 };
 
 type TenantIdentity = {
@@ -72,7 +84,26 @@ export function useTenantBoard({
 
       const invoice = await getInvoiceForTenantMonth(tenant.id);
       const contact = await getPropertyContactById(room.property_id);
-      setBoard({ tenant, room, invoice, contact });
+      const propertyMeta = await getPropertyVaultMeta(room.property_id);
+      const meterPhotos =
+        invoice && room.property_id
+          ? await fetchTenantMeterPhotos({
+              roomId: room.id,
+              propertyId: room.property_id,
+              billingMonth: invoice.billing_month,
+            })
+          : [];
+      const documents = await fetchTenantVaultDocuments(tenant.id);
+      setBoard({
+        tenant,
+        room,
+        invoice,
+        contact,
+        meterPhotos,
+        documents,
+        propertySlug: propertyMeta?.slug ?? "",
+        planTier: propertyMeta?.planTier ?? "starter",
+      });
     } catch {
       setBoard(null);
       setError("โหลดข้อมูลไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ");

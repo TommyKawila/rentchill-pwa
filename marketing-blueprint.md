@@ -40,16 +40,20 @@ UI must feel solid, trustworthy, and distraction-free. Minimalist structure. Cle
 
 ---
 
-## 2. Pricing Strategy (Volume-Based, All Features Included)
+## 2. Pricing Strategy (Volume + Feature Ladder)
 
-ทุก tier ได้ฟีเจอร์ครบ — ต่างกันแค่จำนวนห้อง
+แต่ละ tier ต่างกันทั้งจำนวนห้อง **และ** ฟีเจอร์ — Pro (฿990) = โล่ครบวงจร
 
-| Tier | Rooms | Price | Notes |
-|------|-------|-------|-------|
-| **Starter** | 3 | Free | Cost to us ~9 THB/mo |
-| **Micro** | Up to 20 | 290 THB/mo | |
-| **Growth** | Up to 50 | 590 THB/mo | |
-| **Pro** | Up to 100 | 990 THB/mo | |
+| Tier | Rooms | Price | Highlights |
+|------|-------|-------|------------|
+| **Starter** | 3 | Free | ออกบิล + LINE · อนุมัติสลิปด้วยมือ |
+| **Micro** | Up to 20 | 290 THB/mo | ตรวจสลิปอัตโนมัติ · ถ่ายรูปมิเตอร์ตอนออกบิล |
+| **Growth** | Up to 50 | 590 THB/mo | เก็บรูปมิเตอร์ 12 เดือน · คลังเอกสาร · สัญญา PDF |
+| **Pro** | Up to 100 | 990 THB/mo | ลูกบ้านดูรูปมิเตอร์ · เซ็นสัญญาใน LINE · โควต้าสูง |
+
+**ข้อความขาย Pro:** ครบวงจรหลังโล่ — บิลชัด หลักฐานมิเตอร์ครบ เอกสารผู้เช่าครบ สัญญาเซ็นได้ใน LINE
+
+Feature gates อยู่ใน `src/services/planLimits.ts`
 
 ---
 

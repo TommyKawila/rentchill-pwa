@@ -14,7 +14,7 @@ export function DashboardPreviewSkin() {
 
   return (
     <div className="rounded-xl border border-zinc-100 bg-white p-6">
-      <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+      <p className="text-xs font-medium uppercase tracking-wide text-rc-green">
         {t("landing.preview.tag")}
       </p>
       <p className="mt-1 text-sm font-semibold text-zinc-900">
@@ -26,7 +26,7 @@ export function DashboardPreviewSkin() {
             key={stat.label}
             className={`rounded-lg border px-3 py-3 ${
               stat.accent
-                ? "border-green-200 bg-green-50/60"
+                ? "border-rc-green/30 bg-rc-green-soft"
                 : "border-zinc-100 bg-zinc-50"
             }`}
           >
@@ -44,7 +44,7 @@ export function DashboardPreviewSkin() {
             <span className="font-medium text-zinc-900">
               {t("common.room", { number: room })}
             </span>
-            <span className="text-green-600">{t("landing.preview.paid")}</span>
+            <span className="text-rc-green">{t("landing.preview.paid")}</span>
           </div>
         ))}
       </div>

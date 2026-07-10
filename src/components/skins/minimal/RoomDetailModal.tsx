@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { MeterPhotoVaultSkin } from "@/components/skins/minimal/MeterPhotoVaultSkin";
+import { DocumentVaultSkin } from "@/components/skins/minimal/DocumentVaultSkin";
+import { ContractLeaseSkin } from "@/components/skins/minimal/ContractLeaseSkin";
+import { DepositTrackerSkin } from "@/components/skins/minimal/DepositTrackerSkin";
+import { MoveChecklistSkin } from "@/components/skins/minimal/MoveChecklistSkin";
 import { RoomInviteQrSkin } from "@/components/skins/minimal/RoomInviteQrSkin";
 import { OverrideSkin } from "@/components/skins/minimal/OverrideSkin";
 import { PaidInvoiceSkin } from "@/components/skins/minimal/PaidInvoiceSkin";
@@ -9,11 +14,19 @@ import {
   calculateInvoiceAmounts,
 } from "@/services/invoiceCalculator";
 import { statusMessageKey } from "@/services/i18n/translate";
+import { useMeterPhotos } from "@/hooks/useMeterPhotos";
+import { useTenantDocuments } from "@/hooks/useTenantDocuments";
+import { useLeaseContract } from "@/hooks/useLeaseContract";
+import { useDepositTracker } from "@/hooks/useDepositTracker";
+import type { PlanTier } from "@/services/propertyQuotaService";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
 
 interface RoomDetailModalProps {
   row: MonthlyBillingRow;
+  propertySlug: string;
+  planTier: PlanTier;
+  billingMonth: string;
   includeUtilities: boolean;
   waterRate: number;
   electricRate: number;
@@ -64,6 +77,9 @@ async function copyText(text: string) {
 
 export function RoomDetailModal({
   row,
+  propertySlug,
+  planTier,
+  billingMonth,
   includeUtilities,
   waterRate,
   electricRate,
@@ -87,6 +103,31 @@ export function RoomDetailModal({
   const { t } = useLocale();
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const meterPhotos = useMeterPhotos(
+    propertySlug,
+    row.room_id,
+    billingMonth,
+    planTier,
+    row.tenant_id,
+  );
+  const tenantDocs = useTenantDocuments(
+    propertySlug,
+    row.room_id,
+    row.tenant_id,
+    planTier,
+  );
+  const leaseContract = useLeaseContract(
+    propertySlug,
+    row.room_id,
+    row.tenant_id,
+    planTier,
+  );
+  const depositTracker = useDepositTracker(
+    propertySlug,
+    row.room_id,
+    row.tenant_id,
+    planTier,
+  );
   const canShare = typeof navigator !== "undefined" && !!navigator.share;
   const locked = isLocked(row.invoice_status);
 
@@ -244,6 +285,16 @@ export function RoomDetailModal({
               ) : (
                 <p className="text-xs text-zinc-500">{t("owner.billing.rentOnly")}</p>
               )}
+              {includeUtilities && (
+                <MeterPhotoVaultSkin
+                  planTier={planTier}
+                  photos={meterPhotos.photos}
+                  disabled={disabled || locked}
+                  uploading={meterPhotos.status === "uploading"}
+                  error={meterPhotos.error}
+                  onUpload={(utility, file) => void meterPhotos.upload(utility, file)}
+                />
+              )}
               <p className="text-sm font-medium">
                 {t("common.total")} ฿{total_amount.toLocaleString("th-TH")}
               </p>
@@ -279,6 +330,43 @@ export function RoomDetailModal({
           {paidInvoice && !reviewInvoice && (
             <PaidInvoiceSkin invoice={paidInvoice} />
           )}
+
+          <MoveChecklistSkin
+            planTier={planTier}
+            disabled={disabled}
+            busy={tenantDocs.status === "uploading"}
+            onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
+          />
+          <DepositTrackerSkin
+            planTier={planTier}
+            deposit={depositTracker.deposit}
+            disabled={disabled}
+            saving={depositTracker.status === "saving"}
+            error={depositTracker.error}
+            onSave={(input) => void depositTracker.save(input)}
+          />
+          <DocumentVaultSkin
+            planTier={planTier}
+            documents={tenantDocs.documents}
+            disabled={disabled}
+            busy={
+              tenantDocs.status === "uploading" || tenantDocs.status === "deleting"
+            }
+            error={tenantDocs.error}
+            onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
+            onDelete={(id) => void tenantDocs.remove(id)}
+          />
+          <ContractLeaseSkin
+            planTier={planTier}
+            disabled={disabled}
+            loading={leaseContract.status === "loading"}
+            error={leaseContract.error}
+            onGenerate={() => {
+              void leaseContract.generate().then((ok) => {
+                if (ok) void tenantDocs.reload();
+              });
+            }}
+          />
         </div>
       </div>
     </div>

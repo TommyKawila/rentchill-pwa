@@ -25,7 +25,10 @@ import {
   isRowReadyToBill,
 } from "@/services/propertyBillingSettingsService";
 import { computeBillingOverview } from "@/services/billingOverviewService";
-import { canAutoVerifySlip } from "@/services/planLimits";
+import { AuditLogSkin } from "@/components/skins/minimal/AuditLogSkin";
+import { BulkMeterDayModal } from "@/components/skins/minimal/BulkMeterDayModal";
+import { useAuditLog } from "@/hooks/useAuditLog";
+import { canAutoVerifySlip, canUseBulkMeterDay } from "@/services/planLimits";
 import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
 
 function DashboardContent() {
@@ -62,9 +65,13 @@ function DashboardContent() {
   const propertyPlan = usePropertyPlan(propertySlug);
   const ownerSubscription = useOwnerSubscription();
   const addRoomTenant = useAddRoomTenant(propertySlug);
+  const planTier = propertyPlan.plan?.plan_tier ?? "starter";
+  const auditLog = useAuditLog(propertySlug ?? "", planTier);
 
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [bulkMeterOpen, setBulkMeterOpen] = useState(false);
+  const [bulkMeterUploading, setBulkMeterUploading] = useState(false);
   const [meters, setMeters] = useState<
     Record<string, { water: string; electric: string }>
   >({});
@@ -133,6 +140,11 @@ function DashboardContent() {
   const selectedRow = useMemo(
     () => listRows.find((row) => row.tenant_id === selectedTenantId) ?? null,
     [listRows, selectedTenantId],
+  );
+
+  const bulkMeterRows = useMemo(
+    () => listRows.filter((row) => isRowEditable(row)),
+    [listRows],
   );
 
   const reviewInvoice = useMemo(() => {
@@ -307,6 +319,19 @@ function DashboardContent() {
       )}
 
       {propertySlug && (
+      <>
+      {canUseBulkMeterDay(planTier) &&
+        billing.settings.include_utilities &&
+        bulkMeterRows.length > 0 && (
+          <button
+            type="button"
+            disabled={isSaving}
+            onClick={() => setBulkMeterOpen(true)}
+            className="mt-6 w-full rounded-lg border border-zinc-200 bg-white py-3 text-sm font-medium text-zinc-800 disabled:opacity-50"
+          >
+            {t("owner.bulkMeter.start")}
+          </button>
+        )}
       <RoomListSkin
         propertySlug={propertySlug}
         billingMonth={billing.billingMonth}
@@ -336,11 +361,21 @@ function DashboardContent() {
             : undefined
         }
       />
+      <AuditLogSkin
+        planTier={planTier}
+        entries={auditLog.entries}
+        loading={auditLog.status === "loading"}
+        error={auditLog.error}
+      />
+      </>
       )}
 
       {propertySlug && selectedRow && (
         <RoomDetailModal
           row={selectedRow}
+          propertySlug={propertySlug}
+          planTier={propertyPlan.plan?.plan_tier ?? "starter"}
+          billingMonth={billing.billingMonth}
           includeUtilities={billing.settings.include_utilities}
           waterRate={billing.settings.water_rate_per_unit}
           electricRate={billing.settings.electric_rate_per_unit}
@@ -401,6 +436,43 @@ function DashboardContent() {
           onClose={() => setShareModalOpen(false)}
           onCreate={() => void magicLink.createLink()}
           onCopy={() => void magicLink.copyLink()}
+        />
+      )}
+
+      {propertySlug && bulkMeterOpen && bulkMeterRows.length > 0 && (
+        <BulkMeterDayModal
+          rows={bulkMeterRows}
+          billingMonth={billing.billingMonth}
+          includeUtilities={billing.settings.include_utilities}
+          meters={meters}
+          disabled={isSaving}
+          uploading={bulkMeterUploading}
+          onClose={() => setBulkMeterOpen(false)}
+          onMeterChange={(tenantId, water, electric) =>
+            setMeters((prev) => ({
+              ...prev,
+              [tenantId]: { water, electric },
+            }))
+          }
+          onUploadPhoto={async (row, utility, file) => {
+            if (!propertySlug) return;
+            setBulkMeterUploading(true);
+            try {
+              const formData = new FormData();
+              formData.set("file", file);
+              formData.set("utility_type", utility);
+              formData.set("billing_month", billing.billingMonth);
+              formData.set("tenant_id", row.tenant_id);
+              const response = await fetch(
+                `/api/properties/${encodeURIComponent(propertySlug)}/rooms/${encodeURIComponent(row.room_id)}/meter-photos`,
+                { method: "POST", body: formData },
+              );
+              if (!response.ok) throw new Error("upload failed");
+              void auditLog.reload();
+            } finally {
+              setBulkMeterUploading(false);
+            }
+          }}
         />
       )}
     </OwnerDashboardShell>

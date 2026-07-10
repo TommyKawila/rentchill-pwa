@@ -10,6 +10,13 @@ import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { OwnerLineConnectPanel } from "@/components/skins/minimal/OwnerLineConnectPanel";
 import { PdpaConsentSkin } from "@/components/skins/minimal/PdpaConsentSkin";
+import { TenantMeterPhotosSkin } from "@/components/skins/minimal/TenantMeterPhotosSkin";
+import { TenantVaultSkin } from "@/components/skins/minimal/TenantVaultSkin";
+import { useTenantVault } from "@/hooks/useTenantVault";
+import {
+  canTenantSignContract,
+  canTenantUploadDocuments,
+} from "@/services/planLimits";
 import { useLineAuth } from "@/hooks/useLineAuth";
 import { usePaymentEngine } from "@/hooks/usePaymentEngine";
 import { usePdpaConsent } from "@/hooks/usePdpaConsent";
@@ -75,6 +82,14 @@ function TenantBoardMain() {
     error: consentError,
     acceptConsent,
   } = usePdpaConsent();
+
+  const vault = useTenantVault({
+    tenantId: board?.tenant.id ?? "",
+    propertySlug: board?.propertySlug ?? "",
+    roomId: board?.room.id ?? "",
+    planTier: board?.planTier ?? "starter",
+    enabled: !!board,
+  });
 
   if (authLoading) return <AuthLoading message={statusMessage} />;
 
@@ -207,6 +222,7 @@ function TenantBoardMain() {
             isPaying={paymentStatus === "uploading"}
             onPay={() => slipInputRef.current?.click()}
           />
+          <TenantMeterPhotosSkin photos={board.meterPhotos} />
           {paymentError && (
             <p className="px-6 pb-4 text-center text-sm text-red-600">
               {paymentError}
@@ -235,6 +251,26 @@ function TenantBoardMain() {
           <p className="text-sm text-zinc-600">{t("tenant.board.noBill")}</p>
           <p className="text-xs text-zinc-500">{t("tenant.board.waitOwner")}</p>
         </div>
+      )}
+
+      {board && (
+        <TenantVaultSkin
+          documents={board.documents}
+          canUpload={canTenantUploadDocuments(board.planTier)}
+          canSign={canTenantSignContract(board.planTier)}
+          hasLease={board.documents.some((doc) => doc.doc_type === "lease")}
+          signed={board.documents.some((doc) => doc.doc_type === "contract_signed")}
+          disabled={vault.status === "uploading" || vault.status === "signing"}
+          onUpload={(docType, file) => {
+            void vault.upload(docType, file).then(() => reload());
+          }}
+          onSign={(file) => {
+            void vault.sign(file).then(() => reload());
+          }}
+        />
+      )}
+      {vault.error && (
+        <p className="px-6 pb-4 text-center text-sm text-red-600">{vault.error}</p>
       )}
 
       {board.contact && <ContactLandlordSkin contact={board.contact} />}

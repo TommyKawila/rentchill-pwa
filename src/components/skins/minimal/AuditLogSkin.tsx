@@ -1,0 +1,66 @@
+"use client";
+
+import { useLocale } from "@/components/LocaleProvider";
+import type { AuditLogRow } from "@/services/auditLogService";
+import { canUseAuditLog } from "@/services/planLimits";
+import type { MessageKey } from "@/services/i18n/messages";
+import type { PlanTier } from "@/services/propertyQuotaService";
+
+interface AuditLogSkinProps {
+  planTier: PlanTier;
+  entries: AuditLogRow[];
+  loading?: boolean;
+  error?: string | null;
+}
+
+const ACTION_KEYS: Record<string, MessageKey> = {
+  "meter.upload": "owner.audit.meterUpload",
+  "document.upload": "owner.audit.documentUpload",
+  "document.delete": "owner.audit.documentDelete",
+  "deposit.update": "owner.audit.depositUpdate",
+  "invoice.approve": "owner.audit.invoiceApprove",
+  "invoice.reject": "owner.audit.invoiceReject",
+  "invoice.meters": "owner.audit.invoiceMeters",
+};
+
+export function AuditLogSkin({
+  planTier,
+  entries,
+  loading,
+  error,
+}: AuditLogSkinProps) {
+  const { t } = useLocale();
+
+  if (!canUseAuditLog(planTier)) return null;
+
+  return (
+    <section className="mt-6 space-y-2">
+      <h3 className="text-sm font-semibold text-zinc-800">{t("owner.audit.title")}</h3>
+      {loading && <p className="text-xs text-zinc-500">{t("common.loading")}</p>}
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      {entries.length === 0 && !loading && (
+        <p className="text-xs text-zinc-500">{t("owner.audit.empty")}</p>
+      )}
+      {entries.length > 0 && (
+        <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
+          {entries.slice(0, 12).map((entry) => {
+            const key = ACTION_KEYS[entry.action];
+            const label = key ? t(key) : entry.action;
+            const time = new Date(entry.created_at).toLocaleString("th-TH", {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            return (
+              <li key={entry.id} className="px-3 py-2 text-xs text-zinc-600">
+                <span className="font-medium text-zinc-800">{label}</span>
+                <span className="ml-2 text-zinc-400">{time}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}

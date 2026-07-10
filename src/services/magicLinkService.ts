@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { getCurrentBillingMonth } from "@/services/invoiceCalculator";
+import { shareLinkExpiresMs } from "@/services/planLimits";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 import type { InvoiceStatus } from "@/services/types";
@@ -55,10 +56,9 @@ export async function createPropertyShareLink(
   const property = await getPropertyBySlug(propertySlug);
   const tier = String(property.plan_tier) as PlanTier;
   const token = newShareToken();
+  const ttlMs = shareLinkExpiresMs(tier);
   const expiresAt =
-    tier === "starter"
-      ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-      : null;
+    ttlMs === null ? null : new Date(Date.now() + ttlMs).toISOString();
 
   const supabase = createAdminClient();
   const { error } = await supabase
