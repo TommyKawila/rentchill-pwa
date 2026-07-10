@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
 import { MeterPhotoVaultSkin } from "@/components/skins/minimal/MeterPhotoVaultSkin";
@@ -11,6 +11,10 @@ import { ContractLeaseSkin } from "@/components/skins/minimal/ContractLeaseSkin"
 import { DepositTrackerSkin } from "@/components/skins/minimal/DepositTrackerSkin";
 import { MoveChecklistSkin } from "@/components/skins/minimal/MoveChecklistSkin";
 import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
+import {
+  TenantProfileEditButton,
+  TenantProfileEditorSkin,
+} from "@/components/skins/minimal/TenantProfileEditorSkin";
 import { TenantLineInvitePanel } from "@/components/skins/minimal/TenantLineInvitePanel";
 import { OverrideSkin } from "@/components/skins/minimal/OverrideSkin";
 import { PaidInvoiceSkin } from "@/components/skins/minimal/PaidInvoiceSkin";
@@ -30,6 +34,7 @@ import {
   genderFromTitlePrefix,
 } from "@/services/tenantTitleUtils";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
+import { useTenantProfile } from "@/hooks/useTenantProfile";
 
 interface RoomDetailModalProps {
   row: MonthlyBillingRow;
@@ -55,6 +60,7 @@ interface RoomDetailModalProps {
   onAutoVerify: (invoiceId: string) => void;
   onReject: (invoiceId: string, note?: string) => void;
   onApprove: (invoiceId: string, slipUrl?: string) => void;
+  onTenantUpdated?: () => void;
 }
 
 function isLocked(status: MonthlyBillingRow["invoice_status"]) {
@@ -85,8 +91,11 @@ export function RoomDetailModal({
   onAutoVerify,
   onReject,
   onApprove,
+  onTenantUpdated,
 }: RoomDetailModalProps) {
   const { t } = useLocale();
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const tenantProfile = useTenantProfile(propertySlug, row.tenant_id);
   const tenantDisplayName = formatTenantDisplayName(
     row.tenant_title_prefix,
     row.tenant_name,
@@ -143,6 +152,11 @@ export function RoomDetailModal({
   }
 
   useEffect(() => {
+    setIsEditingProfile(false);
+    tenantProfile.clearError();
+  }, [row.tenant_id]);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -184,16 +198,43 @@ export function RoomDetailModal({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-600"
-          >
-            {t("owner.rooms.close")}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {!isEditingProfile && (
+              <TenantProfileEditButton
+                disabled={disabled || tenantProfile.status === "saving"}
+                onClick={() => setIsEditingProfile(true)}
+              />
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-600"
+            >
+              {t("owner.rooms.close")}
+            </button>
+          </div>
         </header>
 
         <div className="space-y-4 overflow-y-auto px-4 py-4">
+          {isEditingProfile && (
+            <TenantProfileEditorSkin
+              titlePrefix={row.tenant_title_prefix}
+              tenantName={row.tenant_name}
+              saving={tenantProfile.status === "saving"}
+              error={tenantProfile.error}
+              onCancel={() => {
+                setIsEditingProfile(false);
+                tenantProfile.clearError();
+              }}
+              onSave={(input) => {
+                void tenantProfile.save(input).then((result) => {
+                  if (!result) return;
+                  setIsEditingProfile(false);
+                  onTenantUpdated?.();
+                });
+              }}
+            />
+          )}
           <TenantLineInvitePanel
             tenantName={tenantDisplayName}
             roomNumber={row.room_number}

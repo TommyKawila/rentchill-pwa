@@ -422,6 +422,7 @@ function DashboardContent() {
           onApprove={(invoiceId, slipUrl) =>
             void override.approveInvoice(invoiceId, slipUrl)
           }
+          onTenantUpdated={() => void billing.reload()}
         />
       )}
 
