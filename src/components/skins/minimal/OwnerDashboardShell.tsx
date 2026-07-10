@@ -67,11 +67,12 @@ export function OwnerDashboardShell({
             </div>
           </div>
 
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <h1 className="min-w-0 text-2xl font-bold tracking-tight">
               {t("owner.dashboard.title")}
             </h1>
             <ProjectSelectorSkin
+              layout="inline"
               properties={properties}
               value={propertySlug}
               loading={propertiesLoading}
