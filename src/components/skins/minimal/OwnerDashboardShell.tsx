@@ -45,18 +45,18 @@ export function OwnerDashboardShell({
   const settingsHref = `/settings?property=${encodeURIComponent(propertySlug)}`;
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
-      <div className="mx-auto max-w-xl">
-        <header className="border-b border-zinc-200 pb-6">
+    <main className="min-h-screen bg-white px-4 py-6 text-zinc-900">
+      <div className="mx-auto max-w-xl space-y-6">
+        <header className="space-y-4">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+            <p className="font-medium tracking-tight text-green-600">
               RentChill
             </p>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={onLogout}
-                className="text-xs text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline"
+                className="text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline"
               >
                 {t("owner.nav.logout")}
               </button>
@@ -64,33 +64,39 @@ export function OwnerDashboardShell({
               <LocaleToggleSkin />
             </div>
           </div>
-          <h1 className="mt-2 text-2xl font-bold">{t("owner.dashboard.title")}</h1>
 
-          <ProjectSelectorSkin
-            properties={properties}
-            value={propertySlug}
-            loading={propertiesLoading}
-            onChange={onPropertyChange}
-          />
-
-          <BillingOverviewSkin billingMonth={billingMonth} overview={overview} />
-
-          <nav className="mt-4 flex gap-2">
-            <a
-              href={settingsHref}
-              className="min-w-0 flex-1 rounded-full border border-green-300 bg-green-50 px-3 py-1.5 text-center text-xs font-medium text-green-800"
-            >
-              {t("owner.nav.settingsShort")}
-            </a>
-            <OwnerToolsMenuSkin
-              propertySlug={propertySlug}
-              onExportCsv={onExportCsv}
-              csvDisabled={csvDisabled}
-              csvLoading={csvLoading}
-              onOpenShareLink={onOpenShareLink}
-              shareDisabled={shareDisabled}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {t("owner.dashboard.title")}
+            </h1>
+            <ProjectSelectorSkin
+              properties={properties}
+              value={propertySlug}
+              loading={propertiesLoading}
+              onChange={onPropertyChange}
             />
-          </nav>
+          </div>
+
+          <section className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
+            <BillingOverviewSkin billingMonth={billingMonth} overview={overview} />
+
+            <nav className="mt-4 flex gap-2">
+              <a
+                href={settingsHref}
+                className="flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-center font-medium text-zinc-800"
+              >
+                {t("owner.nav.settingsShort")}
+              </a>
+              <OwnerToolsMenuSkin
+                propertySlug={propertySlug}
+                onExportCsv={onExportCsv}
+                csvDisabled={csvDisabled}
+                csvLoading={csvLoading}
+                onOpenShareLink={onOpenShareLink}
+                shareDisabled={shareDisabled}
+              />
+            </nav>
+          </section>
         </header>
 
         {children}

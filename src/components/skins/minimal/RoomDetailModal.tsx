@@ -157,7 +157,7 @@ export function RoomDetailModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col rounded-t-xl border border-zinc-200 bg-white shadow-lg sm:rounded-xl"
+        className="relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col rounded-t-xl border border-zinc-200 bg-white sm:rounded-xl"
       >
         <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
           <div>

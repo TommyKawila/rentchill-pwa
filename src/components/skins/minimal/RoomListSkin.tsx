@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
 import { EmptyProjectOnboardingSkin } from "@/components/skins/minimal/EmptyProjectOnboardingSkin";
 import { useLocale } from "@/components/LocaleProvider";
 import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
@@ -76,12 +77,12 @@ export function RoomListSkin({
   }, [rows.length]);
 
   return (
-    <section className="mt-8 space-y-3">
+    <section className="space-y-4">
       <div>
-        <h2 className="text-sm font-semibold text-zinc-800">
+        <h2 className="text-base font-semibold tracking-tight text-zinc-900">
           {t("owner.rooms.listTitle")}
         </h2>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-zinc-500">
           {includeUtilities
             ? t("owner.billing.rates", {
                 month: billingMonth,
@@ -89,13 +90,12 @@ export function RoomListSkin({
                 electric: electricRate,
               })
             : t("owner.billing.rentOnly")}
-        </p>
-        <p className="mt-1 text-xs text-zinc-500">
+          {" · "}
           {t("owner.billing.cycleDay", { day: billingDay })}
         </p>
         <a
           href={`/settings?property=${encodeURIComponent(propertySlug)}#billing`}
-          className="mt-1 inline-block text-xs text-green-700 underline"
+          className="mt-1 inline-block text-green-700 underline"
         >
           {t("owner.billing.editCycle")}
         </a>
@@ -113,45 +113,37 @@ export function RoomListSkin({
       )}
 
       {rows.length === 0 && !onAddRoom && (
-        <p className="text-sm text-zinc-600">{t("owner.billing.noRooms")}</p>
+        <p className="rounded-xl border border-zinc-100 bg-zinc-50 p-6 text-center text-zinc-600">
+          {t("owner.billing.noRooms")}
+        </p>
       )}
 
       {rows.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
-          <div className="grid grid-cols-[2rem_1fr_3rem_5.5rem_1.25rem] gap-2 border-b border-zinc-100 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-zinc-400">
-            <span>{t("owner.rooms.colNo")}</span>
-            <span>{t("owner.rooms.colName")}</span>
-            <span>{t("owner.rooms.colRoom")}</span>
-            <span>{t("owner.rooms.colStatus")}</span>
-            <span />
-          </div>
-
-          <ul className="divide-y divide-zinc-100">
-            {rows.map((row) => (
-              <li key={row.tenant_id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(row.tenant_id)}
-                  className="grid w-full grid-cols-[2rem_1fr_3rem_5.5rem_1.25rem] items-center gap-2 px-3 py-2.5 text-left hover:bg-zinc-50"
-                >
-                  <span className="text-xs text-zinc-400">{row.no}</span>
-                  <span className="truncate text-sm font-medium text-zinc-900">
-                    {row.tenant_name}
-                  </span>
-                  <span className="text-sm text-zinc-600">{row.room_number}</span>
+        <ul className="space-y-3">
+          {rows.map((row) => (
+            <li key={row.tenant_id}>
+              <button
+                type="button"
+                onClick={() => onSelect(row.tenant_id)}
+                className="w-full rounded-xl border border-zinc-100 bg-white px-4 py-4 text-left hover:bg-zinc-50"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-semibold text-zinc-900">{row.tenant_name}</p>
                   <span
-                    className={`truncate rounded px-1.5 py-0.5 text-center text-[11px] font-medium ${statusTone(row.invoice_status)}`}
+                    className={`shrink-0 rounded-lg px-2 py-1 font-medium ${statusTone(row.invoice_status)}`}
                   >
                     {row.invoice_status
                       ? t(statusMessageKey(row.invoice_status))
                       : t("status.noBill")}
                   </span>
-                  <span className="text-zinc-300">›</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
+                </div>
+                <p className="mt-2 font-bold text-zinc-900">
+                  {t("common.room", { number: row.room_number })}
+                </p>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
 
       {rows.length > 0 && onAddRoom && canAddRoom && !showAddForm && (
@@ -159,11 +151,11 @@ export function RoomListSkin({
           type="button"
           disabled={disabled || addRoomSaving}
           onClick={() => setShowAddForm(true)}
-          className="w-full rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg border border-zinc-200 bg-white py-3 font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           + {t("owner.rooms.addRoom")}
           {roomsRemaining !== undefined && roomsRemaining > 0 && (
-            <span className="ml-1 text-xs font-normal text-zinc-500">
+            <span className="ml-1 font-normal text-zinc-500">
               ({t("owner.rooms.quotaHint", { remaining: roomsRemaining })})
             </span>
           )}
@@ -184,7 +176,7 @@ export function RoomListSkin({
       )}
 
       {rows.length > 0 && !canAddRoom && (
-        <p className="text-xs text-amber-800">
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
           {t("owner.plan.limitReached")}
           {billingHref && (
             <>
@@ -198,7 +190,7 @@ export function RoomListSkin({
       )}
 
       {showMeterHint && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
           {t("owner.billing.meterRequired")}
         </p>
       )}
@@ -208,14 +200,15 @@ export function RoomListSkin({
           type="button"
           disabled={disabled || readyCount === 0}
           onClick={onSubmit}
-          className="w-full rounded-md bg-green-700 py-3 text-sm font-medium text-white disabled:opacity-50"
+          className="flex w-full items-center justify-center rounded-lg bg-zinc-900 py-3 font-medium text-white disabled:opacity-50"
         >
+          <EasyModeCtaIcon name="bill" />
           {t("owner.billing.submit", { count: readyCount })}
         </button>
       )}
 
       {result && (
-        <p className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+        <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-800">
           {t("owner.billing.result", {
             created: result.created,
             updated: result.updated,

@@ -19,18 +19,18 @@ export function PlanUsageSkin({ plan, billingHref }: PlanUsageSkinProps) {
 
   return (
     <div
-      className={`mt-3 rounded-lg border px-4 py-3 ${
+      className={`rounded-xl border px-4 py-3 ${
         atProjectLimit || atRoomLimit
-          ? "border-amber-300 bg-amber-50"
-          : "border-zinc-200 bg-white"
+          ? "border-amber-200 bg-amber-50"
+          : "border-zinc-100 bg-zinc-50"
       }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-600">
+        <p className="font-medium text-zinc-600">
           {t(`owner.plan.tier.${plan.plan_tier}`)}
         </p>
         <p
-          className={`text-sm font-semibold ${
+          className={`font-semibold ${
             atProjectLimit || atRoomLimit ? "text-amber-900" : "text-zinc-900"
           }`}
         >
@@ -42,7 +42,7 @@ export function PlanUsageSkin({ plan, billingHref }: PlanUsageSkinProps) {
       </div>
 
       <p
-        className={`mt-1 text-sm font-semibold ${
+        className={`mt-1 font-semibold ${
           atRoomLimit ? "text-amber-900" : "text-zinc-900"
         }`}
       >
@@ -53,7 +53,7 @@ export function PlanUsageSkin({ plan, billingHref }: PlanUsageSkinProps) {
       </p>
 
       <p
-        className={`mt-2 text-xs ${
+        className={`mt-2 ${
           plan.line_push_remaining === 0
             ? "text-red-700"
             : lineLow
@@ -68,7 +68,7 @@ export function PlanUsageSkin({ plan, billingHref }: PlanUsageSkinProps) {
       </p>
 
       {slipAutoDisabled && (
-        <p className="mt-2 text-xs text-zinc-600">
+        <p className="mt-2 text-zinc-600">
           {t("owner.plan.slipVerifyStarter")}
           {billingHref && (
             <>
@@ -82,15 +82,13 @@ export function PlanUsageSkin({ plan, billingHref }: PlanUsageSkinProps) {
       )}
 
       {atProjectLimit && (
-        <p className="mt-1 text-xs text-amber-800">
-          {t("owner.projectLimitReached")}
-        </p>
+        <p className="mt-1 text-amber-800">{t("owner.projectLimitReached")}</p>
       )}
       {atRoomLimit && (
-        <p className="mt-1 text-xs text-amber-800">{t("owner.plan.limitReached")}</p>
+        <p className="mt-1 text-amber-800">{t("owner.plan.limitReached")}</p>
       )}
       {plan.line_push_remaining === 0 && (
-        <p className="mt-1 text-xs text-red-700">{t("owner.line.quotaExceeded")}</p>
+        <p className="mt-1 text-red-700">{t("owner.line.quotaExceeded")}</p>
       )}
     </div>
   );

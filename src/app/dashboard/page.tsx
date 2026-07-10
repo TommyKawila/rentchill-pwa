@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { PlanUsageSkin } from "@/components/skins/minimal/PlanUsageSkin";
+import { OwnerDashboardAlertsSkin } from "@/components/skins/minimal/OwnerDashboardAlertsSkin";
 import { OwnerDashboardShell } from "@/components/skins/minimal/OwnerDashboardShell";
 import { ShareLinkModal } from "@/components/skins/minimal/ShareLinkModal";
 import { RoomListSkin } from "@/components/skins/minimal/RoomListSkin";
@@ -191,6 +192,29 @@ function DashboardContent() {
     return csvExport.error;
   }, [csvExport.error, t]);
 
+  const operationError = useMemo(() => {
+    if (!propertySlug) return null;
+    if (billing.error === "METER_REQUIRED") return t("owner.billing.meterRequired");
+    if (billing.error === "BASELINE_REQUIRED") return t("owner.billing.baselineRequired");
+    if (reminder.error === "QUOTA_EXCEEDED") return t("owner.line.quotaExceeded");
+    if (override.error === "SLIP_VERIFY_PLAN_REQUIRED") return t("owner.plan.slipVerifyStarter");
+    return (
+      billing.error ??
+      override.error ??
+      reminder.error ??
+      exportErrorMessage ??
+      magicLink.error
+    );
+  }, [
+    propertySlug,
+    billing.error,
+    override.error,
+    reminder.error,
+    exportErrorMessage,
+    magicLink.error,
+    t,
+  ]);
+
   const handleBulkSubmit = () => {
     const entries: BillingEntry[] = billing.rows
       .filter((row) =>
@@ -253,16 +277,16 @@ function DashboardContent() {
       )}
 
       {propertiesStatus === "idle" && properties.length === 0 && (
-        <div className="mt-8 rounded-xl border border-zinc-100 bg-white p-6 text-center">
-          <p className="text-sm font-medium text-zinc-900">
+        <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-6 text-center">
+          <p className="font-medium text-zinc-900">
             {t("owner.onboarding.noProjectTitle")}
           </p>
-          <p className="mt-2 text-sm text-zinc-500">
+          <p className="mt-2 text-zinc-500">
             {t("owner.onboarding.noProjectDesc")}
           </p>
           <a
             href="/settings"
-            className="mt-4 inline-block rounded-lg bg-green-600 px-6 py-3 text-sm font-medium text-white"
+            className="mt-4 inline-block rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white"
           >
             {t("owner.onboarding.createProject")}
           </a>
@@ -276,50 +300,21 @@ function DashboardContent() {
         />
       )}
 
-      {propertiesError && (
-        <div className="mt-8 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {propertiesError}
-        </div>
-      )}
-
-      {propertySlug && (billing.error ||
-        override.error ||
-        reminder.error ||
-        exportErrorMessage ||
-        magicLink.error) && (
-        <div className="mt-8 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {billing.error === "METER_REQUIRED"
-            ? t("owner.billing.meterRequired")
-            : billing.error === "BASELINE_REQUIRED"
-              ? t("owner.billing.baselineRequired")
-            : reminder.error === "QUOTA_EXCEEDED"
-            ? t("owner.line.quotaExceeded")
-            : override.error === "SLIP_VERIFY_PLAN_REQUIRED"
-              ? t("owner.plan.slipVerifyStarter")
-            : (billing.error ??
-              override.error ??
-              reminder.error ??
-              exportErrorMessage ??
-              magicLink.error)}
-        </div>
-      )}
-
-      {propertySlug && showMeterReminder && (
-        <p className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-          {t("owner.billing.meterReminder", {
-            day: billing.settings.billing_day,
-          })}
-        </p>
-      )}
-
-      {propertySlug && lineQuotaHint && (
-        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          {lineQuotaHint}
-        </p>
-      )}
+      <OwnerDashboardAlertsSkin
+        propertiesError={propertiesError}
+        meterReminder={
+          propertySlug && showMeterReminder
+            ? t("owner.billing.meterReminder", {
+                day: billing.settings.billing_day,
+              })
+            : null
+        }
+        lineQuotaHint={propertySlug ? lineQuotaHint : null}
+        operationError={operationError}
+      />
 
       {propertySlug && billing.status === "loading" && billing.rows.length === 0 && (
-        <p className="mt-8 text-sm text-zinc-500">{t("owner.loading.rooms")}</p>
+        <p className="text-zinc-500">{t("owner.loading.rooms")}</p>
       )}
 
       {propertySlug && (
@@ -331,7 +326,7 @@ function DashboardContent() {
             type="button"
             disabled={isSaving}
             onClick={() => setBulkMeterOpen(true)}
-            className="mt-6 w-full rounded-lg border border-zinc-200 bg-white py-3 text-sm font-medium text-zinc-800 disabled:opacity-50"
+            className="w-full rounded-lg border border-zinc-200 bg-white py-3 font-medium text-zinc-800 disabled:opacity-50"
           >
             {t("owner.bulkMeter.start")}
           </button>

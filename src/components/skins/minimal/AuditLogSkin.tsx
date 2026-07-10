@@ -34,15 +34,19 @@ export function AuditLogSkin({
   if (!canUseAuditLog(planTier)) return null;
 
   return (
-    <section className="mt-6 space-y-2">
-      <h3 className="text-sm font-semibold text-zinc-800">{t("owner.audit.title")}</h3>
-      {loading && <p className="text-xs text-zinc-500">{t("common.loading")}</p>}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+    <section className="space-y-3">
+      <h3 className="text-base font-semibold tracking-tight text-zinc-900">
+        {t("owner.audit.title")}
+      </h3>
+      {loading && <p className="text-zinc-500">{t("common.loading")}</p>}
+      {error && <p className="text-red-600">{error}</p>}
       {entries.length === 0 && !loading && (
-        <p className="text-xs text-zinc-500">{t("owner.audit.empty")}</p>
+        <p className="rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-zinc-500">
+          {t("owner.audit.empty")}
+        </p>
       )}
       {entries.length > 0 && (
-        <ul className="divide-y divide-zinc-100 rounded-lg border border-zinc-200 bg-white">
+        <ul className="divide-y divide-zinc-100 rounded-xl border border-zinc-100 bg-white">
           {entries.slice(0, 12).map((entry) => {
             const key = ACTION_KEYS[entry.action];
             const label = key ? t(key) : entry.action;
@@ -53,8 +57,8 @@ export function AuditLogSkin({
               minute: "2-digit",
             });
             return (
-              <li key={entry.id} className="px-3 py-2 text-xs text-zinc-600">
-                <span className="font-medium text-zinc-800">{label}</span>
+              <li key={entry.id} className="px-4 py-3 text-zinc-600">
+                <span className="font-medium text-zinc-900">{label}</span>
                 <span className="ml-2 text-zinc-400">{time}</span>
               </li>
             );
