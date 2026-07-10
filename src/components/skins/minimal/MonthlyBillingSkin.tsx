@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
-import { RoomInviteQrSkin } from "@/components/skins/minimal/RoomInviteQrSkin";
+import { TenantLineInvitePanel } from "@/components/skins/minimal/TenantLineInvitePanel";
 import {
   calculateInvoiceAmounts,
 } from "@/services/invoiceCalculator";
@@ -42,30 +42,6 @@ function isLocked(status: MonthlyBillingRow["invoice_status"]) {
   return status === "paid" || status === "scanning";
 }
 
-function fullInviteUrl(url: string) {
-  if (url.startsWith("http")) return url;
-  if (typeof window === "undefined") return url;
-  return new URL(url, window.location.origin).href;
-}
-
-async function copyText(text: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  const ok = document.execCommand("copy");
-  document.body.removeChild(textarea);
-  if (!ok) throw new Error("คัดลอกไม่สำเร็จ");
-}
-
 export function MonthlyBillingSkin({
   billingMonth,
   billingDay,
@@ -86,9 +62,6 @@ export function MonthlyBillingSkin({
   const [meters, setMeters] = useState<
     Record<string, { water: string; electric: string }>
   >({});
-  const [copiedTenantId, setCopiedTenantId] = useState<string | null>(null);
-  const [copyError, setCopyError] = useState<string | null>(null);
-  const canShare = typeof navigator !== "undefined" && !!navigator.share;
 
   useEffect(() => {
     setMeters(
@@ -210,74 +183,14 @@ export function MonthlyBillingSkin({
               )}
             </header>
 
-            <div className="mt-3 rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-zinc-500">
-                  {t("owner.billing.inviteCode")}:{" "}
-                  <span className="font-medium text-zinc-800">{row.invite_code || "-"}</span>
-                </span>
-                <span
-                  className={
-                    row.line_linked
-                      ? "text-green-700"
-                      : "text-amber-700"
-                  }
-                >
-                  {row.line_linked
-                    ? t("owner.billing.lineLinked")
-                    : t("owner.billing.lineNotLinked")}
-                </span>
-              </div>
-              {row.invite_url && (
-                <div className="mt-2 space-y-2">
-                  <p className="hidden break-all text-zinc-600 md:block">
-                    {fullInviteUrl(row.invite_url)}
-                  </p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCopyError(null);
-                        void copyText(fullInviteUrl(row.invite_url))
-                          .then(() => {
-                            setCopiedTenantId(row.tenant_id);
-                            window.setTimeout(() => setCopiedTenantId(null), 2000);
-                          })
-                          .catch(() => setCopyError(t("owner.billing.copyFailed")));
-                      }}
-                      className="flex-1 rounded-md border border-green-300 bg-green-50 py-2 text-sm font-medium text-green-800"
-                    >
-                      {copiedTenantId === row.tenant_id
-                        ? t("owner.billing.copied")
-                        : t("owner.billing.copyInvite")}
-                    </button>
-                    {canShare && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCopyError(null);
-                          void navigator
-                            .share({
-                              title: "RentChill",
-                              text: row.tenant_name,
-                              url: fullInviteUrl(row.invite_url),
-                            })
-                            .catch(() => setCopyError(t("owner.billing.copyFailed")));
-                        }}
-                        className="flex-1 rounded-md border border-zinc-300 bg-white py-2 text-sm font-medium text-zinc-800"
-                      >
-                        {t("owner.billing.shareInvite")}
-                      </button>
-                    )}
-                  </div>
-                  <RoomInviteQrSkin
-                    roomNumber={row.room_number}
-                    tenantName={row.tenant_name}
-                    inviteUrl={fullInviteUrl(row.invite_url)}
-                  />
-                </div>
-              )}
-            </div>
+            <TenantLineInvitePanel
+              className="mt-3"
+              tenantName={row.tenant_name}
+              roomNumber={row.room_number}
+              inviteCode={row.invite_code}
+              inviteUrl={row.invite_url}
+              lineLinked={row.line_linked}
+            />
 
             {includeUtilities ? (
               <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -343,12 +256,6 @@ export function MonthlyBillingSkin({
           </article>
         );
       })}
-
-      {copyError && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          {copyError}
-        </p>
-      )}
 
       {includeUtilities && editableCount > 0 && readyCount === 0 && (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">

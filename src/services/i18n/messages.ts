@@ -332,6 +332,10 @@ const th = {
   "owner.billing.inviteCode": "รหัสเชิญ",
   "owner.billing.lineLinked": "ผูก LINE แล้ว",
   "owner.billing.lineNotLinked": "ยังไม่ผูก LINE",
+  "owner.billing.lineInviteRequired":
+    "ลูกบ้านต้องผูก LINE ก่อนถึงจะรับบิลได้",
+  "owner.billing.inviteHowTo": "วิธีเชิญลูกบ้าน",
+  "owner.billing.inviteCollapse": "ย่อ",
   "owner.billing.copyInvite": "คัดลอกลิงก์เชิญลูกบ้าน",
   "owner.billing.copied": "คัดลอกแล้ว ✓",
   "owner.billing.copyFailed":
@@ -867,6 +871,10 @@ const en: Record<keyof typeof th, string> = {
   "owner.billing.inviteCode": "Invite code",
   "owner.billing.lineLinked": "LINE linked",
   "owner.billing.lineNotLinked": "LINE not linked",
+  "owner.billing.lineInviteRequired":
+    "Tenant must link LINE before receiving bills",
+  "owner.billing.inviteHowTo": "How to invite tenant",
+  "owner.billing.inviteCollapse": "Collapse",
   "owner.billing.copyInvite": "Copy tenant invite link",
   "owner.billing.copied": "Copied ✓",
   "owner.billing.copyFailed":
