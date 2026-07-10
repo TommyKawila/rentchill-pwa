@@ -1,8 +1,12 @@
 "use client";
 
+import { MapPin } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
+import { PropertyContactCtaSkin } from "@/components/skins/minimal/PropertyContactCtaSkin";
+import { PropertyGallerySkin } from "@/components/skins/minimal/PropertyGallerySkin";
 import { PropertyQrSkin } from "@/components/skins/minimal/PropertyQrSkin";
+import type { PropertyContact } from "@/services/types";
 
 interface Room {
   id: string;
@@ -15,6 +19,14 @@ interface PropertyProfileSkinProps {
   slug: string;
   propertyUrl: string;
   rooms: Room[];
+  galleryUrls: string[];
+  marketingDescription: string | null;
+  marketingAddress: string | null;
+  startingRent: number | null;
+  contact: PropertyContact;
+  includeUtilities: boolean;
+  waterRatePerUnit: number;
+  electricRatePerUnit: number;
   fromOwner?: boolean;
 }
 
@@ -23,10 +35,21 @@ export function PropertyProfileSkin({
   slug,
   propertyUrl,
   rooms,
+  galleryUrls,
+  marketingDescription,
+  marketingAddress,
+  startingRent,
+  contact,
+  includeUtilities,
+  waterRatePerUnit,
+  electricRatePerUnit,
   fromOwner,
 }: PropertyProfileSkinProps) {
   const { locale, t } = useLocale();
   const priceLocale = locale === "th" ? "th-TH" : "en-US";
+
+  const fallbackDesc = t("property.desc");
+  const description = marketingDescription?.trim() || fallbackDesc;
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
@@ -47,15 +70,44 @@ export function PropertyProfileSkin({
             <LocaleToggleSkin />
           </div>
           <h1 className="mt-2 text-3xl font-bold">{name}</h1>
-          <p className="mt-2 text-sm text-zinc-600">{t("property.desc")}</p>
         </header>
 
-        <PropertyQrSkin targetUrl={propertyUrl} />
+        <PropertyGallerySkin urls={galleryUrls} propertyName={name} />
+
+        <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-6">
+          {startingRent !== null && (
+            <p className="text-2xl font-bold text-zinc-900">
+              {t("property.priceFrom", {
+                price: startingRent.toLocaleString(priceLocale),
+              })}
+            </p>
+          )}
+
+          {marketingAddress?.trim() && (
+            <p className="mt-3 flex items-start gap-x-2 text-sm text-zinc-600">
+              <MapPin className="mt-0.5 h-5 w-5 shrink-0" strokeWidth={1.5} />
+              <span>{marketingAddress.trim()}</span>
+            </p>
+          )}
+
+          <p className="mt-3 whitespace-pre-line text-sm text-zinc-600">
+            {description}
+          </p>
+
+          <p className="mt-4 text-xs text-zinc-500">
+            {includeUtilities
+              ? t("property.utilitiesIncluded")
+              : t("property.utilitiesExtra", {
+                  water: waterRatePerUnit.toLocaleString(priceLocale),
+                  electric: electricRatePerUnit.toLocaleString(priceLocale),
+                })}
+          </p>
+        </section>
 
         <section className="mt-8">
           <h2 className="text-lg font-semibold">{t("property.availableRooms")}</h2>
           {rooms.length === 0 ? (
-            <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-6">
+            <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-6">
               {fromOwner ? (
                 <div className="space-y-3">
                   <p className="text-sm text-zinc-600">
@@ -77,7 +129,7 @@ export function PropertyProfileSkin({
               {rooms.map((room) => (
                 <li
                   key={room.id}
-                  className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-4"
+                  className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white p-4"
                 >
                   <div>
                     <p className="font-medium">
@@ -97,6 +149,12 @@ export function PropertyProfileSkin({
             </ul>
           )}
         </section>
+
+        <PropertyContactCtaSkin contact={contact} />
+
+        <div className="mt-8">
+          <PropertyQrSkin targetUrl={propertyUrl} />
+        </div>
 
         <footer className="mt-10 text-center">
           <p className="text-xs text-zinc-500">{t("property.footer")}</p>

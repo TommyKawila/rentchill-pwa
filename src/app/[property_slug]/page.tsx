@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { PropertyErrorSkin } from "@/components/skins/minimal/PropertyErrorSkin";
 import { PropertyProfileSkin } from "@/components/skins/minimal/PropertyProfileSkin";
-import {
-  getAvailableRooms,
-  getPropertyBySlug,
-} from "@/services/propertyService";
+import { getPropertyListingBySlug } from "@/services/propertyListingService";
 
 interface PropertyProfilePageProps {
   params: Promise<{ property_slug: string }>;
@@ -17,11 +14,25 @@ export async function generateMetadata({
   const { property_slug } = await params;
 
   try {
-    const property = await getPropertyBySlug(property_slug);
+    const listing = await getPropertyListingBySlug(property_slug);
+    if (!listing) {
+      return { title: `${property_slug} | RentChill` };
+    }
+
+    const description =
+      listing.marketing_description?.trim() ||
+      "ดูห้องว่าง ราคา และข้อมูลหอพัก";
+
     return {
-      title: property
-        ? `${property.name} | RentChill`
-        : `${property_slug} | RentChill`,
+      title: `${listing.name} | RentChill`,
+      description,
+      openGraph: {
+        title: listing.name,
+        description,
+        ...(listing.gallery_urls[0]
+          ? { images: [{ url: listing.gallery_urls[0] }] }
+          : {}),
+      },
     };
   } catch {
     return { title: `${property_slug} | RentChill` };
@@ -36,12 +47,10 @@ export default async function PropertyProfilePage({
   const { from } = await searchParams;
   const fromOwner = from === "owner";
 
-  let property = null;
-  let rooms: Awaited<ReturnType<typeof getAvailableRooms>> = [];
+  let listing = null;
 
   try {
-    property = await getPropertyBySlug(property_slug);
-    rooms = property ? await getAvailableRooms(property.id) : [];
+    listing = await getPropertyListingBySlug(property_slug);
   } catch {
     return (
       <PropertyErrorSkin
@@ -51,7 +60,7 @@ export default async function PropertyProfilePage({
     );
   }
 
-  if (!property) {
+  if (!listing) {
     return (
       <PropertyErrorSkin
         titleKey="property.notFound"
@@ -62,15 +71,23 @@ export default async function PropertyProfilePage({
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
   const propertyUrl = baseUrl
-    ? `${baseUrl}/${property.slug}`
-    : `/${property.slug}`;
+    ? `${baseUrl}/${listing.slug}`
+    : `/${listing.slug}`;
 
   return (
     <PropertyProfileSkin
-      name={property.name}
-      slug={property.slug}
+      name={listing.name}
+      slug={listing.slug}
       propertyUrl={propertyUrl}
-      rooms={rooms}
+      rooms={listing.rooms}
+      galleryUrls={listing.gallery_urls}
+      marketingDescription={listing.marketing_description}
+      marketingAddress={listing.marketing_address}
+      startingRent={listing.starting_rent}
+      contact={listing.contact}
+      includeUtilities={listing.include_utilities}
+      waterRatePerUnit={listing.water_rate_per_unit}
+      electricRatePerUnit={listing.electric_rate_per_unit}
       fromOwner={fromOwner}
     />
   );

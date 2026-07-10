@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { ContactLineQrSkin } from "@/components/skins/minimal/ContactLineQrSkin";
+import { PropertyMarketingSettingsSkin } from "@/components/skins/minimal/PropertyMarketingSettingsSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { OwnerLineNotifySkin } from "@/components/skins/minimal/OwnerLineNotifySkin";
 import { ProjectManageSkin } from "@/components/skins/minimal/ProjectManageSkin";
@@ -374,6 +375,8 @@ function SettingsContent() {
               </div>
             )}
           </div>
+
+          <PropertyMarketingSettingsSkin propertySlug={propertySlug} />
 
           <div className="border-t border-zinc-200 pt-6">
             <h2 className="text-sm font-semibold">{t("settings.contactTitle")}</h2>
