@@ -19,7 +19,7 @@ function SlipsContent() {
       pendingPayments={stats.stats?.pending_payments ?? slips.payments.length}
       onLogout={() => {
         void fetch("/api/admin/login", { method: "DELETE" }).then(() => {
-          router.replace("/admin/login");
+          router.replace("/admin/platform/login");
         });
       }}
     >

@@ -4,13 +4,11 @@ import { createAdminClient } from "@/services/supabase/admin";
 export type UpdateTenantProfileInput = {
   property_slug: string;
   tenant_id: string;
-  title_prefix: string;
   tenant_name: string;
 };
 
 export type TenantProfileResult = {
   tenant_id: string;
-  title_prefix: string;
   tenant_name: string;
 };
 
@@ -42,10 +40,8 @@ export async function updateTenantProfile(
   ownerId: string,
   input: UpdateTenantProfileInput,
 ): Promise<TenantProfileResult> {
-  const titlePrefix = input.title_prefix.trim();
   const tenantName = input.tenant_name.trim();
 
-  if (!titlePrefix) throw new Error("TITLE_PREFIX_REQUIRED");
   if (!tenantName) throw new Error("TENANT_NAME_REQUIRED");
 
   await assertOwnerTenantAccess(ownerId, input.property_slug, input.tenant_id);
@@ -54,11 +50,11 @@ export async function updateTenantProfile(
   const { data, error } = await supabase
     .from("tenants")
     .update({
-      title_prefix: titlePrefix,
       name: tenantName,
+      title_prefix: null,
     })
     .eq("id", input.tenant_id)
-    .select("id, name, title_prefix")
+    .select("id, name")
     .single();
 
   if (error || !data) {
@@ -67,7 +63,6 @@ export async function updateTenantProfile(
 
   return {
     tenant_id: String(data.id),
-    title_prefix: String(data.title_prefix ?? titlePrefix),
     tenant_name: String(data.name),
   };
 }

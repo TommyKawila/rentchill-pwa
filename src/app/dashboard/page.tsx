@@ -268,6 +268,14 @@ function DashboardContent() {
       csvLoading={csvExport.status === "exporting"}
       onOpenShareLink={() => setShareModalOpen(true)}
       shareDisabled={isSaving || magicLink.status === "loading"}
+      planUsage={
+        propertyPlan.plan && propertySlug ? (
+          <PlanUsageSkin
+            plan={propertyPlan.plan}
+            billingHref={`/billing?property=${encodeURIComponent(propertySlug)}`}
+          />
+        ) : undefined
+      }
     >
       {ownerSubscription.subscription && (
         <SubscriptionBannerSkin
@@ -291,13 +299,6 @@ function DashboardContent() {
             {t("owner.onboarding.createProject")}
           </a>
         </div>
-      )}
-
-      {propertyPlan.plan && propertySlug && (
-        <PlanUsageSkin
-          plan={propertyPlan.plan}
-          billingHref={`/billing?property=${encodeURIComponent(propertySlug)}`}
-        />
       )}
 
       <OwnerDashboardAlertsSkin
@@ -333,12 +334,12 @@ function DashboardContent() {
         )}
       <RoomListSkin
         propertySlug={propertySlug}
-        billingMonth={billing.billingMonth}
         billingDay={billing.settings.billing_day}
         includeUtilities={billing.settings.include_utilities}
         waterRate={billing.settings.water_rate_per_unit}
         electricRate={billing.settings.electric_rate_per_unit}
         rows={listRows}
+        meters={meters}
         disabled={isSaving}
         editableCount={editableCount}
         readyCount={readyCount}

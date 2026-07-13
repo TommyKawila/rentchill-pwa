@@ -111,6 +111,24 @@ export async function getDraftBillingReadings(
   return map;
 }
 
+export async function hasMoveInBaseline(roomId: string) {
+  const reading = await getLatestReading(roomId, "water");
+  return reading !== null;
+}
+
+export async function backfillMoveInBaseline(input: {
+  propertyId: string;
+  roomId: string;
+  tenantId: string;
+  waterReading: number;
+  electricReading: number;
+}) {
+  if (await hasMoveInBaseline(input.roomId)) {
+    throw new Error("BASELINE_EXISTS");
+  }
+  await createMoveInReadings(input);
+}
+
 export async function createMoveInReadings(input: {
   propertyId: string;
   roomId: string;

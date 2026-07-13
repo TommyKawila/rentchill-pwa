@@ -7,7 +7,6 @@ export type AddRoomTenantForm = {
   room_number: string;
   base_rent_price: number;
   tenant_name: string;
-  title_prefix: string;
   phone_number: string;
   move_in_date: string;
   water_reading: number;

@@ -28,7 +28,6 @@ export async function POST(request: Request) {
       room_number: body.room_number ?? "",
       base_rent_price: Number(body.base_rent_price ?? 0),
       tenant_name: body.tenant_name ?? "",
-      title_prefix: body.title_prefix ?? "",
       phone_number: body.phone_number ?? "",
       move_in_date: body.move_in_date,
       water_reading: Number(body.water_reading),
@@ -61,13 +60,6 @@ export async function POST(request: Request) {
           error: "METER_BASELINE_REQUIRED",
           message: "กรุณาจดเลขมิเตอร์น้ำ-ไฟวันเข้าอยู่",
         },
-        { status: 400 },
-      );
-    }
-
-    if (error instanceof Error && error.message === "TITLE_PREFIX_REQUIRED") {
-      return NextResponse.json(
-        { error: "TITLE_PREFIX_REQUIRED", message: "กรุณาเลือกคำนำหน้าชื่อ" },
         { status: 400 },
       );
     }

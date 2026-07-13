@@ -25,6 +25,7 @@ interface OwnerDashboardShellProps {
   csvLoading?: boolean;
   onOpenShareLink?: () => void;
   shareDisabled?: boolean;
+  planUsage?: ReactNode;
   children: ReactNode;
 }
 
@@ -41,6 +42,7 @@ export function OwnerDashboardShell({
   csvLoading,
   onOpenShareLink,
   shareDisabled,
+  planUsage,
   children,
 }: OwnerDashboardShellProps) {
   const { t } = useLocale();
@@ -51,9 +53,14 @@ export function OwnerDashboardShell({
       <div className="mx-auto max-w-xl space-y-6">
         <header className="space-y-4">
           <div className="flex items-start justify-between gap-3">
-            <p className="font-medium tracking-tight text-green-600">
-              RentChill
-            </p>
+            <div className="space-y-1">
+              <p className="font-medium tracking-tight text-green-600">
+                RentChill
+              </p>
+              <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                {t("owner.dashboard.roleBadge")}
+              </span>
+            </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
@@ -67,10 +74,13 @@ export function OwnerDashboardShell({
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <h1 className="min-w-0 text-2xl font-bold tracking-tight">
-              {t("owner.dashboard.title")}
-            </h1>
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="min-w-0 text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
+                {t("owner.dashboard.title")}
+              </h1>
+              {planUsage && <div className="shrink-0">{planUsage}</div>}
+            </div>
             <ProjectSelectorSkin
               layout="inline"
               properties={properties}

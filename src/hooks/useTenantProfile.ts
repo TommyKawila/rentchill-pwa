@@ -10,7 +10,7 @@ export function useTenantProfile(propertySlug: string, tenantId: string) {
   const [error, setError] = useState<string | null>(null);
 
   const save = useCallback(
-    async (input: { title_prefix: string; tenant_name: string }) => {
+    async (input: { tenant_name: string }) => {
       setStatus("saving");
       setError(null);
 
@@ -22,7 +22,6 @@ export function useTenantProfile(propertySlug: string, tenantId: string) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               property_slug: propertySlug,
-              title_prefix: input.title_prefix,
               tenant_name: input.tenant_name,
             }),
           },

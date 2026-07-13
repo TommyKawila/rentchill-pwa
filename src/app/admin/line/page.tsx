@@ -19,7 +19,7 @@ function LineSetupContent() {
       pendingPayments={stats.stats?.pending_payments ?? 0}
       onLogout={() => {
         void fetch("/api/admin/login", { method: "DELETE" }).then(() => {
-          router.replace("/admin/login");
+          router.replace("/admin/platform/login");
         });
       }}
     >

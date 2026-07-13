@@ -6,6 +6,8 @@ import { AdminPlatformShell } from "@/components/skins/minimal/AdminPlatformShel
 import { PlatformStatsSkin } from "@/components/skins/minimal/PlatformStatsSkin";
 import { usePlatformStats } from "@/hooks/usePlatformStats";
 
+const PLATFORM_LOGIN = "/admin/platform/login";
+
 export default function AdminPlatformPage() {
   const { t } = useLocale();
   const router = useRouter();
@@ -16,7 +18,7 @@ export default function AdminPlatformPage() {
       pendingPayments={stats?.pending_payments ?? 0}
       onLogout={() => {
         void fetch("/api/admin/login", { method: "DELETE" }).then(() => {
-          router.replace("/admin/login");
+          router.replace(PLATFORM_LOGIN);
         });
       }}
     >

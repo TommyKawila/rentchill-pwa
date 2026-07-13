@@ -38,3 +38,37 @@ export function computeBillingOverview(
     scanning,
   };
 }
+
+export type OverviewSegmentKey = "notIssued" | "paid" | "unpaid" | "scanning";
+
+export const OVERVIEW_SEGMENT_ORDER: OverviewSegmentKey[] = [
+  "notIssued",
+  "paid",
+  "unpaid",
+  "scanning",
+];
+
+export type OverviewSegment = {
+  key: OverviewSegmentKey;
+  value: number;
+  ratio: number;
+};
+
+export function getOverviewSegments(overview: BillingOverview): OverviewSegment[] {
+  const total = overview.total;
+  return OVERVIEW_SEGMENT_ORDER.map((key) => ({
+    key,
+    value: overview[key],
+    ratio: total > 0 ? overview[key] / total : 0,
+  }));
+}
+
+export function getOverviewSummary(
+  overview: BillingOverview,
+  labels: Record<OverviewSegmentKey, string>,
+): string {
+  return getOverviewSegments(overview)
+    .filter((s) => s.value > 0)
+    .map((s) => `${labels[s.key]} ${s.value}`)
+    .join(", ");
+}

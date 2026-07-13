@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import {
+  FlaskConical,
   LayoutDashboard,
   LogOut,
   MessageCircle,
@@ -32,6 +33,8 @@ export function AdminPlatformShell({
   const { t } = useLocale();
   const pathname = usePathname();
 
+  const devTools = process.env.NEXT_PUBLIC_DEV_TOOLS === "true";
+
   const navItems: Array<{
     href: string;
     label: string;
@@ -46,6 +49,9 @@ export function AdminPlatformShell({
       badge: pendingPayments > 0 ? pendingPayments : undefined,
     },
     { href: "/admin/line", label: t("admin.platform.nav.line"), icon: MessageCircle },
+    ...(devTools
+      ? [{ href: "/admin/qa", label: t("admin.platform.nav.qa"), icon: FlaskConical }]
+      : []),
   ];
 
   const navClass = (active: boolean) =>
@@ -61,9 +67,14 @@ export function AdminPlatformShell({
       <div className="mx-auto max-w-xl">
         <header className="border-b border-zinc-200 pb-6">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-green-600">
-              RentChill
-            </p>
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+                RentChill
+              </p>
+              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800">
+                {t("admin.platform.roleBadge")}
+              </span>
+            </div>
             <LocaleToggleSkin />
           </div>
           <h1 className="mt-2 text-2xl font-bold">{t("admin.platform.title")}</h1>

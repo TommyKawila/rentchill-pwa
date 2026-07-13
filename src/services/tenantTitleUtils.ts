@@ -38,11 +38,8 @@ export function genderFromTitlePrefix(
 }
 
 export function formatTenantDisplayName(
-  titlePrefix: string | null | undefined,
+  _titlePrefix: string | null | undefined,
   name: string,
 ) {
-  const trimmedName = name.trim();
-  const prefix = titlePrefix?.trim();
-  if (!prefix) return trimmedName;
-  return `${prefix} ${trimmedName}`;
+  return name.trim();
 }

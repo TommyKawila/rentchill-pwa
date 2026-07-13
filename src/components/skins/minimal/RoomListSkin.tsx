@@ -3,16 +3,15 @@
 import { useEffect, useState } from "react";
 import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
 import { EmptyProjectOnboardingSkin } from "@/components/skins/minimal/EmptyProjectOnboardingSkin";
+import { RoomListToolbarSkin } from "@/components/skins/minimal/RoomListToolbarSkin";
 import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
 import { useLocale } from "@/components/LocaleProvider";
+import { useRoomListView } from "@/hooks/useRoomListView";
 import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
+import { ROOM_LIST_TOOLBAR_MIN } from "@/services/roomListFilterService";
 import { statusMessageKey } from "@/services/i18n/translate";
 import type { InvoiceStatus } from "@/services/types";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
-import {
-  formatTenantDisplayName,
-  genderFromTitlePrefix,
-} from "@/services/tenantTitleUtils";
 
 export type RoomListRow = MonthlyBillingRow & {
   no: number;
@@ -20,12 +19,12 @@ export type RoomListRow = MonthlyBillingRow & {
 
 interface RoomListSkinProps {
   propertySlug: string;
-  billingMonth: string;
   billingDay: number;
   includeUtilities: boolean;
   waterRate: number;
   electricRate: number;
   rows: RoomListRow[];
+  meters: Record<string, { water: string; electric: string }>;
   disabled?: boolean;
   editableCount: number;
   readyCount: number;
@@ -53,12 +52,12 @@ function statusTone(status: InvoiceStatus | null) {
 
 export function RoomListSkin({
   propertySlug,
-  billingMonth,
   billingDay,
   includeUtilities,
   waterRate,
   electricRate,
   rows,
+  meters,
   disabled,
   editableCount,
   readyCount,
@@ -74,6 +73,8 @@ export function RoomListSkin({
 }: RoomListSkinProps) {
   const { t } = useLocale();
   const [showAddForm, setShowAddForm] = useState(false);
+  const listView = useRoomListView(rows, { meters, includeUtilities });
+  const showToolbar = rows.length > ROOM_LIST_TOOLBAR_MIN;
   const showMeterHint =
     includeUtilities && editableCount > 0 && readyCount === 0;
 
@@ -87,24 +88,35 @@ export function RoomListSkin({
         <h2 className="text-base font-semibold tracking-tight text-zinc-900">
           {t("owner.rooms.listTitle")}
         </h2>
-        <p className="mt-1 text-zinc-500">
+        <p className="mt-1 text-xs text-zinc-500">
           {includeUtilities
-            ? t("owner.billing.rates", {
-                month: billingMonth,
+            ? t("owner.billing.listMeta", {
                 water: waterRate,
                 electric: electricRate,
+                day: billingDay,
               })
-            : t("owner.billing.rentOnly")}
+            : t("owner.billing.listMetaRent", { day: billingDay })}
           {" · "}
-          {t("owner.billing.cycleDay", { day: billingDay })}
+          <a
+            href={`/settings?property=${encodeURIComponent(propertySlug)}#billing`}
+            className="text-green-700 underline"
+          >
+            {t("owner.billing.editCycle")}
+          </a>
         </p>
-        <a
-          href={`/settings?property=${encodeURIComponent(propertySlug)}#billing`}
-          className="mt-1 inline-block text-green-700 underline"
-        >
-          {t("owner.billing.editCycle")}
-        </a>
       </div>
+
+      {showToolbar && rows.length > 0 && (
+        <RoomListToolbarSkin
+          query={listView.query}
+          filter={listView.filter}
+          counts={listView.counts}
+          visibleCount={listView.visibleRows.length}
+          totalFiltered={listView.filteredRows.length}
+          onQueryChange={listView.setQuery}
+          onFilterChange={listView.setFilter}
+        />
+      )}
 
       {rows.length === 0 && onAddRoom && (
         <EmptyProjectOnboardingSkin
@@ -123,9 +135,22 @@ export function RoomListSkin({
         </p>
       )}
 
-      {rows.length > 0 && (
+      {rows.length > 0 && listView.filteredRows.length === 0 && (
+        <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-6 text-center">
+          <p className="text-zinc-600">{t("owner.rooms.noMatch")}</p>
+          <button
+            type="button"
+            onClick={listView.clearFilters}
+            className="mt-3 min-h-11 rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700"
+          >
+            {t("owner.rooms.clearFilters")}
+          </button>
+        </div>
+      )}
+
+      {listView.visibleRows.length > 0 && (
         <ul className="space-y-3">
-          {rows.map((row) => (
+          {listView.visibleRows.map((row) => (
             <li key={row.tenant_id}>
               <button
                 type="button"
@@ -133,17 +158,16 @@ export function RoomListSkin({
                 className="w-full rounded-xl border border-zinc-100 bg-white px-4 py-4 text-left hover:bg-zinc-50"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-x-3">
-                    <TenantPersonIcon
-                      gender={genderFromTitlePrefix(row.tenant_title_prefix)}
-                      className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500"
-                    />
-                    <p className="font-semibold text-zinc-900">
-                      {formatTenantDisplayName(
-                        row.tenant_title_prefix,
-                        row.tenant_name,
-                      )}
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold tracking-tight text-zinc-900">
+                      {t("common.room", { number: row.room_number })}
                     </p>
+                    <div className="mt-1 flex items-center gap-x-2">
+                      <TenantPersonIcon className="h-4 w-4 shrink-0 text-zinc-400" />
+                      <p className="truncate text-sm text-zinc-500">
+                        {row.tenant_name.trim()}
+                      </p>
+                    </div>
                   </div>
                   <span
                     className={`shrink-0 rounded-lg px-2 py-1 font-medium ${statusTone(row.invoice_status)}`}
@@ -153,13 +177,21 @@ export function RoomListSkin({
                       : t("status.noBill")}
                   </span>
                 </div>
-                <p className="mt-2 font-bold text-zinc-900">
-                  {t("common.room", { number: row.room_number })}
-                </p>
               </button>
             </li>
           ))}
         </ul>
+      )}
+
+      {listView.hasMore && (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={listView.loadMore}
+          className="w-full min-h-11 rounded-lg border border-zinc-200 bg-white py-3 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {t("owner.rooms.loadMore", { remaining: listView.remaining })}
+        </button>
       )}
 
       {rows.length > 0 && onAddRoom && canAddRoom && !showAddForm && (

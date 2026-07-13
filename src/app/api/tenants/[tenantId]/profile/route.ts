@@ -10,7 +10,6 @@ export async function PATCH(
     const { tenantId } = await context.params;
     const body = (await request.json()) as {
       property_slug?: string;
-      title_prefix?: string;
       tenant_name?: string;
     };
 
@@ -24,22 +23,14 @@ export async function PATCH(
     const result = await updateTenantProfile(auth.ownerId, {
       property_slug: body.property_slug,
       tenant_id: tenantId,
-      title_prefix: body.title_prefix ?? "",
       tenant_name: body.tenant_name ?? "",
     });
 
     return NextResponse.json({ ok: true, result });
   } catch (error) {
-    if (error instanceof Error && error.message === "TITLE_PREFIX_REQUIRED") {
-      return NextResponse.json(
-        { error: "TITLE_PREFIX_REQUIRED", message: "กรุณาเลือกคำนำหน้าชื่อ" },
-        { status: 400 },
-      );
-    }
-
     if (error instanceof Error && error.message === "TENANT_NAME_REQUIRED") {
       return NextResponse.json(
-        { error: "TENANT_NAME_REQUIRED", message: "กรุณากรอกชื่อ-นามสกุล" },
+        { error: "TENANT_NAME_REQUIRED", message: "กรุณากรอกชื่อผู้เช่า" },
         { status: 400 },
       );
     }

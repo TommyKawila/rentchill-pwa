@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
   getAdminCookieName,
+  getLoginPathForProtectedRoute,
   isAdminProtectedPath,
   isOwnerOnlyPath,
   isSuperadminOnlyPath,
@@ -44,7 +45,8 @@ export async function middleware(request: NextRequest) {
         }
 
         const loginUrl = request.nextUrl.clone();
-        loginUrl.pathname = "/admin/login";
+        loginUrl.pathname = getLoginPathForProtectedRoute(pathname);
+        loginUrl.search = "";
         loginUrl.searchParams.set("next", pathname);
         return NextResponse.redirect(loginUrl);
       }

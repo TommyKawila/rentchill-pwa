@@ -1,5 +1,8 @@
 import { getCurrentBillingMonth } from "@/services/invoiceCalculator";
 import {
+  formatDryRunLineUserId,
+} from "@/services/line/linePushMode";
+import {
   pushLineMessages,
   type LineTextMessage,
 } from "@/services/line/pushMessageService";
@@ -90,13 +93,17 @@ async function logLinePush(input: {
   messageType: LineLogType;
   lineUserId: string;
   charged: boolean;
+  simulated?: boolean;
 }) {
   const supabase = createAdminClient();
+  const loggedUserId = input.simulated
+    ? formatDryRunLineUserId(input.lineUserId)
+    : input.lineUserId;
   const { error } = await supabase.from("line_push_log").insert({
     property_id: input.propertyId ?? null,
     owner_id: input.ownerId ?? null,
     message_type: input.messageType,
-    line_user_id: input.lineUserId,
+    line_user_id: loggedUserId,
     charged: input.charged,
   });
 
@@ -213,6 +220,7 @@ export async function pushWithQuota(input: {
       messageType: input.type,
       lineUserId: input.lineUserId,
       charged,
+      simulated: result.simulated,
     });
   }
 

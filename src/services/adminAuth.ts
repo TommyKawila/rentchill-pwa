@@ -80,8 +80,10 @@ const OWNER_ONLY_PREFIXES = [
 const SUPERADMIN_ONLY_PREFIXES = [
   "/admin/slips",
   "/admin/line",
+  "/admin/qa",
   "/api/admin/stats",
   "/api/admin/platform-payments",
+  "/api/admin/dev",
 ] as const;
 
 export function isSuperadminOnlyPath(pathname: string) {
@@ -93,8 +95,14 @@ export function isOwnerOnlyPath(pathname: string) {
   return OWNER_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+export function getLoginPathForProtectedRoute(pathname: string) {
+  if (isSuperadminOnlyPath(pathname)) return "/admin/platform/login";
+  return "/admin/login";
+}
+
 export function isAdminProtectedPath(pathname: string) {
   if (pathname === "/admin/login") return false;
+  if (pathname === "/admin/platform/login") return false;
   if (pathname === "/admin/signup") return false;
   if (pathname === "/admin") return true;
 

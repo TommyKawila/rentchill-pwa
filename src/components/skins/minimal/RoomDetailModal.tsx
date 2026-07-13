@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
+import { MeterBaselineFormSkin } from "@/components/skins/minimal/MeterBaselineFormSkin";
 import { MeterPhotoVaultSkin } from "@/components/skins/minimal/MeterPhotoVaultSkin";
 import { MeterReadCard } from "@/components/skins/minimal/MeterReadCard";
 import { MeterHistoryList } from "@/components/skins/minimal/MeterHistoryList";
@@ -10,7 +11,6 @@ import { DocumentVaultSkin } from "@/components/skins/minimal/DocumentVaultSkin"
 import { ContractLeaseSkin } from "@/components/skins/minimal/ContractLeaseSkin";
 import { DepositTrackerSkin } from "@/components/skins/minimal/DepositTrackerSkin";
 import { MoveChecklistSkin } from "@/components/skins/minimal/MoveChecklistSkin";
-import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
 import {
   TenantProfileEditButton,
   TenantProfileEditorSkin,
@@ -24,17 +24,15 @@ import {
 import { statusMessageKey } from "@/services/i18n/translate";
 import { useMeterPhotos } from "@/hooks/useMeterPhotos";
 import { useMeterHistory } from "@/hooks/useMeterHistory";
+import { useMeterBaseline } from "@/hooks/useMeterBaseline";
 import { useTenantDocuments } from "@/hooks/useTenantDocuments";
 import { useLeaseContract } from "@/hooks/useLeaseContract";
 import { useDepositTracker } from "@/hooks/useDepositTracker";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
-import {
-  formatTenantDisplayName,
-  genderFromTitlePrefix,
-} from "@/services/tenantTitleUtils";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
 import { useTenantProfile } from "@/hooks/useTenantProfile";
+import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
 
 interface RoomDetailModalProps {
   row: MonthlyBillingRow;
@@ -96,11 +94,10 @@ export function RoomDetailModal({
   const { t } = useLocale();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const tenantProfile = useTenantProfile(propertySlug, row.tenant_id);
-  const tenantDisplayName = formatTenantDisplayName(
-    row.tenant_title_prefix,
-    row.tenant_name,
-  );
+  const tenantDisplayName = row.tenant_name.trim();
   const meterHistory = useMeterHistory(propertySlug, row.room_id, true);
+  const meterBaseline = useMeterBaseline(propertySlug, row.room_id, row.tenant_id);
+  const needsBaseline = !row.water_prev || !row.electric_prev;
   const meterPhotos = useMeterPhotos(
     propertySlug,
     row.room_id,
@@ -184,14 +181,13 @@ export function RoomDetailModal({
       >
         <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
           <div className="flex min-w-0 items-start gap-x-3">
-            <TenantPersonIcon
-              gender={genderFromTitlePrefix(row.tenant_title_prefix)}
-              className="mt-0.5 h-5 w-5 shrink-0 text-zinc-500"
-            />
+            <TenantPersonIcon className="mt-0.5 h-5 w-5 shrink-0 text-zinc-400" />
             <div>
-              <p className="text-sm font-semibold text-zinc-900">{tenantDisplayName}</p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-base font-bold tracking-tight text-zinc-900">
                 {t("common.room", { number: row.room_number })}
+              </p>
+              <p className="text-xs text-zinc-500">
+                {tenantDisplayName}
                 {row.invoice_status
                   ? ` · ${t(statusMessageKey(row.invoice_status))}`
                   : ` · ${t("status.noBill")}`}
@@ -218,7 +214,6 @@ export function RoomDetailModal({
         <div className="space-y-4 overflow-y-auto px-4 py-4">
           {isEditingProfile && (
             <TenantProfileEditorSkin
-              titlePrefix={row.tenant_title_prefix}
               tenantName={row.tenant_name}
               saving={tenantProfile.status === "saving"}
               error={tenantProfile.error}
@@ -252,6 +247,19 @@ export function RoomDetailModal({
                       date: row.move_in_date,
                     })}
                   </p>
+                  {needsBaseline && !locked && (
+                    <MeterBaselineFormSkin
+                      saving={meterBaseline.status === "saving"}
+                      error={meterBaseline.error}
+                      onSave={(water, electric) => {
+                        void meterBaseline.save(water, electric).then((ok) => {
+                          if (!ok) return;
+                          void meterHistory.reload();
+                          onTenantUpdated?.();
+                        });
+                      }}
+                    />
+                  )}
                   <MeterReadCard
                     kind="water"
                     prev={row.water_prev}

@@ -46,26 +46,20 @@ export function ProjectSelectorSkin({
   }
 
   return (
-    <div className={isInline ? "min-w-0 shrink-0 sm:max-w-[14rem]" : "mt-3"}>
-      <label className="block space-y-1">
-        <span className="flex items-center gap-x-2 text-zinc-500">
+    <div className={isInline ? "w-full" : "mt-3"}>
+      {isInline ? (
+        <label className="flex min-h-11 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3">
           <Building2
-            className="h-4 w-4 shrink-0 text-zinc-500"
+            className="h-4 w-4 shrink-0 text-zinc-400"
             strokeWidth={1.5}
             aria-hidden
           />
-          {t("owner.selectProject")}
-        </span>
-        <div className="flex gap-2">
           <select
             value={value}
             disabled={loading || properties.length === 0}
             onChange={(event) => onChange(event.target.value)}
-            className={
-              isInline
-                ? "min-h-11 min-w-0 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 font-medium text-zinc-900 disabled:bg-zinc-100"
-                : "min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 disabled:bg-zinc-100"
-            }
+            aria-label={t("owner.selectProject")}
+            className="min-w-0 flex-1 truncate border-0 bg-transparent py-2 text-sm font-medium text-zinc-900 outline-none disabled:text-zinc-400"
           >
             {properties.map((property) => (
               <option key={property.id} value={property.slug}>
@@ -73,20 +67,45 @@ export function ProjectSelectorSkin({
               </option>
             ))}
           </select>
-          {onAddClick && (
-            <button
-              type="button"
-              disabled={addDisabled || loading}
-              onClick={onAddClick}
-              aria-label={t("owner.addProject")}
-              title={t("owner.addProject")}
-              className="flex min-h-11 shrink-0 items-center rounded-lg border border-zinc-200 bg-white px-3 font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+        </label>
+      ) : (
+        <label className="block space-y-1">
+          <span className="flex items-center gap-x-2 text-zinc-500">
+            <Building2
+              className="h-4 w-4 shrink-0 text-zinc-500"
+              strokeWidth={1.5}
+              aria-hidden
+            />
+            {t("owner.selectProject")}
+          </span>
+          <div className="flex gap-2">
+            <select
+              value={value}
+              disabled={loading || properties.length === 0}
+              onChange={(event) => onChange(event.target.value)}
+              className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 disabled:bg-zinc-100"
             >
-              +
-            </button>
-          )}
-        </div>
-      </label>
+              {properties.map((property) => (
+                <option key={property.id} value={property.slug}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
+            {onAddClick && (
+              <button
+                type="button"
+                disabled={addDisabled || loading}
+                onClick={onAddClick}
+                aria-label={t("owner.addProject")}
+                title={t("owner.addProject")}
+                className="flex min-h-11 shrink-0 items-center rounded-lg border border-zinc-200 bg-white px-3 font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                +
+              </button>
+            )}
+          </div>
+        </label>
+      )}
     </div>
   );
 }
