@@ -37,6 +37,8 @@ export function OverrideSkin({
     setRejectNote(t("owner.override.rejectDefault"));
   }, [t]);
 
+  const tenantSlipUrl = invoice.slip_image_url?.trim() ?? "";
+  const hasTenantSlip = Boolean(tenantSlipUrl);
   const hasSlip = Boolean(slipUrl);
   const isScanning = invoice.status === "scanning";
   const hasRejection = Boolean(invoice.slip_rejection_note?.trim());
@@ -117,16 +119,18 @@ export function OverrideSkin({
         </div>
       )}
 
-      <label className="mt-3 block space-y-1 text-sm">
-        <span className="text-zinc-500">{t("owner.override.slipOptional")}</span>
-        <input
-          type="url"
-          value={slipUrl}
-          onChange={(event) => setSlipUrl(event.target.value)}
-          placeholder="https://..."
-          className="w-full rounded-md border border-zinc-200 px-3 py-2"
-        />
-      </label>
+      {!hasTenantSlip && (
+        <label className="mt-3 block space-y-1 text-sm">
+          <span className="text-zinc-500">{t("owner.override.slipOptional")}</span>
+          <input
+            type="url"
+            value={slipUrl}
+            onChange={(event) => setSlipUrl(event.target.value)}
+            placeholder="https://..."
+            className="w-full rounded-md border border-zinc-200 px-3 py-2"
+          />
+        </label>
+      )}
 
       {isScanning && hasSlip && (
         <label className="mt-3 block space-y-1 text-sm">
