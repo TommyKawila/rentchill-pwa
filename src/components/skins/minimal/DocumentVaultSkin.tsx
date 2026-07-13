@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { RoomDetailSectionRow } from "@/components/skins/minimal/RoomDetailSectionRow";
+import { RoomDetailSubModalShell } from "@/components/skins/minimal/RoomDetailSubModalShell";
 import type { MessageKey } from "@/services/i18n/messages";
 import type { TenantDocumentRow } from "@/services/documentVaultService";
 import {
@@ -41,6 +43,7 @@ export function DocumentVaultSkin({
   onDelete,
 }: DocumentVaultSkinProps) {
   const { t } = useLocale();
+  const [open, setOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [docType, setDocType] = useState<DocumentType>("id_card");
 
@@ -51,71 +54,92 @@ export function DocumentVaultSkin({
   }
 
   const types = allowedDocumentTypes(planTier);
+  const summary =
+    documents.length > 0
+      ? t("owner.docVault.summary", { count: String(documents.length) })
+      : t("owner.docVault.summaryEmpty");
 
   return (
-    <div className="space-y-3 rounded-md border border-zinc-100 bg-zinc-50 px-3 py-3">
-      <p className="text-xs font-medium text-zinc-700">{t("owner.docVault.title")}</p>
+    <>
+      <RoomDetailSectionRow
+        title={t("owner.docVault.title")}
+        summary={summary}
+        disabled={disabled}
+        onOpen={() => setOpen(true)}
+      />
 
-      <div className="flex flex-wrap gap-2">
-        <select
-          value={docType}
-          disabled={disabled || busy}
-          onChange={(event) => setDocType(event.target.value as DocumentType)}
-          className="min-h-11 flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs"
+      {open && (
+        <RoomDetailSubModalShell
+          title={t("owner.docVault.title")}
+          onClose={() => setOpen(false)}
         >
-          {types.map((type) => (
-            <option key={type} value={type}>
-              {t(DOC_LABEL_KEYS[type])}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          disabled={disabled || busy}
-          onClick={() => fileRef.current?.click()}
-          className="min-h-11 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? t("common.saving") : t("owner.docVault.upload")}
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*,application/pdf"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
-            if (file) onUpload(docType, file);
-          }}
-        />
-      </div>
-
-      {documents.length > 0 && (
-        <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-100 bg-white">
-          {documents.map((doc) => (
-            <li key={doc.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs">
-              <a
-                href={doc.public_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="truncate text-zinc-800 hover:underline"
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={docType}
+                disabled={disabled || busy}
+                onChange={(event) => setDocType(event.target.value as DocumentType)}
+                className="min-h-11 flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs"
               >
-                {doc.label ?? t(DOC_LABEL_KEYS[doc.doc_type])}
-              </a>
+                {types.map((type) => (
+                  <option key={type} value={type}>
+                    {t(DOC_LABEL_KEYS[type])}
+                  </option>
+                ))}
+              </select>
               <button
                 type="button"
                 disabled={disabled || busy}
-                onClick={() => onDelete(doc.id)}
-                className="shrink-0 text-red-600 disabled:opacity-50"
+                onClick={() => fileRef.current?.click()}
+                className="min-h-11 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {t("owner.docVault.delete")}
+                {busy ? t("common.saving") : t("owner.docVault.upload")}
               </button>
-            </li>
-          ))}
-        </ul>
-      )}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) onUpload(docType, file);
+                }}
+              />
+            </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
-    </div>
+            {documents.length > 0 && (
+              <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-100 bg-white">
+                {documents.map((doc) => (
+                  <li
+                    key={doc.id}
+                    className="flex items-center justify-between gap-2 px-3 py-2 text-xs"
+                  >
+                    <a
+                      href={doc.public_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate text-zinc-800 hover:underline"
+                    >
+                      {doc.label ?? t(DOC_LABEL_KEYS[doc.doc_type])}
+                    </a>
+                    <button
+                      type="button"
+                      disabled={disabled || busy}
+                      onClick={() => onDelete(doc.id)}
+                      className="shrink-0 text-red-600 disabled:opacity-50"
+                    >
+                      {t("owner.docVault.delete")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {error && <p className="text-xs text-red-600">{error}</p>}
+          </div>
+        </RoomDetailSubModalShell>
+      )}
+    </>
   );
 }

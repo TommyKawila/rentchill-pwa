@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { RoomDetailSectionRow } from "@/components/skins/minimal/RoomDetailSectionRow";
+import { RoomDetailSubModalShell } from "@/components/skins/minimal/RoomDetailSubModalShell";
 import type { TenantDepositRow, DepositStatus } from "@/services/depositService";
 import { canUseDepositTracker } from "@/services/planLimits";
 import type { PlanTier } from "@/services/propertyQuotaService";
@@ -31,6 +33,7 @@ export function DepositTrackerSkin({
   onSave,
 }: DepositTrackerSkinProps) {
   const { t } = useLocale();
+  const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState<DepositStatus>("held");
   const [note, setNote] = useState("");
@@ -50,61 +53,84 @@ export function DepositTrackerSkin({
     );
   }
 
+  const summary =
+    deposit && deposit.amount > 0
+      ? t("owner.deposit.summary", {
+          amount: deposit.amount.toLocaleString("th-TH"),
+          status: t(`owner.deposit.status.${deposit.status}`),
+        })
+      : t("owner.deposit.summaryEmpty");
+
   return (
-    <div className="space-y-3 rounded-md border border-zinc-100 bg-white px-3 py-3">
-      <p className="text-xs font-medium text-zinc-700">{t("owner.deposit.title")}</p>
-      <label className="block space-y-1 text-xs">
-        <span className="text-zinc-500">{t("owner.deposit.amount")}</span>
-        <input
-          type="number"
-          min={0}
-          inputMode="decimal"
-          disabled={busy}
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
-        />
-      </label>
-      <label className="block space-y-1 text-xs">
-        <span className="text-zinc-500">{t("owner.deposit.status")}</span>
-        <select
-          disabled={busy}
-          value={status}
-          onChange={(e) => setStatus(e.target.value as DepositStatus)}
-          className="min-h-11 w-full rounded-md border border-zinc-200 px-3 py-2"
+    <>
+      <RoomDetailSectionRow
+        title={t("owner.deposit.title")}
+        summary={summary}
+        disabled={disabled}
+        onOpen={() => setOpen(true)}
+      />
+
+      {open && (
+        <RoomDetailSubModalShell
+          title={t("owner.deposit.title")}
+          onClose={() => setOpen(false)}
         >
-          {STATUS_OPTIONS.map((value) => (
-            <option key={value} value={value}>
-              {t(`owner.deposit.status.${value}`)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block space-y-1 text-xs">
-        <span className="text-zinc-500">{t("owner.deposit.note")}</span>
-        <input
-          type="text"
-          disabled={busy}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
-        />
-      </label>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() =>
-          onSave({
-            amount: Number(amount || 0),
-            status,
-            note: note.trim() || undefined,
-          })
-        }
-        className="min-h-11 w-full rounded-md border border-zinc-200 bg-zinc-50 py-2 text-xs font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {saving ? t("common.saving") : t("owner.deposit.save")}
-      </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
-    </div>
+          <div className="space-y-3">
+            <label className="block space-y-1 text-xs">
+              <span className="text-zinc-500">{t("owner.deposit.amount")}</span>
+              <input
+                type="number"
+                min={0}
+                inputMode="decimal"
+                disabled={busy}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
+              />
+            </label>
+            <label className="block space-y-1 text-xs">
+              <span className="text-zinc-500">{t("owner.deposit.status")}</span>
+              <select
+                disabled={busy}
+                value={status}
+                onChange={(e) => setStatus(e.target.value as DepositStatus)}
+                className="min-h-11 w-full rounded-md border border-zinc-200 px-3 py-2"
+              >
+                {STATUS_OPTIONS.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`owner.deposit.status.${value}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-1 text-xs">
+              <span className="text-zinc-500">{t("owner.deposit.note")}</span>
+              <input
+                type="text"
+                disabled={busy}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
+              />
+            </label>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                onSave({
+                  amount: Number(amount || 0),
+                  status,
+                  note: note.trim() || undefined,
+                })
+              }
+              className="min-h-11 w-full rounded-md border border-zinc-200 bg-zinc-50 py-2 text-xs font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving ? t("common.saving") : t("owner.deposit.save")}
+            </button>
+            {error && <p className="text-xs text-red-600">{error}</p>}
+          </div>
+        </RoomDetailSubModalShell>
+      )}
+    </>
   );
 }

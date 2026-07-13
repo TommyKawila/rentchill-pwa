@@ -312,10 +312,6 @@ export function RoomDetailModal({
                       />
                     }
                   />
-                  <MeterHistoryList
-                    rows={meterHistory.rows}
-                    loading={meterHistory.status === "loading"}
-                  />
                 </div>
               ) : (
                 <p className="text-xs text-zinc-500">{t("owner.billing.rentOnly")}</p>
@@ -357,42 +353,50 @@ export function RoomDetailModal({
             <PaidInvoiceSkin invoice={paidInvoice} />
           )}
 
-          <MoveChecklistSkin
-            planTier={planTier}
-            disabled={disabled}
-            busy={tenantDocs.status === "uploading"}
-            onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
-          />
-          <DepositTrackerSkin
-            planTier={planTier}
-            deposit={depositTracker.deposit}
-            disabled={disabled}
-            saving={depositTracker.status === "saving"}
-            error={depositTracker.error}
-            onSave={(input) => void depositTracker.save(input)}
-          />
-          <DocumentVaultSkin
-            planTier={planTier}
-            documents={tenantDocs.documents}
-            disabled={disabled}
-            busy={
-              tenantDocs.status === "uploading" || tenantDocs.status === "deleting"
-            }
-            error={tenantDocs.error}
-            onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
-            onDelete={(id) => void tenantDocs.remove(id)}
-          />
-          <ContractLeaseSkin
-            planTier={planTier}
-            disabled={disabled}
-            loading={leaseContract.status === "loading"}
-            error={leaseContract.error}
-            onGenerate={() => {
-              void leaseContract.generate().then((ok) => {
-                if (ok) void tenantDocs.reload();
-              });
-            }}
-          />
+          <div className="space-y-2 border-t border-zinc-100 pt-4">
+            <DepositTrackerSkin
+              planTier={planTier}
+              deposit={depositTracker.deposit}
+              disabled={disabled}
+              saving={depositTracker.status === "saving"}
+              error={depositTracker.error}
+              onSave={(input) => void depositTracker.save(input)}
+            />
+            <MoveChecklistSkin
+              planTier={planTier}
+              disabled={disabled}
+              busy={tenantDocs.status === "uploading"}
+              onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
+            />
+            <DocumentVaultSkin
+              planTier={planTier}
+              documents={tenantDocs.documents}
+              disabled={disabled}
+              busy={
+                tenantDocs.status === "uploading" || tenantDocs.status === "deleting"
+              }
+              error={tenantDocs.error}
+              onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
+              onDelete={(id) => void tenantDocs.remove(id)}
+            />
+            <ContractLeaseSkin
+              planTier={planTier}
+              disabled={disabled}
+              loading={leaseContract.status === "loading"}
+              error={leaseContract.error}
+              onGenerate={() => {
+                void leaseContract.generate().then((ok) => {
+                  if (ok) void tenantDocs.reload();
+                });
+              }}
+            />
+            {includeUtilities && (
+              <MeterHistoryList
+                rows={meterHistory.rows}
+                loading={meterHistory.status === "loading"}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
