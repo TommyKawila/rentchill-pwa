@@ -1,4 +1,8 @@
 import { createAdminClient } from "@/services/supabase/admin";
+import {
+  getTrialPropertySlug,
+  isTrialOwner,
+} from "@/services/trialSandboxService";
 
 export type OwnerPropertyOption = {
   id: string;
@@ -11,11 +15,16 @@ export async function listOwnerProperties(
 ): Promise<OwnerPropertyOption[]> {
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("properties")
     .select("id, name, slug")
-    .eq("owner_id", ownerId)
-    .order("name");
+    .eq("owner_id", ownerId);
+
+  if (isTrialOwner(ownerId)) {
+    query = query.eq("slug", getTrialPropertySlug());
+  }
+
+  const { data, error } = await query.order("name");
 
   if (error) throw error;
 
@@ -30,6 +39,10 @@ export async function assertOwnerPropertyAccess(
   ownerId: string,
   propertySlug: string,
 ) {
+  if (isTrialOwner(ownerId) && propertySlug !== getTrialPropertySlug()) {
+    throw new Error("FORBIDDEN");
+  }
+
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("properties")

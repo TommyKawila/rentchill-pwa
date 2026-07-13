@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/subscription-lifecycle",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/trial-reset",
+      "schedule": "0 3 * * *"
     }
   ]
 }

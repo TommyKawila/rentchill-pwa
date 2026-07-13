@@ -75,6 +75,8 @@ const OWNER_ONLY_PREFIXES = [
   "/api/override",
   "/api/properties",
   "/api/rooms",
+  "/api/trial/set-plan",
+  "/api/trial/status",
 ] as const;
 
 const SUPERADMIN_ONLY_PREFIXES = [

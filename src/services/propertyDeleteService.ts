@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/services/supabase/admin";
+import { assertNotTrialOwnerMutation } from "@/services/trialSandboxService";
 
 const QR_BUCKET = "property-assets";
 
@@ -65,6 +66,8 @@ export async function deleteOwnerProperty(
   ownerId: string,
   propertySlug: string,
 ) {
+  assertNotTrialOwnerMutation(ownerId);
+
   const supabase = createAdminClient();
 
   const { data: property, error: readError } = await supabase

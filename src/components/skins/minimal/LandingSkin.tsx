@@ -80,12 +80,18 @@ export function LandingSkin() {
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-zinc-600 md:text-base">
             {t("landing.hero.desc")}
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <a
               href="/admin/signup"
               className="flex min-h-11 items-center justify-center rounded-lg bg-rc-green px-6 py-3 text-center text-sm font-medium text-white hover:bg-rc-green-dark"
             >
               {t("landing.hero.ctaPrimary")}
+            </a>
+            <a
+              href="/try"
+              className="flex min-h-11 items-center justify-center rounded-lg border border-rc-green/30 bg-rc-green-soft px-6 py-3 text-center text-sm font-medium text-zinc-900"
+            >
+              {t("landing.hero.ctaTrial")}
             </a>
             <a
               href="/admin/login"
@@ -151,6 +157,14 @@ export function LandingSkin() {
           </p>
           <div className="mt-6">
             <DashboardPreviewSkin />
+            <div className="mt-4 text-center">
+              <a
+                href="/try"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-3 text-sm font-medium text-zinc-900"
+              >
+                {t("landing.preview.tryLive")}
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -194,6 +208,12 @@ export function LandingSkin() {
                     {t("landing.pricing.starterNote")}
                   </p>
                 )}
+                <a
+                  href={`/try?plan=${plan.tier}`}
+                  className="mt-4 flex min-h-11 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-center text-xs font-medium text-zinc-800"
+                >
+                  {t("landing.pricing.tryPlan")}
+                </a>
               </div>
             ))}
           </div>

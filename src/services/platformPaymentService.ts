@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/services/supabase/admin";
+import { assertNotTrialOwnerMutation } from "@/services/trialSandboxService";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import type { UpgradeTier } from "@/services/planTierService";
 import {
@@ -85,6 +86,8 @@ export async function submitPlatformPayment(
   planRequested: UpgradeTier,
   file: File,
 ) {
+  assertNotTrialOwnerMutation(ownerId);
+
   const supabase = createAdminClient();
 
   const { data: pending } = await supabase

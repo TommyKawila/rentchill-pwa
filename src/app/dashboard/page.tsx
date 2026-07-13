@@ -31,6 +31,10 @@ import { BulkMeterDayModal } from "@/components/skins/minimal/BulkMeterDayModal"
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { canAutoVerifySlip, canUseBulkMeterDay } from "@/services/planLimits";
 import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
+import { useTrialStatus } from "@/hooks/useTrialStatus";
+import { PlanTierSwitcherSkin } from "@/components/skins/minimal/PlanTierSwitcherSkin";
+import { TrialBannerSkin } from "@/components/skins/minimal/TrialBannerSkin";
+import type { PlanTier } from "@/services/propertyQuotaService";
 
 function DashboardContent() {
   const { t } = useLocale();
@@ -68,6 +72,7 @@ function DashboardContent() {
   const addRoomTenant = useAddRoomTenant(propertySlug);
   const planTier = propertyPlan.plan?.plan_tier ?? "starter";
   const auditLog = useAuditLog(propertySlug ?? "", planTier);
+  const trial = useTrialStatus();
 
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -248,6 +253,18 @@ function DashboardContent() {
       .catch(() => {});
   };
 
+  const handleTrialPlanChange = (tier: PlanTier) => {
+    void trial.setPlan(tier).then((ok) => {
+      if (!ok) return;
+      void propertyPlan.reload();
+      void billing.reload();
+    });
+  };
+
+  const tenantViewUrl = trial.isTrial && trial.status?.tenant_invite_code
+    ? `/board?invite=${encodeURIComponent(trial.status.tenant_invite_code)}`
+    : undefined;
+
   return (
     <OwnerDashboardShell
       propertySlug={propertySlug}
@@ -258,7 +275,7 @@ function DashboardContent() {
       }
       onLogout={() => {
         void fetch("/api/admin/login", { method: "DELETE" }).then(() => {
-          router.replace("/admin/login");
+          router.replace(trial.isTrial ? "/try" : "/admin/login");
         });
       }}
       billingMonth={billing.billingMonth}
@@ -272,12 +289,31 @@ function DashboardContent() {
         propertyPlan.plan && propertySlug ? (
           <PlanUsageSkin
             plan={propertyPlan.plan}
-            billingHref={`/billing?property=${encodeURIComponent(propertySlug)}`}
+            billingHref={
+              trial.isTrial
+                ? undefined
+                : `/billing?property=${encodeURIComponent(propertySlug)}`
+            }
           />
         ) : undefined
       }
+      trialBanner={
+        trial.isTrial ? (
+          <TrialBannerSkin resetExpiresAt={trial.status?.reset_expires_at} />
+        ) : undefined
+      }
+      planSwitcher={
+        trial.isTrial && trial.status?.plan_tier ? (
+          <PlanTierSwitcherSkin
+            currentTier={trial.status.plan_tier}
+            disabled={trial.switching || isSaving}
+            onSelect={handleTrialPlanChange}
+          />
+        ) : undefined
+      }
+      tenantViewUrl={tenantViewUrl}
     >
-      {ownerSubscription.subscription && (
+      {ownerSubscription.subscription && !trial.isTrial && (
         <SubscriptionBannerSkin
           subscription={ownerSubscription.subscription}
           propertySlug={propertySlug}

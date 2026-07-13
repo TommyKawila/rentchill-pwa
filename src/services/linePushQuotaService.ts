@@ -8,6 +8,7 @@ import {
 } from "@/services/line/pushMessageService";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
+import { isTrialProperty } from "@/services/trialSandboxService";
 
 export type LinePushType =
   | "bill_issued"
@@ -209,6 +210,23 @@ export async function pushWithQuota(input: {
     const row = await getPropertyRow(input.propertySlug);
     propertyId = String(row.id);
     ownerId = row.owner_id ? String(row.owner_id) : ownerId;
+  }
+
+  if (input.propertySlug && isTrialProperty(input.propertySlug)) {
+    await logLinePush({
+      propertyId,
+      ownerId,
+      messageType: input.type,
+      lineUserId: input.lineUserId,
+      charged,
+      simulated: true,
+    });
+    return {
+      sent: true as const,
+      simulated: true,
+      mode: "dry_run" as const,
+      recipient: input.lineUserId,
+    };
   }
 
   const result = await pushLineMessages(input.lineUserId, input.messages);

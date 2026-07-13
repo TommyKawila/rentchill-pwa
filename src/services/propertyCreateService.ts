@@ -1,4 +1,5 @@
 import { assertOwnerCanAddProject } from "@/services/ownerQuotaService";
+import { assertNotTrialOwnerMutation } from "@/services/trialSandboxService";
 import { resolvePropertySlug } from "@/services/propertySlugService";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
@@ -17,6 +18,7 @@ export async function createOwnerProperty(
   const trimmed = name.trim();
   if (!trimmed) throw new Error("PROJECT_NAME_REQUIRED");
 
+  assertNotTrialOwnerMutation(ownerId);
   await assertOwnerCanAddProject(ownerId);
 
   const supabase = createAdminClient();

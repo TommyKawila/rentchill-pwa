@@ -26,6 +26,9 @@ interface OwnerDashboardShellProps {
   onOpenShareLink?: () => void;
   shareDisabled?: boolean;
   planUsage?: ReactNode;
+  trialBanner?: ReactNode;
+  planSwitcher?: ReactNode;
+  tenantViewUrl?: string;
   children: ReactNode;
 }
 
@@ -43,6 +46,9 @@ export function OwnerDashboardShell({
   onOpenShareLink,
   shareDisabled,
   planUsage,
+  trialBanner,
+  planSwitcher,
+  tenantViewUrl,
   children,
 }: OwnerDashboardShellProps) {
   const { t } = useLocale();
@@ -51,6 +57,7 @@ export function OwnerDashboardShell({
   return (
     <main className="min-h-screen bg-white px-4 py-6 text-zinc-900">
       <div className="mx-auto max-w-xl space-y-6">
+        {trialBanner}
         <header className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
@@ -88,6 +95,17 @@ export function OwnerDashboardShell({
               loading={propertiesLoading}
               onChange={onPropertyChange}
             />
+            {planSwitcher}
+            {tenantViewUrl && (
+              <a
+                href={tenantViewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800"
+              >
+                {t("trial.tenantView")}
+              </a>
+            )}
           </div>
 
           <section className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
