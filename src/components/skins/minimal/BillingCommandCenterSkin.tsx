@@ -75,10 +75,9 @@ export function BillingCommandCenterSkin({
         {showStep1 && (
           <div className="space-y-4 px-6 py-4">
             <p className="text-sm font-medium text-zinc-500">{t("owner.command.step1")}</p>
-            <StatRow
-              count={pendingMeterCount}
-              label={t("owner.command.pendingMeterStat")}
-            />
+            <p className="text-base text-zinc-700">
+              {t("owner.command.pendingMeterStat", { count: pendingMeterCount })}
+            </p>
             <button
               type="button"
               disabled={disabled}
@@ -94,7 +93,9 @@ export function BillingCommandCenterSkin({
           <div className="space-y-4 px-6 py-4">
             <p className="text-sm font-medium text-zinc-500">{t("owner.command.step2")}</p>
             <div className="space-y-2">
-              <StatRow count={notIssued} label={t("owner.command.notIssuedStat")} />
+              <p className="text-base text-zinc-700">
+                {t("owner.command.notIssuedStat", { count: notIssued })}
+              </p>
               {readyCount > 0 && (
                 <StatRow count={readyCount} label={t("owner.command.readyStat")} />
               )}
