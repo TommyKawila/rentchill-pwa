@@ -39,16 +39,23 @@ export function RoomListToolbarSkin({
   const { t } = useLocale();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 px-6 py-4">
       <input
         type="search"
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
         placeholder={t("owner.rooms.searchPlaceholder")}
-        className="min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900 placeholder:text-zinc-400"
+        className="min-h-12 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-base text-zinc-900 placeholder:text-zinc-400"
       />
 
-      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-0.5">
+      <div
+        role="tablist"
+        aria-label={t("owner.rooms.showing", {
+          visible: Math.min(visibleCount, totalFiltered),
+          total: totalFiltered,
+        })}
+        className="-mx-6 flex snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain scroll-smooth px-6 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+      >
         {ROOM_LIST_FILTERS.map((key) => {
           const active = filter === key;
           const count = counts[key];
@@ -56,17 +63,19 @@ export function RoomListToolbarSkin({
             <button
               key={key}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => onFilterChange(key)}
-              className={`inline-flex min-h-12 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors ${
+              className={`inline-flex min-h-12 shrink-0 snap-start items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors ${
                 active
                   ? "border-rc-green bg-rc-green text-white"
-                  : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300"
+                  : "border-zinc-100 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
               }`}
             >
               {t(FILTER_LABEL_KEYS[key])}
               <span
-                className={`tabular-nums ${
-                  active ? "text-white/80" : "text-zinc-400"
+                className={`font-bold tabular-nums ${
+                  active ? "text-white" : "text-zinc-900"
                 }`}
               >
                 {count}

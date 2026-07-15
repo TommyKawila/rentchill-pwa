@@ -607,8 +607,6 @@ function DashboardContent() {
         propertySlug={propertySlug}
         billingDay={billing.settings.billing_day}
         includeUtilities={billing.settings.include_utilities}
-        waterRate={billing.settings.water_rate_per_unit}
-        electricRate={billing.settings.electric_rate_per_unit}
         rows={listRows}
         meters={meters}
         disabled={isSaving}

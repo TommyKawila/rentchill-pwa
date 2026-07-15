@@ -21,8 +21,6 @@ interface RoomListSkinProps {
   propertySlug: string;
   billingDay: number;
   includeUtilities: boolean;
-  waterRate: number;
-  electricRate: number;
   rows: RoomListRow[];
   meters: Record<string, { water: string; electric: string }>;
   disabled?: boolean;
@@ -50,8 +48,6 @@ export function RoomListSkin({
   propertySlug,
   billingDay,
   includeUtilities,
-  waterRate,
-  electricRate,
   rows,
   meters,
   disabled,
@@ -83,42 +79,44 @@ export function RoomListSkin({
 
   return (
     <section id="owner-rooms" className="space-y-4">
-      <div>
-        <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-          {t("owner.rooms.listTitle")}
-        </h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          {includeUtilities
-            ? t("owner.billing.listMeta", {
-                water: waterRate,
-                electric: electricRate,
-                day: billingDay,
-              })
-            : t("owner.billing.listMetaRent", { day: billingDay })}
-          {" · "}
-          <a
-            href={`/settings?property=${encodeURIComponent(propertySlug)}#billing`}
-            className="inline-flex min-h-12 items-center text-green-700 underline"
-          >
-            {t("owner.billing.editCycle")}
-          </a>
-        </p>
-      </div>
+      {rows.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-zinc-100 bg-white divide-y divide-zinc-100">
+          <div className="px-6 py-4">
+            <h2 className="text-base font-semibold tracking-tight text-zinc-900">
+              {t("owner.rooms.listTitle")}
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              {t("owner.billing.listBillingDay", { day: billingDay })}
+              {" · "}
+              <a
+                href={`/settings?property=${encodeURIComponent(propertySlug)}#billing`}
+                className="text-green-700 underline"
+              >
+                {t("owner.billing.editCycle")}
+              </a>
+            </p>
+          </div>
 
-      {showToolbar && rows.length > 0 && (
-        <RoomListToolbarSkin
-          query={listView.query}
-          filter={listView.filter}
-          counts={listView.counts}
-          visibleCount={listView.visibleRows.length}
-          totalFiltered={listView.filteredRows.length}
-          onQueryChange={listView.setQuery}
-          onFilterChange={listView.setFilter}
-        />
-      )}
+          {showToolbar && (
+            <RoomListToolbarSkin
+              query={listView.query}
+              filter={listView.filter}
+              counts={listView.counts}
+              visibleCount={listView.visibleRows.length}
+              totalFiltered={listView.filteredRows.length}
+              onQueryChange={listView.setQuery}
+              onFilterChange={listView.setFilter}
+            />
+          )}
 
-      {showToolbar && listView.filter === "unpaid" && (
-        <p className="text-sm text-zinc-500">{t("owner.reminder.timeline.legend")}</p>
+          {showToolbar && listView.filter === "unpaid" && (
+            <div className="px-6 py-3">
+              <p className="text-sm text-zinc-500">
+                {t("owner.reminder.timeline.legend")}
+              </p>
+            </div>
+          )}
+        </div>
       )}
 
       {rows.length === 0 && onAddRoom && (
