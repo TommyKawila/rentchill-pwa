@@ -1,31 +1,30 @@
 "use client";
 
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { MobileFrame } from "@/components/frames/MobileFrame";
-import { BillHistoryList } from "@/components/skins/minimal/BillHistoryList";
-import { ContactLandlordSkin } from "@/components/skins/minimal/ContactLandlordSkin";
 import { InviteCodeSkin } from "@/components/skins/minimal/InviteCodeSkin";
-import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
-import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { OwnerLineConnectPanel } from "@/components/skins/minimal/OwnerLineConnectPanel";
 import { PdpaConsentSkin } from "@/components/skins/minimal/PdpaConsentSkin";
-import { TenantMaintenanceFormSkin } from "@/components/skins/minimal/TenantMaintenanceFormSkin";
-import { TenantMaintenanceListSkin } from "@/components/skins/minimal/TenantMaintenanceListSkin";
-import { TenantMeterPhotosSkin } from "@/components/skins/minimal/TenantMeterPhotosSkin";
-import { TenantVaultSkin } from "@/components/skins/minimal/TenantVaultSkin";
-import { useTenantVault } from "@/hooks/useTenantVault";
-import {
-  canTenantSignContract,
-  canTenantUploadDocuments,
-} from "@/services/planLimits";
+import { TenantBoardShellSkin } from "@/components/skins/minimal/TenantBoardShellSkin";
 import { useLineAuth } from "@/hooks/useLineAuth";
 import { usePaymentEngine } from "@/hooks/usePaymentEngine";
 import { usePdpaConsent } from "@/hooks/usePdpaConsent";
 import { useTenantBoard } from "@/hooks/useTenantBoard";
 import { useTenantLink } from "@/hooks/useTenantLink";
 import { useTenantMaintenance } from "@/hooks/useTenantMaintenance";
+import { useTenantVault } from "@/hooks/useTenantVault";
+import {
+  canTenantSignContract,
+  canTenantUploadDocuments,
+} from "@/services/planLimits";
+import {
+  computeTenantNavBadges,
+  tenantTabFromHash,
+  tenantTabHash,
+  type TenantBoardTab,
+} from "@/services/tenantBoardNavService";
 import type { Invoice } from "@/services/types";
 
 function AuthLoading({ message }: { message: string }) {
@@ -43,8 +42,28 @@ function TenantBoardMain() {
   const { t } = useLocale();
   const slipInputRef = useRef<HTMLInputElement>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [hash, setHash] = useState("");
   const searchParams = useSearchParams();
   const inviteFromUrl = searchParams.get("invite") ?? "";
+
+  useEffect(() => {
+    const syncHash = () => setHash(window.location.hash);
+    syncHash();
+    if (!window.location.hash) {
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#bill`);
+      setHash("#bill");
+    }
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, []);
+
+  const activeTab = useMemo(() => tenantTabFromHash(hash), [hash]);
+
+  const handleTabChange = useCallback((tab: TenantBoardTab) => {
+    const next = tenantTabHash(tab);
+    window.history.pushState(null, "", `${window.location.pathname}${window.location.search}${next}`);
+    setHash(next);
+  }, []);
 
   const {
     isLoading: authLoading,
@@ -187,156 +206,71 @@ function TenantBoardMain() {
     );
   }
 
+  const canUploadDocuments = canTenantUploadDocuments(board.planTier);
+  const canSignContract = canTenantSignContract(board.planTier);
+  const hasLease = board.documents.some((doc) => doc.doc_type === "lease");
+  const signed = board.documents.some((doc) => doc.doc_type === "contract_signed");
+
+  const badges = computeTenantNavBadges({
+    invoiceStatus: board.invoice?.status,
+    tickets: tenantMaintenance.tickets,
+    canSign: canSignContract,
+    hasLease,
+    signed,
+  });
+
   return (
     <MobileFrame>
-      <header className="border-b border-zinc-100 px-6 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-green-600">
-              {t("tenant.board.tag")}
-            </p>
-            <h1 className="mt-1 text-xl font-bold tracking-tight text-zinc-900">
-              {t("tenant.board.title")}
-            </h1>
-            <p className="mt-1 text-base text-zinc-600">
-              {t("tenant.board.greeting", { name: welcomeName })}
-            </p>
-          </div>
-          <LocaleToggleSkin />
-        </div>
-      </header>
+      <TenantBoardShellSkin
+        welcomeName={welcomeName}
+        roomNumber={board.room.room_number}
+        activeTab={activeTab}
+        badges={badges}
+        onTabChange={handleTabChange}
+        displayInvoice={displayInvoice}
+        isCurrentInvoice={isCurrentInvoice}
+        boardInvoice={board.invoice}
+        invoiceHistory={board.invoiceHistory}
+        viewingInvoice={viewingInvoice}
+        onSelectHistoryInvoice={setViewingInvoice}
+        onBackToCurrentInvoice={() => setViewingInvoice(null)}
+        meterPhotos={board.meterPhotos}
+        tenantName={board.tenant.name}
+        isPaying={paymentStatus === "uploading"}
+        onPay={() => {
+          if (!isCurrentInvoice || !board.invoice) return;
+          slipInputRef.current?.click();
+        }}
+        paymentError={paymentError}
+        paymentFeedback={paymentFeedback}
+        documents={board.documents}
+        canUploadDocuments={canUploadDocuments}
+        canSignContract={canSignContract}
+        vault={vault}
+        onVaultReload={() => void reload()}
+        tenantMaintenance={tenantMaintenance}
+        contact={board.contact}
+      />
+      <input
+        ref={slipInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file || !board.invoice || !isCurrentInvoice) return;
 
-      {displayInvoice ? (
-        <>
-          <input
-            ref={slipInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (!file || !board.invoice || !isCurrentInvoice) return;
-
-              void submitSlip(board.invoice.id, board.tenant.id, file).then(
-                (invoice) => {
-                  if (!invoice) return;
-                  patchInvoice(invoice);
-                  setViewingInvoice(null);
-                  void reload();
-                },
-              );
-            }}
-          />
-          {viewingInvoice && (
-            <div className="border-b border-zinc-100 bg-white px-4 py-3">
-              <button
-                type="button"
-                onClick={() => setViewingInvoice(null)}
-                className="inline-flex min-h-12 items-center text-base text-zinc-600 underline"
-              >
-                {t("tenant.history.backToCurrent")}
-              </button>
-            </div>
-          )}
-          <InvoiceSkin
-            invoice={displayInvoice}
-            tenantName={board.tenant.name}
-            roomNumber={board.room.room_number}
-            isPaying={paymentStatus === "uploading"}
-            meterPhotos={isCurrentInvoice ? board.meterPhotos : []}
-            onPay={() => {
-              if (isCurrentInvoice) slipInputRef.current?.click();
-            }}
-          />
-          {isCurrentInvoice && <TenantMeterPhotosSkin photos={board.meterPhotos} />}
-          {board.invoiceHistory.length > 0 && (
-            <BillHistoryList
-              invoices={board.invoiceHistory}
-              selectedMonth={viewingInvoice?.billing_month ?? null}
-              onSelect={(invoice) => setViewingInvoice(invoice)}
-            />
-          )}
-          {paymentError && isCurrentInvoice && (
-            <p className="px-6 pb-4 text-center text-sm text-red-600">
-              {paymentError}
-            </p>
-          )}
-          {paymentFeedback?.autoVerified &&
-            isCurrentInvoice &&
-            board.invoice?.status === "paid" && (
-            <p className="px-6 pb-4 text-center text-sm text-green-700">
-              {t("tenant.board.slipVerified")}
-            </p>
-          )}
-          {paymentFeedback?.manualReviewOnly &&
-            isCurrentInvoice &&
-            board.invoice?.status === "scanning" && (
-              <p className="px-6 pb-4 text-center text-sm text-zinc-600">
-                {t("tenant.board.slipManualReview")}
-              </p>
-            )}
-          {(paymentFeedback?.message && !paymentFeedback.autoVerified) ||
-          (isCurrentInvoice &&
-            board.invoice?.slip_rejection_note &&
-            board.invoice.status === "pending") ? (
-            <p className="px-6 pb-4 text-center text-sm text-red-600">
-              {board.invoice?.slip_rejection_note ?? paymentFeedback?.message}
-            </p>
-          ) : null}
-        </>
-      ) : (
-        <div className="flex flex-col items-center gap-4 p-6 text-center">
-          <p className="text-base text-zinc-600">{t("tenant.board.noBill")}</p>
-          <p className="text-sm text-zinc-500">{t("tenant.board.waitOwner")}</p>
-        </div>
-      )}
-
-      {board && (
-        <TenantVaultSkin
-          documents={board.documents}
-          canUpload={canTenantUploadDocuments(board.planTier)}
-          canSign={canTenantSignContract(board.planTier)}
-          hasLease={board.documents.some((doc) => doc.doc_type === "lease")}
-          signed={board.documents.some((doc) => doc.doc_type === "contract_signed")}
-          disabled={vault.status === "uploading" || vault.status === "signing"}
-          onUpload={(docType, file) => {
-            void vault.upload(docType, file).then(() => reload());
-          }}
-          onSign={(file) => {
-            void vault.sign(file).then(() => reload());
-          }}
-        />
-      )}
-      {vault.error && (
-        <p className="px-6 pb-4 text-center text-sm text-red-600">{vault.error}</p>
-      )}
-
-      {board && (
-        <>
-          <TenantMaintenanceListSkin
-            tickets={tenantMaintenance.tickets}
-            loading={tenantMaintenance.ticketsLoading}
-          />
-          <TenantMaintenanceFormSkin
-            disabled={tenantMaintenance.status === "submitting"}
-            submitting={tenantMaintenance.status === "submitting"}
-            success={tenantMaintenance.status === "success"}
-            fieldErrors={tenantMaintenance.fieldErrors}
-            onSubmit={(input) => {
-              void tenantMaintenance.submit(input);
-            }}
-            onSubmitAnother={tenantMaintenance.reset}
-          />
-        </>
-      )}
-      {tenantMaintenance.error && (
-        <p className="px-6 pb-4 text-center text-sm text-red-600">
-          {tenantMaintenance.error}
-        </p>
-      )}
-
-      {board.contact && <ContactLandlordSkin contact={board.contact} />}
+          void submitSlip(board.invoice.id, board.tenant.id, file).then(
+            (invoice) => {
+              if (!invoice) return;
+              patchInvoice(invoice);
+              setViewingInvoice(null);
+              void reload();
+            },
+          );
+        }}
+      />
     </MobileFrame>
   );
 }
