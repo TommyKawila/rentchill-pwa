@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/services/supabase/admin";
+import { auditInvoiceReject } from "@/services/auditLogService";
 import { INVOICE_SELECT, mapInvoiceRow } from "@/services/invoiceFields";
 import { safeNotifyOwnerSlipSubmitted } from "@/services/notificationService";
 import { markInvoiceSlipRejected } from "@/services/invoiceRejectService";
@@ -74,13 +75,20 @@ export async function submitPaymentSlip(
 
   if (autoVerifyEnabled) {
     try {
-      const outcome = await verifyInvoiceSlip(invoiceId);
+      const outcome = await verifyInvoiceSlip(invoiceId, { trigger: "tenant_submit" });
 
       if (!outcome.verification.verified) {
         const rejected = await markInvoiceSlipRejected(
           invoiceId,
           outcome.verification.message,
         );
+
+        await auditInvoiceReject({
+          invoiceId,
+          actorType: "system",
+          note: outcome.verification.message,
+          source: "auto_verify",
+        });
 
         return {
           invoice: rejected,
@@ -96,6 +104,13 @@ export async function submitPaymentSlip(
       const message =
         error instanceof Error ? error.message : "ตรวจสอบสลิปไม่สำเร็จ";
       const rejected = await markInvoiceSlipRejected(invoiceId, message);
+
+      await auditInvoiceReject({
+        invoiceId,
+        actorType: "system",
+        note: message,
+        source: "auto_verify",
+      });
 
       return {
         invoice: rejected,

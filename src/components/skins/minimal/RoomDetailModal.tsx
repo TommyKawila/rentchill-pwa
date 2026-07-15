@@ -17,7 +17,12 @@ import {
 } from "@/components/skins/minimal/TenantProfileEditorSkin";
 import { TenantLineInvitePanel } from "@/components/skins/minimal/TenantLineInvitePanel";
 import { OverrideSkin } from "@/components/skins/minimal/OverrideSkin";
+import { IssuedInvoiceSkin } from "@/components/skins/minimal/IssuedInvoiceSkin";
 import { PaidInvoiceSkin } from "@/components/skins/minimal/PaidInvoiceSkin";
+import {
+  RoomDetailBillingFooterSkin,
+  type RoomDetailSavingAction,
+} from "@/components/skins/minimal/RoomDetailBillingFooterSkin";
 import {
   calculateFromDialReadings,
 } from "@/services/invoiceCalculator";
@@ -31,8 +36,16 @@ import { useDepositTracker } from "@/hooks/useDepositTracker";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
+import type { ApproveInvoiceInput, OverrideSavingAction } from "@/hooks/useInvoiceOverride";
 import { useTenantProfile } from "@/hooks/useTenantProfile";
 import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
+import { isMeterEntryLocked, isRowReadyToBill } from "@/services/propertyBillingSettingsService";
+import type { ReminderTier } from "@/services/paymentReminderTier";
+import {
+  REMINDER_TIER_BUTTON_CLASS,
+  reminderSentTierMessageKey,
+  reminderTierMessageKey,
+} from "@/services/reminderUi";
 
 interface RoomDetailModalProps {
   row: MonthlyBillingRow;
@@ -42,27 +55,39 @@ interface RoomDetailModalProps {
   includeUtilities: boolean;
   waterRate: number;
   electricRate: number;
-  reviewInvoice?: InvoiceOverrideRow | null;
+  pendingInvoice?: InvoiceOverrideRow | null;
+  scanningAnomalyInvoice?: InvoiceOverrideRow | null;
+  scanningInvoice?: InvoiceOverrideRow | null;
   paidInvoice?: InvoiceOverrideRow | null;
   autoVerifyEnabled?: boolean;
   billingHref?: string;
   disabled?: boolean;
+  overrideSavingAction?: OverrideSavingAction;
   canRemind?: boolean;
   reminderDisabled?: boolean;
   remindedTenantId?: string | null;
   onClose: () => void;
   onMeterChange: (tenantId: string, water: string, electric: string) => void;
   meters: { water: string; electric: string };
-  onRemind?: (tenantId: string) => void;
-  onSaveMeters: (invoiceId: string, water: number, electric: number) => void;
+  onRemind?: (tenantId: string, tier: ReminderTier) => void;
   onAutoVerify: (invoiceId: string) => void;
   onReject: (invoiceId: string, note?: string) => void;
-  onApprove: (invoiceId: string, slipUrl?: string) => void;
+  onApprove: (invoiceId: string, input?: ApproveInvoiceInput) => void;
   onTenantUpdated?: () => void;
+  roomDetailSaving?: RoomDetailSavingAction;
+  hasNextRoom?: boolean;
+  readyCount?: number;
+  onSaveAndNext?: () => void;
+  onIssueRoom?: () => void;
 }
 
-function isLocked(status: MonthlyBillingRow["invoice_status"]) {
-  return status === "paid" || status === "scanning";
+function roomStatusLabel(
+  row: MonthlyBillingRow,
+  t: ReturnType<typeof useLocale>["t"],
+) {
+  if (row.invoice_status === "pending") return t("owner.invoice.issuedPending");
+  if (row.invoice_status) return t(statusMessageKey(row.invoice_status));
+  return t("status.noBill");
 }
 
 export function RoomDetailModal({
@@ -73,11 +98,14 @@ export function RoomDetailModal({
   includeUtilities,
   waterRate,
   electricRate,
-  reviewInvoice,
+  pendingInvoice,
+  scanningAnomalyInvoice,
+  scanningInvoice,
   paidInvoice,
   autoVerifyEnabled,
   billingHref,
   disabled,
+  overrideSavingAction = null,
   canRemind,
   reminderDisabled,
   remindedTenantId,
@@ -85,11 +113,15 @@ export function RoomDetailModal({
   onMeterChange,
   meters,
   onRemind,
-  onSaveMeters,
   onAutoVerify,
   onReject,
   onApprove,
   onTenantUpdated,
+  roomDetailSaving = null,
+  hasNextRoom = false,
+  readyCount = 0,
+  onSaveAndNext,
+  onIssueRoom,
 }: RoomDetailModalProps) {
   const { t } = useLocale();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -123,7 +155,10 @@ export function RoomDetailModal({
     row.tenant_id,
     planTier,
   );
-  const locked = isLocked(row.invoice_status);
+  const meterLocked = isMeterEntryLocked(row);
+  const showBillingFooter =
+    !row.invoice_id && !paidInvoice && !(needsBaseline && includeUtilities);
+  const metersComplete = isRowReadyToBill(row, meters, includeUtilities);
 
   let total_amount = row.base_rent_price;
   if (
@@ -177,7 +212,7 @@ export function RoomDetailModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col rounded-t-xl border border-zinc-200 bg-white sm:rounded-xl"
+        className="relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col rounded-t-xl border border-zinc-100 bg-white sm:rounded-xl"
       >
         <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
           <div className="flex min-w-0 items-start gap-x-3">
@@ -186,11 +221,9 @@ export function RoomDetailModal({
               <p className="text-base font-bold tracking-tight text-zinc-900">
                 {t("common.room", { number: row.room_number })}
               </p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-sm text-zinc-500">
                 {tenantDisplayName}
-                {row.invoice_status
-                  ? ` · ${t(statusMessageKey(row.invoice_status))}`
-                  : ` · ${t("status.noBill")}`}
+                {` · ${roomStatusLabel(row, t)}`}
               </p>
             </div>
           </div>
@@ -204,14 +237,14 @@ export function RoomDetailModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-600"
+              className="min-h-12 rounded-lg border border-zinc-200 px-4 text-sm font-medium text-zinc-700"
             >
               {t("owner.rooms.close")}
             </button>
           </div>
         </header>
 
-        <div className="space-y-4 overflow-y-auto px-4 py-4">
+        <div className="space-y-4 overflow-y-auto px-4 py-6">
           {isEditingProfile && (
             <TenantProfileEditorSkin
               tenantName={row.tenant_name}
@@ -238,16 +271,16 @@ export function RoomDetailModal({
             lineLinked={row.line_linked}
           />
 
-          {!reviewInvoice && !paidInvoice && (
+          {!row.invoice_id && !paidInvoice && (
             <>
               {includeUtilities ? (
                 <div className="space-y-3">
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-sm text-zinc-500">
                     {t("owner.meter.moveInStatus", {
                       date: row.move_in_date,
                     })}
                   </p>
-                  {needsBaseline && !locked && (
+                  {needsBaseline && !meterLocked && (
                     <MeterBaselineFormSkin
                       saving={meterBaseline.status === "saving"}
                       error={meterBaseline.error}
@@ -265,7 +298,7 @@ export function RoomDetailModal({
                     prev={row.water_prev}
                     currValue={meters.water}
                     rate={waterRate}
-                    disabled={disabled || locked}
+                    disabled={disabled || meterLocked}
                     onCurrChange={(value) =>
                       onMeterChange(row.tenant_id, value, meters.electric)
                     }
@@ -277,7 +310,7 @@ export function RoomDetailModal({
                         )}
                         utilityOnly="water"
                         compact
-                        disabled={disabled || locked}
+                        disabled={disabled || meterLocked}
                         uploading={meterPhotos.status === "uploading"}
                         error={meterPhotos.error}
                         onUpload={(_, file) =>
@@ -291,7 +324,7 @@ export function RoomDetailModal({
                     prev={row.electric_prev}
                     currValue={meters.electric}
                     rate={electricRate}
-                    disabled={disabled || locked}
+                    disabled={disabled || meterLocked}
                     onCurrChange={(value) =>
                       onMeterChange(row.tenant_id, meters.water, value)
                     }
@@ -303,7 +336,7 @@ export function RoomDetailModal({
                         )}
                         utilityOnly="electric"
                         compact
-                        disabled={disabled || locked}
+                        disabled={disabled || meterLocked}
                         uploading={meterPhotos.status === "uploading"}
                         error={meterPhotos.error}
                         onUpload={(_, file) =>
@@ -314,46 +347,83 @@ export function RoomDetailModal({
                   />
                 </div>
               ) : (
-                <p className="text-xs text-zinc-500">{t("owner.billing.rentOnly")}</p>
+                <p className="text-sm text-zinc-500">{t("owner.billing.rentOnly")}</p>
               )}
-              <p className="text-sm font-medium">
-                {t("common.total")} ฿{total_amount.toLocaleString("th-TH")}
-              </p>
             </>
           )}
 
           {row.invoice_status === "pending" && row.line_linked && onRemind && (
-            <button
-              type="button"
-              disabled={disabled || reminderDisabled || !canRemind}
-              onClick={() => onRemind(row.tenant_id)}
-              className="w-full rounded-md border border-amber-300 bg-amber-50 py-2 text-sm font-medium text-amber-900 disabled:opacity-50"
-            >
-              <EasyModeCtaIcon name="remind" />
-              {remindedTenantId === row.tenant_id
-                ? t("owner.reminder.sent")
-                : t("owner.reminder.send")}
-            </button>
+            <div className="space-y-2">
+              {row.reminder_tier_sent && (
+                <p className="text-sm text-zinc-500">
+                  {t(reminderSentTierMessageKey(row.reminder_tier_sent))}
+                </p>
+              )}
+              {row.reminder_recommended && row.reminder_can_send ? (
+                <button
+                  type="button"
+                  disabled={disabled || reminderDisabled || !canRemind}
+                  onClick={() =>
+                    onRemind(row.tenant_id, row.reminder_recommended!)
+                  }
+                  className={`min-h-12 w-full rounded-lg border text-base font-medium disabled:cursor-not-allowed disabled:opacity-50 ${REMINDER_TIER_BUTTON_CLASS[row.reminder_recommended]}`}
+                >
+                  <EasyModeCtaIcon name="remind" />
+                  {reminderDisabled
+                    ? t("owner.reminder.sending")
+                    : remindedTenantId === row.tenant_id
+                      ? t("owner.reminder.sent")
+                      : t(reminderTierMessageKey(row.reminder_recommended))}
+                </button>
+              ) : row.reminder_days_until_soft != null ? (
+                <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+                  {t("owner.reminder.availableInDays", {
+                    days: row.reminder_days_until_soft,
+                  })}
+                </p>
+              ) : null}
+            </div>
           )}
 
-          {reviewInvoice && (
-            <OverrideSkin
-              invoice={reviewInvoice}
+          {pendingInvoice && (
+            <IssuedInvoiceSkin
+              invoice={pendingInvoice}
               disabled={disabled}
-              autoVerifyEnabled={autoVerifyEnabled}
-              billingHref={billingHref}
-              onSaveMeters={(w, e) => onSaveMeters(reviewInvoice.id, w, e)}
-              onAutoVerify={() => onAutoVerify(reviewInvoice.id)}
-              onReject={(note) => onReject(reviewInvoice.id, note)}
-              onApprove={(slipUrl) => onApprove(reviewInvoice.id, slipUrl)}
+              savingAction={overrideSavingAction}
+              meterPhotos={meterPhotos.photos}
+              onApprove={(input) => onApprove(pendingInvoice.id, input)}
             />
           )}
 
-          {paidInvoice && !reviewInvoice && (
+          {scanningAnomalyInvoice && (
+            <IssuedInvoiceSkin
+              invoice={scanningAnomalyInvoice}
+              variant="scanningAnomaly"
+              disabled={disabled}
+              savingAction={overrideSavingAction}
+              meterPhotos={meterPhotos.photos}
+              onApprove={(input) => onApprove(scanningAnomalyInvoice.id, input)}
+            />
+          )}
+
+          {scanningInvoice && (
+            <OverrideSkin
+              invoice={scanningInvoice}
+              disabled={disabled}
+              savingAction={overrideSavingAction}
+              autoVerifyEnabled={autoVerifyEnabled}
+              billingHref={billingHref}
+              onAutoVerify={() => onAutoVerify(scanningInvoice.id)}
+              onReject={(note) => onReject(scanningInvoice.id, note)}
+              onApprove={(input) => onApprove(scanningInvoice.id, input)}
+            />
+          )}
+
+          {paidInvoice && (
             <PaidInvoiceSkin invoice={paidInvoice} />
           )}
 
-          <div className="space-y-2 border-t border-zinc-100 pt-4">
+          <div className="space-y-3 border-t border-zinc-100 pt-4">
             <DepositTrackerSkin
               planTier={planTier}
               deposit={depositTracker.deposit}
@@ -398,6 +468,20 @@ export function RoomDetailModal({
             )}
           </div>
         </div>
+
+        {showBillingFooter && onSaveAndNext && onIssueRoom && (
+          <RoomDetailBillingFooterSkin
+            totalAmount={total_amount}
+            metersComplete={metersComplete}
+            includeUtilities={includeUtilities}
+            savingAction={roomDetailSaving}
+            disabled={disabled}
+            hasNextRoom={hasNextRoom}
+            readyCount={readyCount}
+            onSaveAndNext={onSaveAndNext}
+            onIssueRoom={onIssueRoom}
+          />
+        )}
       </div>
     </div>
   );

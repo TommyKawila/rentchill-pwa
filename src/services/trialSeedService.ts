@@ -223,6 +223,7 @@ export async function seedTrialProperty(input?: {
     const waterAmount = isDemoRoom ? 0 : 50;
     const electricAmount = isDemoRoom ? 0 : 350;
     const total = row.rent + waterAmount + electricAmount;
+    const invoiceStatus = isDemoRoom ? "pending" : status;
 
     await supabase.from("invoices").insert({
       property_id: propertyId,
@@ -235,7 +236,10 @@ export async function seedTrialProperty(input?: {
       water_amount: waterAmount,
       electric_amount: electricAmount,
       total_amount: total,
-      status: isDemoRoom ? "pending" : status,
+      status: invoiceStatus,
+      ...(invoiceStatus === "scanning"
+        ? { slip_image_url: "/brand/logo.png" }
+        : {}),
     });
   }
 

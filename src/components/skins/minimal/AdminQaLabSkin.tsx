@@ -14,6 +14,7 @@ const LINE_TYPE_LABELS: Record<string, string> = {
   payment_reminder: "admin.platform.lineType.payment_reminder",
   slip_rejected: "admin.platform.lineType.slip_rejected",
   owner_slip_submitted: "admin.platform.lineType.owner_slip_submitted",
+  maintenance_reported: "admin.platform.lineType.maintenance_reported",
   payment_confirmed: "admin.platform.lineType.payment_confirmed",
   subscription_grace: "admin.platform.lineType.subscription_grace",
   webhook_fallback: "admin.platform.lineType.webhook_fallback",
@@ -44,7 +45,7 @@ function QaCard({
 
 function FieldLabel({ children }: { children: ReactNode }) {
   return (
-    <label className="block text-xs font-medium text-zinc-500">{children}</label>
+    <label className="block text-sm font-medium text-zinc-500">{children}</label>
   );
 }
 
@@ -54,7 +55,7 @@ const inputClass =
 const selectClass = `${inputClass} bg-white`;
 
 const btnPrimary =
-  "w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50";
+  "w-full rounded-lg bg-rc-green py-3 text-sm font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50";
 
 const btnSecondary =
   "rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50";
@@ -74,7 +75,7 @@ export function AdminQaLabSkin() {
 
   return (
     <div className="mt-8 space-y-4">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-amber-700">
+      <div className="flex items-center gap-2 text-sm font-medium uppercase tracking-wide text-amber-700">
         <FlaskConical className="h-4 w-4" />
         {t("admin.qa.badge")}
       </div>
@@ -101,12 +102,12 @@ export function AdminQaLabSkin() {
             </button>
           </div>
           {qa.snapshotError && (
-            <p className="mt-2 text-xs text-red-600">{qa.snapshotError}</p>
+            <p className="mt-2 text-sm text-red-600">{qa.snapshotError}</p>
           )}
         </div>
 
         {qa.snapshot && (
-          <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4 text-xs text-zinc-600 space-y-1">
+          <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4 text-sm text-zinc-600 space-y-1">
             <p>
               {t("admin.qa.account.plan")}:{" "}
               <span className="font-semibold text-zinc-900">
@@ -130,7 +131,7 @@ export function AdminQaLabSkin() {
             {dashboardHref && (
               <a
                 href={dashboardHref}
-                className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-zinc-900 underline"
+                className="mt-2 inline-flex min-h-12 items-center gap-1.5 text-base text-zinc-900 underline"
               >
                 {t("admin.qa.account.openDashboard")}
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -165,7 +166,7 @@ export function AdminQaLabSkin() {
         </button>
         {qa.planMessage && (
           <p
-            className={`text-xs ${qa.planMessage === "OK" ? "text-green-700" : "text-red-600"}`}
+            className={`text-sm ${qa.planMessage === "OK" ? "text-green-700" : "text-red-600"}`}
           >
             {qa.planMessage === "OK"
               ? t("admin.qa.plan.success")
@@ -238,7 +239,7 @@ export function AdminQaLabSkin() {
               <option value="mixed">{t("admin.qa.seed.statusMixed")}</option>
             </select>
           </div>
-          <label className="flex min-h-11 items-end gap-2 pb-1 text-sm text-zinc-700">
+          <label className="flex min-h-12 items-end gap-2 pb-1 text-base text-zinc-700">
             <input
               type="checkbox"
               checked={qa.withMeters}
@@ -257,7 +258,7 @@ export function AdminQaLabSkin() {
           {qa.seedLoading ? t("common.loading") : t("admin.qa.seed.run")}
         </button>
         {seedSuccess && (
-          <p className="text-xs text-green-700">
+          <p className="text-sm text-green-700">
             {t("admin.qa.seed.success", {
               rooms: String(seedSuccess[0]),
               line: String(seedSuccess[1]),
@@ -265,7 +266,7 @@ export function AdminQaLabSkin() {
           </p>
         )}
         {qa.seedMessage && qa.seedMessage !== "OK" && !seedSuccess && (
-          <p className="text-xs text-red-600">{qa.seedMessage}</p>
+          <p className="text-sm text-red-600">{qa.seedMessage}</p>
         )}
       </QaCard>
 
@@ -274,7 +275,7 @@ export function AdminQaLabSkin() {
           <p className="text-sm text-zinc-500">{t("common.loading")}</p>
         ) : (
           <>
-            <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4 text-xs space-y-1">
+            <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4 text-sm space-y-1">
               <p>
                 {t("admin.qa.line.mode")}:{" "}
                 <span className="font-semibold text-zinc-900">{qa.pushMode}</span>
@@ -307,7 +308,7 @@ export function AdminQaLabSkin() {
             </div>
 
             {qa.previewText && (
-              <pre className="whitespace-pre-wrap rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-xs text-zinc-700">
+              <pre className="whitespace-pre-wrap rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-sm text-zinc-700">
                 {qa.previewText}
               </pre>
             )}
@@ -335,7 +336,7 @@ export function AdminQaLabSkin() {
 
             {qa.testPushMessage && (
               <p
-                className={`text-xs ${qa.testPushMessage === "OK" ? "text-green-700" : "text-red-600"}`}
+                className={`text-sm ${qa.testPushMessage === "OK" ? "text-green-700" : "text-red-600"}`}
               >
                 {qa.testPushMessage === "OK"
                   ? t("admin.qa.line.sent")
@@ -349,20 +350,20 @@ export function AdminQaLabSkin() {
                 <button
                   type="button"
                   onClick={() => void qa.loadLineLab(qa.previewType)}
-                  className="text-xs text-zinc-500 underline"
+                  className="text-sm text-zinc-500 underline"
                 >
                   {t("admin.qa.line.refresh")}
                 </button>
               </div>
               {qa.lineError && (
-                <p className="mt-1 text-xs text-red-600">{qa.lineError}</p>
+                <p className="mt-1 text-sm text-red-600">{qa.lineError}</p>
               )}
               {qa.logs.length === 0 ? (
-                <p className="mt-2 text-xs text-zinc-500">
+                <p className="mt-2 text-sm text-zinc-500">
                   {t("admin.qa.line.noLogs")}
                 </p>
               ) : (
-                <ul className="mt-2 divide-y divide-zinc-100 rounded-lg border border-zinc-100 text-xs">
+                <ul className="mt-2 divide-y divide-zinc-100 rounded-lg border border-zinc-100 text-sm">
                   {qa.logs.map((log) => (
                     <li key={log.id} className="px-3 py-2 text-zinc-600">
                       <span className="font-medium text-zinc-900">
@@ -388,7 +389,7 @@ export function AdminQaLabSkin() {
               )}
             </div>
 
-            <ol className="list-decimal space-y-1 pl-4 text-xs text-zinc-500">
+            <ol className="list-decimal space-y-1 pl-4 text-sm text-zinc-500">
               <li>{t("admin.qa.line.check1")}</li>
               <li>{t("admin.qa.line.check2")}</li>
               <li>{t("admin.qa.line.check3")}</li>

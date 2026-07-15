@@ -11,6 +11,8 @@ import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { OwnerLineConnectPanel } from "@/components/skins/minimal/OwnerLineConnectPanel";
 import { PdpaConsentSkin } from "@/components/skins/minimal/PdpaConsentSkin";
+import { TenantMaintenanceFormSkin } from "@/components/skins/minimal/TenantMaintenanceFormSkin";
+import { TenantMaintenanceListSkin } from "@/components/skins/minimal/TenantMaintenanceListSkin";
 import { TenantMeterPhotosSkin } from "@/components/skins/minimal/TenantMeterPhotosSkin";
 import { TenantVaultSkin } from "@/components/skins/minimal/TenantVaultSkin";
 import { useTenantVault } from "@/hooks/useTenantVault";
@@ -23,6 +25,7 @@ import { usePaymentEngine } from "@/hooks/usePaymentEngine";
 import { usePdpaConsent } from "@/hooks/usePdpaConsent";
 import { useTenantBoard } from "@/hooks/useTenantBoard";
 import { useTenantLink } from "@/hooks/useTenantLink";
+import { useTenantMaintenance } from "@/hooks/useTenantMaintenance";
 import type { Invoice } from "@/services/types";
 
 function AuthLoading({ message }: { message: string }) {
@@ -93,6 +96,8 @@ function TenantBoardMain() {
     planTier: board?.planTier ?? "starter",
     enabled: !!board,
   });
+
+  const tenantMaintenance = useTenantMaintenance(board?.tenant.id ?? null);
 
   if (authLoading) return <AuthLoading message={statusMessage} />;
 
@@ -184,16 +189,16 @@ function TenantBoardMain() {
 
   return (
     <MobileFrame>
-      <header className="border-b border-zinc-200 px-6 py-4">
+      <header className="border-b border-zinc-100 px-6 py-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+            <p className="text-sm font-medium uppercase tracking-wide text-green-600">
               {t("tenant.board.tag")}
             </p>
-            <h1 className="mt-1 text-lg font-semibold text-zinc-900">
+            <h1 className="mt-1 text-xl font-bold tracking-tight text-zinc-900">
               {t("tenant.board.title")}
             </h1>
-            <p className="mt-1 text-sm text-zinc-600">
+            <p className="mt-1 text-base text-zinc-600">
               {t("tenant.board.greeting", { name: welcomeName })}
             </p>
           </div>
@@ -224,11 +229,11 @@ function TenantBoardMain() {
             }}
           />
           {viewingInvoice && (
-            <div className="border-b border-zinc-200 bg-white px-4 py-2">
+            <div className="border-b border-zinc-100 bg-white px-4 py-3">
               <button
                 type="button"
                 onClick={() => setViewingInvoice(null)}
-                className="text-xs text-zinc-600 underline"
+                className="inline-flex min-h-12 items-center text-base text-zinc-600 underline"
               >
                 {t("tenant.history.backToCurrent")}
               </button>
@@ -282,8 +287,8 @@ function TenantBoardMain() {
         </>
       ) : (
         <div className="flex flex-col items-center gap-4 p-6 text-center">
-          <p className="text-sm text-zinc-600">{t("tenant.board.noBill")}</p>
-          <p className="text-xs text-zinc-500">{t("tenant.board.waitOwner")}</p>
+          <p className="text-base text-zinc-600">{t("tenant.board.noBill")}</p>
+          <p className="text-sm text-zinc-500">{t("tenant.board.waitOwner")}</p>
         </div>
       )}
 
@@ -305,6 +310,30 @@ function TenantBoardMain() {
       )}
       {vault.error && (
         <p className="px-6 pb-4 text-center text-sm text-red-600">{vault.error}</p>
+      )}
+
+      {board && (
+        <>
+          <TenantMaintenanceListSkin
+            tickets={tenantMaintenance.tickets}
+            loading={tenantMaintenance.ticketsLoading}
+          />
+          <TenantMaintenanceFormSkin
+            disabled={tenantMaintenance.status === "submitting"}
+            submitting={tenantMaintenance.status === "submitting"}
+            success={tenantMaintenance.status === "success"}
+            fieldErrors={tenantMaintenance.fieldErrors}
+            onSubmit={(input) => {
+              void tenantMaintenance.submit(input);
+            }}
+            onSubmitAnother={tenantMaintenance.reset}
+          />
+        </>
+      )}
+      {tenantMaintenance.error && (
+        <p className="px-6 pb-4 text-center text-sm text-red-600">
+          {tenantMaintenance.error}
+        </p>
       )}
 
       {board.contact && <ContactLandlordSkin contact={board.contact} />}

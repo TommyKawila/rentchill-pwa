@@ -1,9 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
 import { PlanUsageSkin } from "@/components/skins/minimal/PlanUsageSkin";
+import { BillingCommandCenterSkin } from "@/components/skins/minimal/BillingCommandCenterSkin";
+import { RentFollowUpStatusSkin } from "@/components/skins/minimal/RentFollowUpStatusSkin";
+import { BillingQuestRewardSkin } from "@/components/skins/minimal/BillingQuestRewardSkin";
 import { OwnerDashboardAlertsSkin } from "@/components/skins/minimal/OwnerDashboardAlertsSkin";
 import { OwnerDashboardShell } from "@/components/skins/minimal/OwnerDashboardShell";
 import { ShareLinkModal } from "@/components/skins/minimal/ShareLinkModal";
@@ -14,6 +17,7 @@ import { useAddRoomTenant } from "@/hooks/useAddRoomTenant";
 import { useCsvExport } from "@/hooks/useCsvExport";
 import { useInvoiceOverride } from "@/hooks/useInvoiceOverride";
 import { useMagicLink } from "@/hooks/useMagicLink";
+import { useMaintenanceTickets } from "@/hooks/useMaintenanceTickets";
 import { useMonthlyBilling } from "@/hooks/useMonthlyBilling";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
 import { useOwnerSubscription } from "@/hooks/useOwnerSubscription";
@@ -21,16 +25,31 @@ import { usePropertyPlan } from "@/hooks/usePropertyPlan";
 import { usePaymentReminder } from "@/hooks/usePaymentReminder";
 import type { BillingEntry } from "@/services/monthlyBillingService";
 import {
+  computeBillingReadiness,
   isInMeterReminderWindow,
   isRowEditable,
   isRowReadyToBill,
 } from "@/services/propertyBillingSettingsService";
 import { computeBillingOverview } from "@/services/billingOverviewService";
+import { computeUnpaidReminderSummary } from "@/services/unpaidReminderSummaryService";
+import {
+  isChillMode,
+  isQuestComplete,
+  markRewardShown,
+  shouldShowReward,
+} from "@/services/billingQuestService";
 import { AuditLogSkin } from "@/components/skins/minimal/AuditLogSkin";
 import { BulkMeterDayModal } from "@/components/skins/minimal/BulkMeterDayModal";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { canAutoVerifySlip, canUseBulkMeterDay } from "@/services/planLimits";
 import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
+import {
+  getNextPendingMeterRoom,
+  isRoomListScrollHash,
+  roomFilterFromHash,
+} from "@/services/roomListFilterService";
+import { saveBillingDraft } from "@/services/billingDraftService";
+import type { RoomDetailSavingAction } from "@/components/skins/minimal/RoomDetailBillingFooterSkin";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
 import { PlanTierSwitcherSkin } from "@/components/skins/minimal/PlanTierSwitcherSkin";
 import { TrialBannerSkin } from "@/components/skins/minimal/TrialBannerSkin";
@@ -63,6 +82,40 @@ function DashboardContent() {
   }, [propertiesStatus, properties.length, slugFromUrl, propertySlug, router]);
 
   const billing = useMonthlyBilling(propertySlug);
+  const maintenance = useMaintenanceTickets(propertySlug);
+  const [hash, setHash] = useState("");
+
+  useEffect(() => {
+    const syncHash = () => setHash(window.location.hash);
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    window.addEventListener("popstate", syncHash);
+    return () => {
+      window.removeEventListener("hashchange", syncHash);
+      window.removeEventListener("popstate", syncHash);
+    };
+  }, []);
+
+  const activeTab =
+    hash === "#billing" ||
+    hash === "#billing-notBilled" ||
+    hash === "#billing-pendingMeter" ||
+    hash === "#billing-unpaid"
+      ? "billing"
+      : hash === "#rooms" || hash === "#owner-rooms"
+        ? "rooms"
+        : "home";
+
+  const roomListUrlFilter = roomFilterFromHash(hash);
+
+  useEffect(() => {
+    if (!isRoomListScrollHash(hash)) return;
+    const el = document.getElementById("owner-rooms");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [hash, billing.rows.length]);
+
   const override = useInvoiceOverride(propertySlug);
   const reminder = usePaymentReminder(propertySlug);
   const csvExport = useCsvExport(propertySlug);
@@ -78,6 +131,10 @@ function DashboardContent() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [bulkMeterOpen, setBulkMeterOpen] = useState(false);
   const [bulkMeterUploading, setBulkMeterUploading] = useState(false);
+  const [questRewardOpen, setQuestRewardOpen] = useState(false);
+  const [roomDetailSaving, setRoomDetailSaving] =
+    useState<RoomDetailSavingAction>(null);
+  const prevNotIssuedRef = useRef<number | null>(null);
   const [meters, setMeters] = useState<
     Record<string, { water: string; electric: string }>
   >({});
@@ -105,25 +162,25 @@ function DashboardContent() {
     return sorted.map((row, index) => ({ ...row, no: index + 1 }));
   }, [billing.rows]);
 
-  const editableCount = useMemo(
-    () => billing.rows.filter(isRowEditable).length,
-    [billing.rows],
-  );
-
-  const readyCount = useMemo(
+  const billingReadiness = useMemo(
     () =>
-      billing.rows.filter((row) =>
-        isRowReadyToBill(
-          row,
-          meters[row.tenant_id] ?? { water: "", electric: "" },
-          billing.settings.include_utilities,
-        ),
-      ).length,
+      computeBillingReadiness(
+        billing.rows,
+        meters,
+        billing.settings.include_utilities,
+      ),
     [billing.rows, meters, billing.settings.include_utilities],
   );
 
+  const { readyCount, pendingMeterCount } = billingReadiness;
+
   const overview = useMemo(
     () => computeBillingOverview(billing.rows),
+    [billing.rows],
+  );
+
+  const unpaidReminderSummary = useMemo(
+    () => computeUnpaidReminderSummary(billing.rows),
     [billing.rows],
   );
 
@@ -144,23 +201,99 @@ function DashboardContent() {
     );
   }, [billing.rows, billing.settings, meters]);
 
+  const chillMode = useMemo(
+    () => isChillMode(overview, showMeterReminder),
+    [overview, showMeterReminder],
+  );
+
+  useEffect(() => {
+    prevNotIssuedRef.current = null;
+  }, [propertySlug, billing.billingMonth]);
+
+  useEffect(() => {
+    if (!propertySlug) return;
+    const prev = prevNotIssuedRef.current;
+    if (
+      prev !== null &&
+      prev > 0 &&
+      overview.notIssued === 0 &&
+      isQuestComplete(overview) &&
+      shouldShowReward(propertySlug, billing.billingMonth)
+    ) {
+      setQuestRewardOpen(true);
+    }
+    prevNotIssuedRef.current = overview.notIssued;
+  }, [overview.notIssued, overview.total, propertySlug, billing.billingMonth]);
+
+  const handleQuestRewardDismiss = () => {
+    if (propertySlug) {
+      markRewardShown(propertySlug, billing.billingMonth);
+    }
+    setQuestRewardOpen(false);
+  };
+
   const selectedRow = useMemo(
     () => listRows.find((row) => row.tenant_id === selectedTenantId) ?? null,
     [listRows, selectedTenantId],
   );
+
+  const roomListCtx = useMemo(
+    () => ({
+      meters,
+      includeUtilities: billing.settings.include_utilities,
+    }),
+    [meters, billing.settings.include_utilities],
+  );
+
+  const nextPendingMeterRoom = useMemo(() => {
+    if (!selectedRow) return null;
+    return getNextPendingMeterRoom(billing.rows, selectedRow.tenant_id, roomListCtx);
+  }, [billing.rows, selectedRow, roomListCtx]);
+
+  const goFillMeters = useCallback(() => {
+    if (!propertySlug) return;
+    const target = "#billing-pendingMeter";
+    const base = `/dashboard?property=${encodeURIComponent(propertySlug)}`;
+    window.history.pushState(null, "", `${base}${target}`);
+    setHash(target);
+    setSelectedTenantId(null);
+    requestAnimationFrame(() => {
+      document.getElementById("owner-rooms")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }, [propertySlug]);
 
   const bulkMeterRows = useMemo(
     () => listRows.filter((row) => isRowEditable(row)),
     [listRows],
   );
 
-  const reviewInvoice = useMemo(() => {
+  const activeInvoice = useMemo(() => {
     if (!selectedTenantId) return null;
     return (
       override.invoices.find((invoice) => invoice.tenant_id === selectedTenantId) ??
       null
     );
   }, [override.invoices, selectedTenantId]);
+
+  const pendingInvoice = useMemo(
+    () => (activeInvoice?.status === "pending" ? activeInvoice : null),
+    [activeInvoice],
+  );
+
+  const scanningAnomalyInvoice = useMemo(() => {
+    if (!activeInvoice || activeInvoice.status !== "scanning") return null;
+    if (activeInvoice.slip_image_url?.trim()) return null;
+    return activeInvoice;
+  }, [activeInvoice]);
+
+  const scanningInvoice = useMemo(() => {
+    if (!activeInvoice || activeInvoice.status !== "scanning") return null;
+    if (!activeInvoice.slip_image_url?.trim()) return null;
+    return activeInvoice;
+  }, [activeInvoice]);
 
   const paidInvoice = useMemo(() => {
     if (!selectedTenantId) return null;
@@ -173,6 +306,7 @@ function DashboardContent() {
 
   const isSaving =
     billing.status === "saving" ||
+    roomDetailSaving !== null ||
     addRoomTenant.status === "saving" ||
     override.status === "saving" ||
     reminder.status === "sending" ||
@@ -240,7 +374,85 @@ function DashboardContent() {
           : 0,
       }));
 
-    void billing.generate(entries).then(() => override.reload());
+    void billing.generate(entries).then(() => {
+      void override.reload();
+      void auditLog.reload();
+    });
+  };
+
+  const handleRoomSaveAndNext = () => {
+    if (!propertySlug || !selectedRow) return;
+    const rowMeters = meters[selectedRow.tenant_id] ?? { water: "", electric: "" };
+    if (
+      !isRowReadyToBill(
+        selectedRow,
+        rowMeters,
+        billing.settings.include_utilities,
+      )
+    ) {
+      return;
+    }
+
+    setRoomDetailSaving("save");
+    const nextTenantId = nextPendingMeterRoom?.tenant_id ?? null;
+
+    const finish = () => {
+      setRoomDetailSaving(null);
+      setSelectedTenantId(nextTenantId);
+    };
+
+    if (!billing.settings.include_utilities) {
+      finish();
+      return;
+    }
+
+    void saveBillingDraft({
+      propertySlug,
+      roomId: selectedRow.room_id,
+      tenantId: selectedRow.tenant_id,
+      billingMonth: billing.billingMonth,
+      water: Number(rowMeters.water),
+      electric: Number(rowMeters.electric),
+    })
+      .then(() => billing.reload())
+      .then(finish)
+      .catch(() => setRoomDetailSaving(null));
+  };
+
+  const handleRoomIssue = () => {
+    if (!selectedRow) return;
+    const rowMeters = meters[selectedRow.tenant_id] ?? { water: "", electric: "" };
+    if (
+      !isRowReadyToBill(
+        selectedRow,
+        rowMeters,
+        billing.settings.include_utilities,
+      )
+    ) {
+      return;
+    }
+
+    setRoomDetailSaving("issue");
+    void billing
+      .generate([
+        {
+          tenant_id: selectedRow.tenant_id,
+          room_id: selectedRow.room_id,
+          water_curr: billing.settings.include_utilities
+            ? Number(rowMeters.water)
+            : 0,
+          electric_curr: billing.settings.include_utilities
+            ? Number(rowMeters.electric)
+            : 0,
+        },
+      ])
+      .then(() => {
+        void billing.reload();
+        void override.reload();
+        void auditLog.reload();
+        setSelectedTenantId(null);
+      })
+      .finally(() => setRoomDetailSaving(null));
   };
 
   const handleAddRoom = (form: Parameters<typeof addRoomTenant.add>[0]) => {
@@ -280,6 +492,7 @@ function DashboardContent() {
       }}
       billingMonth={billing.billingMonth}
       overview={overview}
+      chillMode={chillMode}
       onExportCsv={() => void csvExport.exportCsv()}
       csvDisabled={isSaving || !csvExport.canExport}
       csvLoading={csvExport.status === "exporting"}
@@ -312,6 +525,7 @@ function DashboardContent() {
         ) : undefined
       }
       tenantViewUrl={tenantViewUrl}
+      activeTab={activeTab}
     >
       {ownerSubscription.subscription && !trial.isTrial && (
         <SubscriptionBannerSkin
@@ -330,7 +544,7 @@ function DashboardContent() {
           </p>
           <a
             href="/settings"
-            className="mt-4 inline-block rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white"
+            className="mt-4 inline-flex min-h-14 items-center justify-center rounded-lg bg-rc-green px-6 text-base font-medium text-white hover:bg-rc-green-dark"
           >
             {t("owner.onboarding.createProject")}
           </a>
@@ -348,7 +562,40 @@ function DashboardContent() {
         }
         lineQuotaHint={propertySlug ? lineQuotaHint : null}
         operationError={operationError}
+        maintenanceWaitingCount={maintenance.waitingCount}
+        maintenanceHref={
+          propertySlug
+            ? `/maintenance?property=${encodeURIComponent(propertySlug)}`
+            : null
+        }
       />
+
+      {propertySlug && (
+        <BillingCommandCenterSkin
+          notIssued={overview.notIssued}
+          readyCount={readyCount}
+          pendingMeterCount={pendingMeterCount}
+          includeUtilities={billing.settings.include_utilities}
+          canBulkMeterDay={
+            canUseBulkMeterDay(planTier) &&
+            billing.settings.include_utilities &&
+            bulkMeterRows.length > 0
+          }
+          disabled={isSaving}
+          saving={billing.status === "saving"}
+          onGoFillMeters={goFillMeters}
+          onBulkMeterDay={() => setBulkMeterOpen(true)}
+          onBulkIssue={handleBulkSubmit}
+          result={billing.result}
+        />
+      )}
+
+      {propertySlug && (
+        <RentFollowUpStatusSkin
+          summary={unpaidReminderSummary}
+          propertySlug={propertySlug}
+        />
+      )}
 
       {propertySlug && billing.status === "loading" && billing.rows.length === 0 && (
         <p className="text-zinc-500">{t("owner.loading.rooms")}</p>
@@ -356,18 +603,6 @@ function DashboardContent() {
 
       {propertySlug && (
       <>
-      {canUseBulkMeterDay(planTier) &&
-        billing.settings.include_utilities &&
-        bulkMeterRows.length > 0 && (
-          <button
-            type="button"
-            disabled={isSaving}
-            onClick={() => setBulkMeterOpen(true)}
-            className="w-full rounded-lg border border-zinc-200 bg-white py-3 font-medium text-zinc-800 disabled:opacity-50"
-          >
-            {t("owner.bulkMeter.start")}
-          </button>
-        )}
       <RoomListSkin
         propertySlug={propertySlug}
         billingDay={billing.settings.billing_day}
@@ -377,11 +612,7 @@ function DashboardContent() {
         rows={listRows}
         meters={meters}
         disabled={isSaving}
-        editableCount={editableCount}
-        readyCount={readyCount}
-        result={billing.result}
         onSelect={setSelectedTenantId}
-        onSubmit={handleBulkSubmit}
         onAddRoom={handleAddRoom}
         addRoomSaving={addRoomTenant.status === "saving"}
         addRoomError={addRoomTenant.error}
@@ -396,6 +627,10 @@ function DashboardContent() {
             ? `/billing?property=${encodeURIComponent(propertySlug)}`
             : undefined
         }
+        urlFilter={roomListUrlFilter}
+        reminderSoftDays={billing.settings.reminder_soft_days}
+        reminderFirmDays={billing.settings.reminder_firm_days}
+        reminderFinalDays={billing.settings.reminder_final_days}
       />
       <AuditLogSkin
         planTier={planTier}
@@ -415,7 +650,9 @@ function DashboardContent() {
           includeUtilities={billing.settings.include_utilities}
           waterRate={billing.settings.water_rate_per_unit}
           electricRate={billing.settings.electric_rate_per_unit}
-          reviewInvoice={reviewInvoice}
+          pendingInvoice={pendingInvoice}
+          scanningAnomalyInvoice={scanningAnomalyInvoice}
+          scanningInvoice={scanningInvoice}
           paidInvoice={paidInvoice}
           autoVerifyEnabled={
             propertyPlan.plan
@@ -428,8 +665,11 @@ function DashboardContent() {
               : undefined
           }
           disabled={isSaving}
+          overrideSavingAction={override.savingAction}
           canRemind={reminder.canRemind}
-          reminderDisabled={reminder.status === "loading"}
+          reminderDisabled={
+            reminder.status === "loading" || reminder.status === "sending"
+          }
           remindedTenantId={reminder.lastRemindedTenantId}
           meters={
             meters[selectedRow.tenant_id] ?? {
@@ -450,16 +690,28 @@ function DashboardContent() {
               [tenantId]: { water, electric },
             }))
           }
-          onRemind={(tenantId) => void reminder.remind(tenantId)}
-          onSaveMeters={(invoiceId, water, electric) =>
-            void override.updateMeters(invoiceId, water, electric)
-          }
+          onRemind={(tenantId, tier) => {
+            void (async () => {
+              const ok = await reminder.remind(tenantId, tier);
+              if (ok) await billing.reload();
+            })();
+          }}
           onAutoVerify={(invoiceId) => void override.verifySlipAuto(invoiceId)}
           onReject={(invoiceId, note) => void override.rejectSlip(invoiceId, note)}
-          onApprove={(invoiceId, slipUrl) =>
-            void override.approveInvoice(invoiceId, slipUrl)
+          onApprove={(invoiceId, input) =>
+            void override.approveInvoice(invoiceId, input).then((ok) => {
+              if (ok) {
+                void billing.reload();
+                void auditLog.reload();
+              }
+            })
           }
           onTenantUpdated={() => void billing.reload()}
+          roomDetailSaving={roomDetailSaving}
+          hasNextRoom={nextPendingMeterRoom !== null}
+          readyCount={readyCount}
+          onSaveAndNext={handleRoomSaveAndNext}
+          onIssueRoom={handleRoomIssue}
         />
       )}
 
@@ -514,6 +766,11 @@ function DashboardContent() {
           }}
         />
       )}
+
+      <BillingQuestRewardSkin
+        open={questRewardOpen}
+        onDismiss={handleQuestRewardDismiss}
+      />
     </OwnerDashboardShell>
   );
 }

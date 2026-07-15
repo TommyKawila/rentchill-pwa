@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
 import { EmptyProjectOnboardingSkin } from "@/components/skins/minimal/EmptyProjectOnboardingSkin";
 import { RoomListToolbarSkin } from "@/components/skins/minimal/RoomListToolbarSkin";
+import { RoomReminderTimelineSkin } from "@/components/skins/minimal/RoomReminderTimelineSkin";
 import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
 import { useLocale } from "@/components/LocaleProvider";
 import { useRoomListView } from "@/hooks/useRoomListView";
 import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
-import { ROOM_LIST_TOOLBAR_MIN } from "@/services/roomListFilterService";
+import { isPendingMeter, ROOM_LIST_TOOLBAR_MIN, type RoomListFilter } from "@/services/roomListFilterService";
 import { statusMessageKey } from "@/services/i18n/translate";
 import type { InvoiceStatus } from "@/services/types";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
@@ -26,21 +26,17 @@ interface RoomListSkinProps {
   rows: RoomListRow[];
   meters: Record<string, { water: string; electric: string }>;
   disabled?: boolean;
-  editableCount: number;
-  readyCount: number;
-  result?: {
-    created: number;
-    updated: number;
-    skipped: number;
-  } | null;
   onSelect: (tenantId: string) => void;
-  onSubmit: () => void;
   onAddRoom?: (form: AddRoomTenantForm) => void;
   addRoomSaving?: boolean;
   addRoomError?: string | null;
   canAddRoom?: boolean;
   roomsRemaining?: number;
   billingHref?: string;
+  urlFilter?: RoomListFilter | null;
+  reminderSoftDays?: number;
+  reminderFirmDays?: number;
+  reminderFinalDays?: number;
 }
 
 function statusTone(status: InvoiceStatus | null) {
@@ -59,36 +55,39 @@ export function RoomListSkin({
   rows,
   meters,
   disabled,
-  editableCount,
-  readyCount,
-  result,
   onSelect,
-  onSubmit,
   onAddRoom,
   addRoomSaving,
   addRoomError,
   canAddRoom = true,
   roomsRemaining,
   billingHref,
+  urlFilter,
+  reminderSoftDays = 3,
+  reminderFirmDays = 7,
+  reminderFinalDays = 10,
 }: RoomListSkinProps) {
   const { t } = useLocale();
   const [showAddForm, setShowAddForm] = useState(false);
-  const listView = useRoomListView(rows, { meters, includeUtilities });
+  const listView = useRoomListView(rows, { meters, includeUtilities }, urlFilter);
   const showToolbar = rows.length > ROOM_LIST_TOOLBAR_MIN;
-  const showMeterHint =
-    includeUtilities && editableCount > 0 && readyCount === 0;
+  const reminderSettings = {
+    soft: reminderSoftDays,
+    firm: reminderFirmDays,
+    final: reminderFinalDays,
+  };
 
   useEffect(() => {
     setShowAddForm(false);
   }, [rows.length]);
 
   return (
-    <section className="space-y-4">
+    <section id="owner-rooms" className="space-y-4">
       <div>
         <h2 className="text-base font-semibold tracking-tight text-zinc-900">
           {t("owner.rooms.listTitle")}
         </h2>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-sm text-zinc-500">
           {includeUtilities
             ? t("owner.billing.listMeta", {
                 water: waterRate,
@@ -99,7 +98,7 @@ export function RoomListSkin({
           {" · "}
           <a
             href={`/settings?property=${encodeURIComponent(propertySlug)}#billing`}
-            className="text-green-700 underline"
+            className="inline-flex min-h-12 items-center text-green-700 underline"
           >
             {t("owner.billing.editCycle")}
           </a>
@@ -116,6 +115,10 @@ export function RoomListSkin({
           onQueryChange={listView.setQuery}
           onFilterChange={listView.setFilter}
         />
+      )}
+
+      {showToolbar && listView.filter === "unpaid" && (
+        <p className="text-sm text-zinc-500">{t("owner.reminder.timeline.legend")}</p>
       )}
 
       {rows.length === 0 && onAddRoom && (
@@ -141,7 +144,7 @@ export function RoomListSkin({
           <button
             type="button"
             onClick={listView.clearFilters}
-            className="mt-3 min-h-11 rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-700"
+            className="mt-3 min-h-12 rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-700"
           >
             {t("owner.rooms.clearFilters")}
           </button>
@@ -168,14 +171,29 @@ export function RoomListSkin({
                         {row.tenant_name.trim()}
                       </p>
                     </div>
+                    {row.reminder_timeline && (
+                      <RoomReminderTimelineSkin
+                        timeline={row.reminder_timeline}
+                        tierSent={row.reminder_tier_sent}
+                        settings={reminderSettings}
+                      />
+                    )}
                   </div>
-                  <span
-                    className={`shrink-0 rounded-lg px-2 py-1 font-medium ${statusTone(row.invoice_status)}`}
-                  >
-                    {row.invoice_status
-                      ? t(statusMessageKey(row.invoice_status))
-                      : t("status.noBill")}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {includeUtilities &&
+                      isPendingMeter(row, { meters, includeUtilities }) && (
+                        <span className="rounded-lg bg-amber-50 px-2 py-1 text-sm font-medium text-amber-900">
+                          {t("owner.rooms.meterPendingBadge")}
+                        </span>
+                      )}
+                    <span
+                      className={`rounded-lg px-2 py-1 text-sm font-medium ${statusTone(row.invoice_status)}`}
+                    >
+                      {row.invoice_status
+                        ? t(statusMessageKey(row.invoice_status))
+                        : t("status.noBill")}
+                    </span>
+                  </div>
                 </div>
               </button>
             </li>
@@ -188,7 +206,7 @@ export function RoomListSkin({
           type="button"
           disabled={disabled}
           onClick={listView.loadMore}
-          className="w-full min-h-11 rounded-lg border border-zinc-200 bg-white py-3 text-sm font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full min-h-12 rounded-lg border border-zinc-200 bg-white py-3 text-base font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t("owner.rooms.loadMore", { remaining: listView.remaining })}
         </button>
@@ -199,7 +217,7 @@ export function RoomListSkin({
           type="button"
           disabled={disabled || addRoomSaving}
           onClick={() => setShowAddForm(true)}
-          className="w-full rounded-lg border border-zinc-200 bg-white py-3 font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full min-h-12 rounded-lg border border-zinc-200 bg-white py-3 text-base font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           + {t("owner.rooms.addRoom")}
           {roomsRemaining !== undefined && roomsRemaining > 0 && (
@@ -234,34 +252,6 @@ export function RoomListSkin({
               </a>
             </>
           )}
-        </p>
-      )}
-
-      {showMeterHint && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-          {t("owner.billing.meterRequired")}
-        </p>
-      )}
-
-      {rows.length > 0 && (
-        <button
-          type="button"
-          disabled={disabled || readyCount === 0}
-          onClick={onSubmit}
-          className="flex w-full items-center justify-center rounded-lg bg-zinc-900 py-3 font-medium text-white disabled:opacity-50"
-        >
-          <EasyModeCtaIcon name="bill" />
-          {t("owner.billing.submit", { count: readyCount })}
-        </button>
-      )}
-
-      {result && (
-        <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-green-800">
-          {t("owner.billing.result", {
-            created: result.created,
-            updated: result.updated,
-            skipped: result.skipped,
-          })}
         </p>
       )}
     </section>

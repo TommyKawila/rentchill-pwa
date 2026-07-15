@@ -20,6 +20,9 @@ interface ProjectSlugEditorSkinProps {
   onChange: (payload: ProjectSlugPayload) => void;
 }
 
+const inputClass =
+  "mt-2 min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900";
+
 export function ProjectSlugEditorSkin({
   name,
   currentSlug,
@@ -52,9 +55,9 @@ export function ProjectSlugEditorSkin({
     Boolean(currentSlug) && displaySlug && displaySlug !== currentSlug;
 
   return (
-    <div className="space-y-2">
-      <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs">
-        <div className="flex items-start justify-between gap-2">
+    <div className="space-y-3">
+      <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4 text-sm">
+        <div className="flex items-start justify-between gap-3">
           <p className="text-zinc-500">{t("settings.projectSlugPreview")}</p>
           {!isManual ? (
             <button
@@ -64,7 +67,7 @@ export function ProjectSlugEditorSkin({
                 setIsManual(true);
                 setManualSlug(suggestedSlug || currentSlug || "");
               }}
-              className="shrink-0 text-zinc-700 underline disabled:opacity-50"
+              className="inline-flex min-h-12 shrink-0 items-center text-base text-zinc-700 underline disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t("settings.projectSlugEdit")}
             </button>
@@ -76,7 +79,7 @@ export function ProjectSlugEditorSkin({
                 setIsManual(false);
                 setManualSlug("");
               }}
-              className="shrink-0 text-zinc-700 underline disabled:opacity-50"
+              className="inline-flex min-h-12 shrink-0 items-center text-base text-zinc-700 underline disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t("settings.projectSlugUseSuggested")}
             </button>
@@ -88,23 +91,23 @@ export function ProjectSlugEditorSkin({
             disabled={disabled}
             onChange={(event) => setManualSlug(event.target.value)}
             placeholder="samui-rent"
-            className="mt-2 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+            className={inputClass}
           />
         ) : (
-          <p className="mt-1 break-all font-medium text-zinc-800">
+          <p className="mt-1 break-all text-base font-medium text-zinc-800">
             {displaySlug ? `${appBase}/${displaySlug}` : "—"}
           </p>
         )}
       </div>
 
       {validationError && (
-        <p className="text-xs text-red-700">
+        <p className="text-sm text-red-600">
           {t(slugValidationMessageKey(validationError))}
         </p>
       )}
 
       {slugWillChange && !validationError && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           {t("settings.projectSlugWarning")}
         </p>
       )}

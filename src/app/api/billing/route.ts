@@ -44,7 +44,9 @@ export async function POST(request: Request) {
     const auth = await requireOwnerProperty(request, body.property_slug);
     if ("error" in auth) return auth.error;
 
-    const result = await generateMonthlyInvoices(body.property_slug, body.entries);
+    const result = await generateMonthlyInvoices(body.property_slug, body.entries, {
+      ownerId: auth.ownerId,
+    });
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "ออกบิลไม่สำเร็จ";

@@ -81,7 +81,6 @@ export async function getPaidInvoicesWithSlips(
     .select(`${INVOICE_SELECT}, tenants(name), rooms(room_number)`)
     .eq("property_id", propertyId)
     .eq("status", "paid")
-    .not("slip_image_url", "is", null)
     .order("billing_month", { ascending: false })
     .limit(limit);
 
@@ -91,48 +90,19 @@ export async function getPaidInvoicesWithSlips(
 
 export async function updateInvoiceMeters(
   invoiceId: string,
-  waterUnit: number,
-  electricUnit: number,
+  _waterUnit: number,
+  _electricUnit: number,
 ) {
   const supabase = createAdminClient();
 
   const { data: current, error: readError } = await supabase
     .from("invoices")
-    .select(
-      "id, base_rent_amount, property_id, properties(water_rate_per_unit, electric_rate_per_unit)",
-    )
+    .select("id")
     .eq("id", invoiceId)
-    .single();
+    .maybeSingle();
 
   if (readError || !current) throw new Error("ไม่พบบิล");
-
-  const propertyRaw = current.properties as
-    | { water_rate_per_unit: number; electric_rate_per_unit: number }
-    | { water_rate_per_unit: number; electric_rate_per_unit: number }[]
-    | null;
-  const property = Array.isArray(propertyRaw) ? propertyRaw[0] : propertyRaw;
-
-  const amounts = calculateInvoiceAmounts(
-    Number(current.base_rent_amount),
-    waterUnit,
-    electricUnit,
-    Number(property?.water_rate_per_unit ?? 10),
-    Number(property?.electric_rate_per_unit ?? 7),
-  );
-
-  const { data, error } = await supabase
-    .from("invoices")
-    .update({
-      water_unit: waterUnit,
-      electric_unit: electricUnit,
-      ...amounts,
-    })
-    .eq("id", invoiceId)
-    .select(INVOICE_SELECT)
-    .single();
-
-  if (error || !data) throw new Error(error?.message ?? "อัปเดตมิเตอร์ไม่สำเร็จ");
-  return mapInvoice(data);
+  throw new Error("ออกบิลแล้ว — ไม่สามารถแก้มิเตอร์ได้");
 }
 
 export async function rejectInvoiceSlip(
@@ -145,17 +115,64 @@ export async function rejectInvoiceSlip(
   );
 }
 
+const SLIP_BUCKET = "slips";
+
+export async function uploadOwnerPaymentProof(
+  invoiceId: string,
+  file: File,
+): Promise<string> {
+  const supabase = createAdminClient();
+
+  const { data: existing, error: readError } = await supabase
+    .from("invoices")
+    .select("status")
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  if (readError || !existing) throw new Error("ไม่พบบิล");
+  if (existing.status === "paid") throw new Error("บิลนี้ชำระแล้ว");
+  if (existing.status !== "pending" && existing.status !== "scanning") {
+    throw new Error("ไม่สามารถแนบหลักฐานได้");
+  }
+
+  const extension = file.name.split(".").pop() ?? "jpg";
+  const path = `${invoiceId}/owner-cash-${Date.now()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(SLIP_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false });
+
+  if (uploadError) throw new Error("อัปโหลดหลักฐานไม่สำเร็จ");
+
+  const { data: publicUrl } = supabase.storage.from(SLIP_BUCKET).getPublicUrl(path);
+  return publicUrl.publicUrl;
+}
+
+export type ApproveInvoiceManualInput = {
+  slipImageUrl?: string | null;
+  ownerPaymentProofUrl?: string | null;
+  ownerPaymentNote?: string | null;
+};
+
 export async function approveInvoiceManually(
   invoiceId: string,
-  slipImageUrl?: string | null,
+  input?: ApproveInvoiceManualInput | string | null,
 ) {
   const supabase = createAdminClient();
+  const options: ApproveInvoiceManualInput =
+    typeof input === "string" || input == null
+      ? { slipImageUrl: input ?? null }
+      : input;
+
+  const note = options.ownerPaymentNote?.trim().slice(0, 200) || null;
 
   const { data, error } = await supabase
     .from("invoices")
     .update({
       status: "paid",
-      slip_image_url: slipImageUrl ?? null,
+      slip_image_url: options.slipImageUrl ?? null,
+      owner_payment_proof_url: options.ownerPaymentProofUrl?.trim() || null,
+      owner_payment_note: note,
     })
     .eq("id", invoiceId)
     .select(INVOICE_SELECT)
@@ -164,4 +181,47 @@ export async function approveInvoiceManually(
   if (error || !data) throw new Error(error?.message ?? "อนุมัติบิลไม่สำเร็จ");
   void safeNotifyPaymentConfirmed(invoiceId);
   return mapInvoice(data);
+}
+
+export type InvoiceEvidenceRow = {
+  billing_month: string;
+  total_amount: number;
+  room_number: string;
+  tenant_name: string;
+  slip_image_url: string | null;
+  owner_payment_proof_url: string | null;
+  owner_payment_note: string | null;
+  slip_rejection_note: string | null;
+};
+
+export async function getInvoiceEvidence(
+  invoiceId: string,
+): Promise<InvoiceEvidenceRow | null> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("invoices")
+    .select(`${INVOICE_SELECT}, tenants(name), rooms(room_number)`)
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const invoice = mapInvoice(data);
+  const tenantRaw = data.tenants as { name: string } | { name: string }[] | null;
+  const roomRaw = data.rooms as { room_number: string } | { room_number: string }[] | null;
+  const tenant = Array.isArray(tenantRaw) ? tenantRaw[0] : tenantRaw;
+  const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+
+  return {
+    billing_month: invoice.billing_month,
+    total_amount: invoice.total_amount,
+    room_number: room?.room_number ?? "-",
+    tenant_name: tenant?.name ?? "-",
+    slip_image_url: invoice.slip_image_url,
+    owner_payment_proof_url: invoice.owner_payment_proof_url,
+    owner_payment_note: invoice.owner_payment_note,
+    slip_rejection_note: invoice.slip_rejection_note,
+  };
 }

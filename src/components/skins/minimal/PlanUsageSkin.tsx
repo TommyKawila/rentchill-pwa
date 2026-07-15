@@ -66,27 +66,27 @@ function PlanUsageModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 w-full max-w-xl rounded-t-xl border border-zinc-200 bg-white shadow-lg sm:rounded-xl"
+        className="relative z-10 w-full max-w-xl rounded-t-xl border border-zinc-200 bg-white sm:rounded-xl"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-zinc-100 p-6 pb-4">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-900">
+            <h2 className="text-base font-semibold text-zinc-900">
               {t("owner.plan.detailsTitle")}
             </h2>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-sm text-zinc-500">
               {t(`owner.plan.tier.${plan.plan_tier}`)}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-11 min-w-11 rounded-lg text-zinc-500 hover:bg-zinc-50"
+            className="inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg text-base text-zinc-500 hover:bg-zinc-50"
           >
             {t("owner.rooms.close")}
           </button>
         </header>
 
-        <div className="space-y-3 px-4 py-4 text-sm">
+        <div className="space-y-3 p-6 pt-0 text-base">
           <p className="font-semibold text-zinc-900">
             {t("owner.plan.projects", {
               count: plan.project_count,
@@ -145,7 +145,7 @@ function PlanUsageModal({
           {billingHref && (
             <a
               href={billingHref}
-              className="mt-2 block min-h-11 rounded-lg bg-zinc-900 py-3 text-center font-medium text-white"
+              className="mt-2 block min-h-12 rounded-lg bg-rc-green py-3 text-center text-base font-medium text-white hover:bg-rc-green-dark"
             >
               {t("owner.plan.upgradeCta")}
             </a>
@@ -166,7 +166,7 @@ export function PlanUsageSkin({ plan, billingHref }: PlanUsageSkinProps) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`inline-flex h-8 items-center gap-1 rounded-full border px-2.5 text-xs font-medium ${
+        className={`inline-flex min-h-12 items-center gap-1 rounded-full border px-4 text-sm font-medium ${
           hasWarning
             ? "border-amber-200 bg-amber-50 text-amber-900"
             : "border-zinc-200 bg-zinc-50 text-zinc-600"

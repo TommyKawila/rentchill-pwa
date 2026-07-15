@@ -27,7 +27,7 @@ export function BrandLogoSkin({ size = "md", showWordmark = true }: BrandLogoSki
         priority={size === "md"}
       />
       {showWordmark && (
-        <span className="text-sm font-bold tracking-tight text-zinc-900">{BRAND_NAME}</span>
+        <span className="text-base font-bold tracking-tight text-zinc-900">{BRAND_NAME}</span>
       )}
     </div>
   );

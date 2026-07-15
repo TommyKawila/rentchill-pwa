@@ -23,13 +23,13 @@ export function TryPageSkin({ plan, loading, error, onStart }: TryPageSkinProps)
         </header>
 
         <section className="space-y-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-rc-green">
+          <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
             {t("trial.page.badge")}
           </p>
           <h1 className="text-2xl font-bold tracking-tight">{t("trial.page.title")}</h1>
-          <p className="text-sm leading-relaxed text-zinc-600">{t("trial.page.desc")}</p>
+          <p className="text-base leading-relaxed text-zinc-600">{t("trial.page.desc")}</p>
           {plan && (
-            <p className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+            <p className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 text-base text-zinc-700">
               {t("trial.page.planHint", { plan })}
             </p>
           )}
@@ -43,16 +43,16 @@ export function TryPageSkin({ plan, loading, error, onStart }: TryPageSkinProps)
           type="button"
           disabled={loading}
           onClick={onStart}
-          className="flex min-h-11 w-full items-center justify-center rounded-lg bg-rc-green px-6 py-3 text-sm font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green px-6 py-3 text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? t("trial.page.starting") : t("trial.page.start")}
         </button>
 
-        <p className="text-center text-xs text-zinc-500">{t("trial.page.note")}</p>
+        <p className="text-center text-sm text-zinc-500">{t("trial.page.note")}</p>
 
         <a
           href="/"
-          className="block text-center text-sm text-zinc-500 underline-offset-2 hover:underline"
+          className="flex min-h-12 items-center justify-center text-center text-base text-zinc-500 underline-offset-2 hover:underline"
         >
           {t("trial.page.back")}
         </a>

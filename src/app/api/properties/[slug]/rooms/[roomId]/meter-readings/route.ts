@@ -4,6 +4,7 @@ import {
   backfillMoveInBaseline,
   buildMeterHistoryRows,
   getMeterHistory,
+  upsertBillingReading,
 } from "@/services/meterReadingService";
 import { requireOwnerProperty } from "@/services/ownerApiGuard";
 import { createAdminClient } from "@/services/supabase/admin";
@@ -57,11 +58,13 @@ export async function POST(
 
     const body = (await request.json()) as {
       tenant_id?: string;
+      billing_month?: string;
       water_reading?: number;
       electric_reading?: number;
     };
 
     const tenantId = body.tenant_id;
+    const billingMonth = body.billing_month?.trim();
     const water = Number(body.water_reading);
     const electric = Number(body.electric_reading);
 
@@ -101,8 +104,47 @@ export async function POST(
       return NextResponse.json({ error: "ไม่พบผู้เช่า" }, { status: 400 });
     }
 
+    const propertyId = String(room.property_id);
+
+    if (billingMonth) {
+      await Promise.all([
+        upsertBillingReading({
+          propertyId,
+          roomId,
+          tenantId,
+          kind: "water",
+          readingValue: water,
+          billingMonth,
+        }),
+        upsertBillingReading({
+          propertyId,
+          roomId,
+          tenantId,
+          kind: "electric",
+          readingValue: electric,
+          billingMonth,
+        }),
+      ]);
+
+      await logAuditForSlug({
+        propertySlug: slug,
+        roomId,
+        tenantId,
+        actorType: "owner",
+        actorId: auth.ownerId,
+        action: "meter.draft",
+        detail: {
+          billing_month: billingMonth,
+          water_reading: water,
+          electric_reading: electric,
+        },
+      });
+
+      return NextResponse.json({ ok: true });
+    }
+
     await backfillMoveInBaseline({
-      propertyId: String(room.property_id),
+      propertyId,
       roomId,
       tenantId,
       waterReading: water,

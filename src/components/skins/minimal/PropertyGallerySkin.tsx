@@ -40,7 +40,7 @@ export function PropertyGallerySkin({
                 aria-label={t("property.gallery.thumbAlt", {
                   index: String(index + 1),
                 })}
-                className={`overflow-hidden rounded-lg border bg-white ${
+                className={`inline-flex min-h-12 overflow-hidden rounded-lg border bg-white ${
                   index === activeIndex
                     ? "border-green-600 ring-1 ring-green-600"
                     : "border-zinc-200"

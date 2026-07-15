@@ -1,10 +1,19 @@
 import { createAdminClient } from "@/services/supabase/admin";
+import { auditInvoiceIssue } from "@/services/auditLogService";
 import {
   calculateInvoiceAmounts,
   getCurrentBillingMonth,
 } from "@/services/invoiceCalculator";
 import { safeNotifyBillIssued } from "@/services/notificationService";
 import type { PropertyBillingSettings } from "@/services/propertyBillingSettingsService";
+import {
+  DEFAULT_REMINDER_DAYS,
+  buildReminderTimeline,
+  normalizeReminderDaySettings,
+  resolveReminderState,
+  type ReminderTier,
+  type ReminderTimeline,
+} from "@/services/paymentReminderTier";
 import { buildTenantInviteUrl } from "@/services/tenantLinkService";
 import {
   computeDialBilling,
@@ -35,6 +44,12 @@ export type MonthlyBillingRow = {
   invite_code: string;
   line_linked: boolean;
   invite_url: string;
+  issued_at: string | null;
+  reminder_tier_sent: ReminderTier | null;
+  reminder_recommended: ReminderTier | null;
+  reminder_can_send: boolean;
+  reminder_days_until_soft: number | null;
+  reminder_timeline: ReminderTimeline | null;
 };
 
 export type BillingEntry = {
@@ -49,7 +64,7 @@ async function getPropertyContext(propertySlug: string) {
   const { data, error } = await supabase
     .from("properties")
     .select(
-      "id, billing_day, meter_reminder_days_before, include_utilities, water_rate_per_unit, electric_rate_per_unit",
+      "id, billing_day, meter_reminder_days_before, reminder_soft_days, reminder_firm_days, reminder_final_days, include_utilities, water_rate_per_unit, electric_rate_per_unit",
     )
     .eq("slug", propertySlug)
     .maybeSingle();
@@ -57,9 +72,18 @@ async function getPropertyContext(propertySlug: string) {
   if (error) throw error;
   if (!data) throw new Error("ไม่พบหอพัก");
 
+  const reminder = normalizeReminderDaySettings({
+    soft: Number(data.reminder_soft_days ?? DEFAULT_REMINDER_DAYS.soft),
+    firm: Number(data.reminder_firm_days ?? DEFAULT_REMINDER_DAYS.firm),
+    final: Number(data.reminder_final_days ?? DEFAULT_REMINDER_DAYS.final),
+  });
+
   const settings: PropertyBillingSettings = {
     billing_day: Number(data.billing_day ?? 1),
     meter_reminder_days_before: Number(data.meter_reminder_days_before ?? 3),
+    reminder_soft_days: reminder.soft,
+    reminder_firm_days: reminder.firm,
+    reminder_final_days: reminder.final,
     include_utilities: data.include_utilities !== false,
     water_rate_per_unit: Number(data.water_rate_per_unit ?? 10),
     electric_rate_per_unit: Number(data.electric_rate_per_unit ?? 7),
@@ -101,6 +125,8 @@ export async function getMonthlyBillingRows(propertySlug: string) {
       water_curr: number | null;
       electric_prev: number | null;
       electric_curr: number | null;
+      issued_at: string | null;
+      reminder_tier_sent: ReminderTier | null;
     }
   >();
 
@@ -108,7 +134,7 @@ export async function getMonthlyBillingRows(propertySlug: string) {
     const { data: invoices, error: invoiceError } = await supabase
       .from("invoices")
       .select(
-        "id, tenant_id, status, water_unit, electric_unit, water_prev, water_curr, electric_prev, electric_curr",
+        "id, tenant_id, status, water_unit, electric_unit, water_prev, water_curr, electric_prev, electric_curr, issued_at, reminder_tier_sent",
       )
       .eq("billing_month", billingMonth)
       .in("tenant_id", tenantIds);
@@ -116,6 +142,7 @@ export async function getMonthlyBillingRows(propertySlug: string) {
     if (invoiceError) throw invoiceError;
 
     for (const invoice of invoices ?? []) {
+      const tierSent = invoice.reminder_tier_sent;
       invoicesByTenant.set(String(invoice.tenant_id), {
         id: String(invoice.id),
         status: invoice.status as InvoiceStatus,
@@ -129,6 +156,11 @@ export async function getMonthlyBillingRows(propertySlug: string) {
           invoice.electric_prev != null ? Number(invoice.electric_prev) : null,
         electric_curr:
           invoice.electric_curr != null ? Number(invoice.electric_curr) : null,
+        issued_at: invoice.issued_at ? String(invoice.issued_at) : null,
+        reminder_tier_sent:
+          tierSent === "soft" || tierSent === "firm" || tierSent === "final"
+            ? tierSent
+            : null,
       });
     }
   }
@@ -189,6 +221,35 @@ export async function getMonthlyBillingRows(propertySlug: string) {
         invite_url: row.invite_code
           ? buildTenantInviteUrl(String(row.invite_code))
           : "",
+        issued_at: invoice?.issued_at ?? null,
+        reminder_tier_sent: invoice?.reminder_tier_sent ?? null,
+        ...(() => {
+          const reminderSettings = {
+            soft: settings.reminder_soft_days,
+            firm: settings.reminder_firm_days,
+            final: settings.reminder_final_days,
+          };
+          const state = resolveReminderState({
+            issuedAt: invoice?.issued_at ?? null,
+            tierSent: invoice?.reminder_tier_sent ?? null,
+            settings: reminderSettings,
+          });
+          const showTimeline =
+            invoice?.status === "pending" && Boolean(row.line_user_id);
+          const timeline = showTimeline
+            ? buildReminderTimeline({
+                issuedAt: invoice?.issued_at ?? null,
+                tierSent: invoice?.reminder_tier_sent ?? null,
+                settings: reminderSettings,
+              })
+            : null;
+          return {
+            reminder_recommended: state.recommended,
+            reminder_can_send: state.can_send,
+            reminder_days_until_soft: state.days_until_soft,
+            reminder_timeline: timeline,
+          };
+        })(),
       };
     }),
   );
@@ -201,6 +262,7 @@ export async function getMonthlyBillingRows(propertySlug: string) {
 export async function generateMonthlyInvoices(
   propertySlug: string,
   entries: BillingEntry[],
+  options?: { ownerId?: string },
 ) {
   const { propertyId, settings } = await getPropertyContext(propertySlug);
   const billingMonth = getCurrentBillingMonth();
@@ -301,7 +363,7 @@ export async function generateMonthlyInvoices(
 
     if (existingError) throw existingError;
 
-    if (existing?.status === "paid" || existing?.status === "scanning") {
+    if (existing) {
       skipped++;
       continue;
     }
@@ -324,22 +386,6 @@ export async function generateMonthlyInvoices(
       ...amounts,
     };
 
-    if (existing) {
-      const { error } = await supabase
-        .from("invoices")
-        .update(invoicePayload)
-        .eq("id", existing.id);
-
-      if (error) throw error;
-      await linkBillingReadingsToInvoice({
-        roomId,
-        billingMonth,
-        invoiceId: existing.id,
-      });
-      updated++;
-      continue;
-    }
-
     const { data: inserted, error } = await supabase
       .from("invoices")
       .insert({
@@ -349,6 +395,7 @@ export async function generateMonthlyInvoices(
         billing_month: billingMonth,
         base_rent_amount: baseRent,
         status: "pending",
+        issued_at: new Date().toISOString(),
         ...invoicePayload,
       })
       .select("id")
@@ -361,6 +408,18 @@ export async function generateMonthlyInvoices(
         billingMonth,
         invoiceId: String(inserted.id),
       });
+      if (options?.ownerId) {
+        await auditInvoiceIssue({
+          propertyId,
+          roomId,
+          tenantId: entry.tenant_id,
+          ownerId: options.ownerId,
+          billingMonth,
+          totalAmount: amounts.total_amount,
+          waterUnit: settings.include_utilities ? waterUnit : undefined,
+          electricUnit: settings.include_utilities ? electricUnit : undefined,
+        });
+      }
     }
     created++;
     void notifyBillIssued({

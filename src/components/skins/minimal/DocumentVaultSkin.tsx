@@ -49,7 +49,7 @@ export function DocumentVaultSkin({
 
   if (!canUseDocumentVault(planTier)) {
     return (
-      <p className="text-xs text-zinc-500">{t("owner.docVault.upgradeHint")}</p>
+      <p className="text-sm text-zinc-500">{t("owner.docVault.upgradeHint")}</p>
     );
   }
 
@@ -74,12 +74,12 @@ export function DocumentVaultSkin({
           onClose={() => setOpen(false)}
         >
           <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               <select
                 value={docType}
                 disabled={disabled || busy}
                 onChange={(event) => setDocType(event.target.value as DocumentType)}
-                className="min-h-11 flex-1 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs"
+                className="min-h-12 min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-base"
               >
                 {types.map((type) => (
                   <option key={type} value={type}>
@@ -91,7 +91,7 @@ export function DocumentVaultSkin({
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => fileRef.current?.click()}
-                className="min-h-11 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-12 rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {busy ? t("common.saving") : t("owner.docVault.upload")}
               </button>
@@ -109,11 +109,11 @@ export function DocumentVaultSkin({
             </div>
 
             {documents.length > 0 && (
-              <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-100 bg-white">
+              <ul className="divide-y divide-zinc-100 rounded-xl border border-zinc-100 bg-white">
                 {documents.map((doc) => (
                   <li
                     key={doc.id}
-                    className="flex items-center justify-between gap-2 px-3 py-2 text-xs"
+                    className="flex min-h-12 items-center justify-between gap-3 px-4 py-2 text-base"
                   >
                     <a
                       href={doc.public_url}
@@ -127,7 +127,7 @@ export function DocumentVaultSkin({
                       type="button"
                       disabled={disabled || busy}
                       onClick={() => onDelete(doc.id)}
-                      className="shrink-0 text-red-600 disabled:opacity-50"
+                      className="inline-flex min-h-12 shrink-0 items-center text-sm text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {t("owner.docVault.delete")}
                     </button>
@@ -136,7 +136,7 @@ export function DocumentVaultSkin({
               </ul>
             )}
 
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
           </div>
         </RoomDetailSubModalShell>
       )}

@@ -14,6 +14,7 @@ import {
 export function useRoomListView<T extends MonthlyBillingRow>(
   rows: T[],
   ctx: RoomListFilterContext,
+  urlFilter?: RoomListFilter | null,
 ) {
   const [query, setQueryState] = useState("");
   const [filter, setFilterState] = useState<RoomListFilter>("all");
@@ -23,17 +24,25 @@ export function useRoomListView<T extends MonthlyBillingRow>(
   const counts = useMemo(() => countByFilter(rows, ctx), [rows, ctx]);
 
   useEffect(() => {
-    if (filterInitialized) return;
-    if (rows.length === 0) return;
-    setFilterState(defaultRoomListFilter(counts));
+    if (!urlFilter) return;
+    setFilterState(urlFilter);
+    setVisibleCount(ROOM_LIST_PAGE_SIZE);
     setFilterInitialized(true);
-  }, [rows.length, counts, filterInitialized]);
+  }, [urlFilter]);
 
   useEffect(() => {
-    setFilterInitialized(false);
+    if (rows.length === 0) return;
+    if (urlFilter) return;
+    if (filterInitialized) return;
+    setFilterState(defaultRoomListFilter(counts));
+    setFilterInitialized(true);
+  }, [rows.length, counts, filterInitialized, urlFilter]);
+
+  useEffect(() => {
     setQueryState("");
     setVisibleCount(ROOM_LIST_PAGE_SIZE);
-  }, [rows]);
+    if (!urlFilter) setFilterInitialized(false);
+  }, [rows, urlFilter]);
 
   const filteredRows = useMemo(
     () => filterRoomRows(rows, filter, query, ctx),

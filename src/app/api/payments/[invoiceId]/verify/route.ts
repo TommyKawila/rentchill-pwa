@@ -18,7 +18,7 @@ export async function POST(
       );
     }
 
-    const outcome = await verifyInvoiceSlip(invoiceId);
+    const outcome = await verifyInvoiceSlip(invoiceId, { trigger: "owner_verify" });
     return NextResponse.json({ ok: true, ...outcome });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Verification failed";

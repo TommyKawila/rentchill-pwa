@@ -51,38 +51,38 @@ export function OwnerLineNotifySkin({
   const linked = Boolean(ownerLineUserId?.trim());
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-      <h2 className="text-sm font-semibold">{t("settings.notifyTitle")}</h2>
-      <p className="mt-1 text-xs text-zinc-500">{t("settings.notifyDesc")}</p>
+    <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-6">
+      <h2 className="text-base font-semibold text-zinc-900">{t("settings.notifyTitle")}</h2>
+      <p className="mt-1 text-sm text-zinc-500">{t("settings.notifyDesc")}</p>
 
       {linked ? (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
-          <p className="text-sm text-green-800">{t("settings.notifyConnected")}</p>
+        <div className="mt-3 flex min-h-12 items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-4">
+          <p className="text-base text-green-800">{t("settings.notifyConnected")}</p>
           <button
             type="button"
             onClick={onDisconnect}
-            className="shrink-0 text-xs text-zinc-600 underline"
+            className="inline-flex min-h-12 shrink-0 items-center text-base text-zinc-600 underline"
           >
             {t("settings.notifyDisconnect")}
           </button>
         </div>
       ) : (
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-3">
           <button
             type="button"
             disabled={status === "loading" || !propertySlug}
             onClick={() => void handleConnect()}
-            className="w-full rounded-lg border border-zinc-300 bg-white py-3 text-sm font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {status === "loading"
               ? t("settings.notifyConnecting")
               : t("settings.notifyConnect")}
           </button>
-          <p className="text-xs text-zinc-500">{t("settings.notifyConnectHint")}</p>
+          <p className="text-sm text-zinc-500">{t("settings.notifyConnectHint")}</p>
         </div>
       )}
 
-      {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </div>
   );
 }

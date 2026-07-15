@@ -203,6 +203,7 @@ export async function seedPropertyRooms(input: SeedPropertyRoomsInput) {
         electric_amount: 350,
         total_amount: total,
         status,
+        ...(status === "scanning" ? { slip_image_url: "/brand/logo.png" } : {}),
       });
     }
   }

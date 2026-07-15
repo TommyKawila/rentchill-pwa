@@ -42,7 +42,7 @@ export function MeterPhotoVaultSkin({
 
   if (!canUpload) {
     return (
-      <p className="text-xs text-zinc-500">{t("owner.meterPhoto.upgradeHint")}</p>
+      <p className="text-sm text-zinc-500">{t("owner.meterPhoto.upgradeHint")}</p>
     );
   }
 
@@ -56,15 +56,15 @@ export function MeterPhotoVaultSkin({
     <div
       className={
         compact
-          ? "space-y-2"
-          : "space-y-3 rounded-md border border-zinc-100 bg-zinc-50 px-3 py-3"
+          ? "space-y-3"
+          : "space-y-3 rounded-xl border border-zinc-100 bg-zinc-50 p-4"
       }
     >
       {!compact && (
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-medium text-zinc-700">{t("owner.meterPhoto.title")}</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-zinc-900">{t("owner.meterPhoto.title")}</p>
           {!canHistory && (
-            <span className="text-[11px] text-zinc-500">{t("owner.meterPhoto.currentOnly")}</span>
+            <span className="text-sm text-zinc-500">{t("owner.meterPhoto.currentOnly")}</span>
           )}
         </div>
       )}
@@ -74,9 +74,9 @@ export function MeterPhotoVaultSkin({
         const inputRef = utility === "water" ? waterRef : electricRef;
 
         return (
-          <div key={utility} className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs text-zinc-600">
+          <div key={utility} className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-base text-zinc-600">
                 {utility === "water"
                   ? t("owner.billing.water")
                   : t("owner.billing.electric")}
@@ -85,7 +85,7 @@ export function MeterPhotoVaultSkin({
                 type="button"
                 disabled={busy}
                 onClick={() => inputRef.current?.click()}
-                className="min-h-11 rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-14 items-center rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {uploading ? t("common.saving") : t("owner.meterPhoto.capture")}
               </button>
@@ -103,7 +103,7 @@ export function MeterPhotoVaultSkin({
               />
             </div>
             {utilityPhotos.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex gap-3 overflow-x-auto pb-1">
                 {utilityPhotos.map((photo) => (
                   <a
                     key={photo.id}
@@ -115,7 +115,7 @@ export function MeterPhotoVaultSkin({
                     <img
                       src={photo.public_url}
                       alt={utility}
-                      className="h-16 w-16 rounded-md border border-zinc-200 object-cover"
+                      className="h-20 w-20 rounded-lg border border-zinc-200 object-cover"
                     />
                   </a>
                 ))}
@@ -125,7 +125,7 @@ export function MeterPhotoVaultSkin({
         );
       })}
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );
 }

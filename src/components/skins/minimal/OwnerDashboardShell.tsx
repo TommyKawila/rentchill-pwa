@@ -4,11 +4,16 @@ import type { ReactNode } from "react";
 import { Settings } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
 import { BillingOverviewSkin } from "@/components/skins/minimal/BillingOverviewSkin";
-import { EasyModeToggleSkin } from "@/components/skins/minimal/EasyModeToggleSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { NavMenuItemLabel } from "@/components/skins/minimal/NavMenuItemLabel";
+import {
+  OwnerBottomNavSkin,
+  type OwnerBottomNavTab,
+} from "@/components/skins/minimal/OwnerBottomNavSkin";
+import { OwnerPushNotificationPrompts } from "@/components/skins/minimal/OwnerPushNotificationPrompts";
 import { OwnerToolsMenuSkin } from "@/components/skins/minimal/OwnerToolsMenuSkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
+import { usePushNotificationPrompt } from "@/hooks/usePushNotificationPrompt";
 import type { BillingOverview } from "@/services/billingOverviewService";
 import type { OwnerPropertyOption } from "@/services/ownerPropertyService";
 
@@ -20,6 +25,7 @@ interface OwnerDashboardShellProps {
   onLogout: () => void;
   billingMonth: string;
   overview: BillingOverview;
+  chillMode?: boolean;
   onExportCsv?: () => void;
   csvDisabled?: boolean;
   csvLoading?: boolean;
@@ -29,6 +35,7 @@ interface OwnerDashboardShellProps {
   trialBanner?: ReactNode;
   planSwitcher?: ReactNode;
   tenantViewUrl?: string;
+  activeTab?: OwnerBottomNavTab;
   children: ReactNode;
 }
 
@@ -40,6 +47,7 @@ export function OwnerDashboardShell({
   onLogout,
   billingMonth,
   overview,
+  chillMode = false,
   onExportCsv,
   csvDisabled,
   csvLoading,
@@ -49,13 +57,15 @@ export function OwnerDashboardShell({
   trialBanner,
   planSwitcher,
   tenantViewUrl,
+  activeTab = "home",
   children,
 }: OwnerDashboardShellProps) {
   const { t } = useLocale();
   const settingsHref = `/settings?property=${encodeURIComponent(propertySlug)}`;
+  const push = usePushNotificationPrompt();
 
   return (
-    <main className="min-h-screen bg-white px-4 py-6 text-zinc-900">
+    <main className="min-h-screen bg-white px-4 py-6 pb-24 text-zinc-900">
       <div className="mx-auto max-w-xl space-y-6">
         {trialBanner}
         <header className="space-y-4">
@@ -64,19 +74,18 @@ export function OwnerDashboardShell({
               <p className="font-medium tracking-tight text-green-600">
                 RentChill
               </p>
-              <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+              <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-sm font-medium uppercase tracking-wide text-zinc-500">
                 {t("owner.dashboard.roleBadge")}
               </span>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={onLogout}
-                className="text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline"
+                className="inline-flex min-h-12 items-center text-base text-zinc-500 underline-offset-2 hover:text-zinc-700 hover:underline"
               >
                 {t("owner.nav.logout")}
               </button>
-              <EasyModeToggleSkin />
               <LocaleToggleSkin />
             </div>
           </div>
@@ -101,20 +110,24 @@ export function OwnerDashboardShell({
                 href={tenantViewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800"
+                className="inline-flex min-h-12 items-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-base font-medium text-zinc-800"
               >
                 {t("trial.tenantView")}
               </a>
             )}
           </div>
 
-          <section className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
-            <BillingOverviewSkin billingMonth={billingMonth} overview={overview} />
+          <section className="rounded-xl border border-zinc-100 bg-zinc-50 p-6">
+            <BillingOverviewSkin
+              billingMonth={billingMonth}
+              overview={overview}
+              chillMode={chillMode}
+            />
 
-            <nav className="mt-4 flex gap-2">
+            <nav className="mt-4 flex gap-3">
               <a
                 href={settingsHref}
-                className="group flex min-h-11 min-w-0 flex-1 items-center justify-center gap-x-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 font-medium"
+                className="group flex min-h-12 min-w-0 flex-1 items-center justify-center gap-x-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-base font-medium"
               >
                 <NavMenuItemLabel icon={Settings}>
                   {t("owner.nav.settingsShort")}
@@ -134,6 +147,10 @@ export function OwnerDashboardShell({
 
         {children}
       </div>
+
+      <OwnerBottomNavSkin activeTab={activeTab} propertySlug={propertySlug} />
+
+      <OwnerPushNotificationPrompts push={push} />
     </main>
   );
 }

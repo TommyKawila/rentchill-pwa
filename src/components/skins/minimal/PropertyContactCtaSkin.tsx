@@ -19,13 +19,13 @@ export function PropertyContactCtaSkin({ contact }: PropertyContactCtaSkinProps)
     <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6">
       <h2 className="text-lg font-semibold">{t("property.cta.title")}</h2>
       <p className="mt-1 text-sm text-zinc-600">{t("property.cta.desc")}</p>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         {lineUrl && (
           <a
             href={lineUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex flex-1 items-center justify-center gap-x-2 rounded-xl border border-zinc-300 bg-white py-3 text-sm font-medium text-zinc-800"
+            className="inline-flex min-h-12 flex-1 items-center justify-center gap-x-2 rounded-xl border border-zinc-300 bg-white text-base font-medium text-zinc-800"
           >
             <MessageCircle className="h-5 w-5" strokeWidth={1.5} />
             {t("property.cta.line")}
@@ -34,7 +34,7 @@ export function PropertyContactCtaSkin({ contact }: PropertyContactCtaSkinProps)
         {phone && (
           <a
             href={`tel:${phone.replace(/\s/g, "")}`}
-            className="inline-flex flex-1 items-center justify-center gap-x-2 rounded-xl border border-zinc-300 bg-white py-3 text-sm font-medium text-zinc-800"
+            className="inline-flex min-h-12 flex-1 items-center justify-center gap-x-2 rounded-xl border border-zinc-300 bg-white text-base font-medium text-zinc-800"
           >
             <Phone className="h-5 w-5" strokeWidth={1.5} />
             {t("property.cta.phone")}

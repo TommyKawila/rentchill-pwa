@@ -9,6 +9,7 @@ import {
 } from "@/services/invoiceCalculator";
 import { statusMessageKey } from "@/services/i18n/translate";
 import {
+  isMeterEntryLocked,
   isRowEditable,
   isRowReadyToBill,
 } from "@/services/propertyBillingSettingsService";
@@ -17,6 +18,12 @@ import type {
   BillingEntry,
   MonthlyBillingRow,
 } from "@/services/monthlyBillingService";
+import type { ReminderTier } from "@/services/paymentReminderTier";
+import {
+  REMINDER_TIER_BUTTON_CLASS,
+  reminderSentTierMessageKey,
+  reminderTierMessageKey,
+} from "@/services/reminderUi";
 
 interface MonthlyBillingSkinProps {
   billingMonth: string;
@@ -36,11 +43,7 @@ interface MonthlyBillingSkinProps {
   reminderDisabled?: boolean;
   remindedTenantId?: string | null;
   quotaHint?: string | null;
-  onRemind?: (tenantId: string) => void;
-}
-
-function isLocked(status: MonthlyBillingRow["invoice_status"]) {
-  return status === "paid" || status === "scanning";
+  onRemind?: (tenantId: string, tier: ReminderTier) => void;
 }
 
 export function MonthlyBillingSkin({
@@ -126,7 +129,7 @@ export function MonthlyBillingSkin({
           <h2 className="text-sm font-semibold text-zinc-800">
             {t("owner.billing.title")}
           </h2>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-500">
             {includeUtilities
               ? t("owner.billing.rates", {
                   month: billingMonth,
@@ -135,14 +138,14 @@ export function MonthlyBillingSkin({
                 })
               : t("owner.billing.rentOnly")}
           </p>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-500">
             {t("owner.billing.cycleDay", { day: billingDay })}
           </p>
         </div>
       </div>
 
       {quotaHint && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {quotaHint}
         </p>
       )}
@@ -163,7 +166,7 @@ export function MonthlyBillingSkin({
           waterRate,
           electricRate,
         );
-        const locked = isLocked(row.invoice_status);
+        const locked = isMeterEntryLocked(row);
 
         return (
           <article
@@ -173,12 +176,12 @@ export function MonthlyBillingSkin({
             <header className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-3">
               <div>
                 <p className="text-sm font-semibold">{row.tenant_name}</p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-sm text-zinc-500">
                   {t("common.room", { number: row.room_number })}
                 </p>
               </div>
               {row.invoice_status && (
-                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700">
+                <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-sm text-zinc-700">
                   {t(statusMessageKey(row.invoice_status))}
                 </span>
               )}
@@ -211,7 +214,7 @@ export function MonthlyBillingSkin({
                         },
                       }))
                     }
-                    className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
+                    className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-base disabled:bg-zinc-50"
                   />
                 </label>
                 <label className="space-y-1">
@@ -230,12 +233,12 @@ export function MonthlyBillingSkin({
                         },
                       }))
                     }
-                    className="w-full rounded-md border border-zinc-200 px-3 py-2 disabled:bg-zinc-50"
+                    className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-base disabled:bg-zinc-50"
                   />
                 </label>
               </div>
             ) : (
-              <p className="mt-3 text-xs text-zinc-500">{t("owner.billing.rentOnly")}</p>
+              <p className="mt-3 text-sm text-zinc-500">{t("owner.billing.rentOnly")}</p>
             )}
 
             <p className="mt-3 text-sm font-medium">
@@ -243,24 +246,41 @@ export function MonthlyBillingSkin({
             </p>
 
             {row.invoice_status === "pending" && row.line_linked && onRemind && (
-              <button
-                type="button"
-                disabled={disabled || reminderDisabled || !canRemind}
-                onClick={() => onRemind(row.tenant_id)}
-                className="mt-3 w-full rounded-md border border-amber-300 bg-amber-50 py-2 text-sm font-medium text-amber-900 disabled:opacity-50"
-              >
-                <EasyModeCtaIcon name="remind" />
-                {remindedTenantId === row.tenant_id
-                  ? t("owner.reminder.sent")
-                  : t("owner.reminder.send")}
-              </button>
+              <div className="mt-3 space-y-2">
+                {row.reminder_tier_sent && (
+                  <p className="text-sm text-zinc-500">
+                    {t(reminderSentTierMessageKey(row.reminder_tier_sent))}
+                  </p>
+                )}
+                {row.reminder_recommended && row.reminder_can_send ? (
+                  <button
+                    type="button"
+                    disabled={disabled || reminderDisabled || !canRemind}
+                    onClick={() =>
+                      onRemind(row.tenant_id, row.reminder_recommended!)
+                    }
+                    className={`flex min-h-12 w-full items-center justify-center rounded-lg border text-base font-medium disabled:cursor-not-allowed disabled:opacity-50 ${REMINDER_TIER_BUTTON_CLASS[row.reminder_recommended]}`}
+                  >
+                    <EasyModeCtaIcon name="remind" />
+                    {remindedTenantId === row.tenant_id
+                      ? t("owner.reminder.sent")
+                      : t(reminderTierMessageKey(row.reminder_recommended))}
+                  </button>
+                ) : row.reminder_days_until_soft != null ? (
+                  <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+                    {t("owner.reminder.availableInDays", {
+                      days: row.reminder_days_until_soft,
+                    })}
+                  </p>
+                ) : null}
+              </div>
             )}
           </article>
         );
       })}
 
       {includeUtilities && editableCount > 0 && readyCount === 0 && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           {t("owner.billing.meterRequired")}
         </p>
       )}
@@ -270,7 +290,7 @@ export function MonthlyBillingSkin({
           type="button"
           disabled={disabled || readyCount === 0}
           onClick={handleSubmit}
-          className="w-full rounded-md bg-green-700 py-3 text-sm font-medium text-white disabled:opacity-50"
+          className="flex min-h-14 w-full items-center justify-center rounded-lg bg-green-700 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           <EasyModeCtaIcon name="bill" />
           {t("owner.billing.submit", { count: readyCount })}
@@ -278,7 +298,7 @@ export function MonthlyBillingSkin({
       )}
 
       {result && (
-        <p className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+        <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-base text-green-800">
           {t("owner.billing.result", {
             created: result.created,
             updated: result.updated,

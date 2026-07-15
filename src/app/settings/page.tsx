@@ -3,23 +3,55 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
-import { ContactLineQrSkin } from "@/components/skins/minimal/ContactLineQrSkin";
-import { PropertyMarketingSettingsSkin } from "@/components/skins/minimal/PropertyMarketingSettingsSkin";
+import { useEasyMode } from "@/components/EasyModeProvider";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
-import { OwnerLineNotifySkin } from "@/components/skins/minimal/OwnerLineNotifySkin";
+import { OwnerBottomNavSkin } from "@/components/skins/minimal/OwnerBottomNavSkin";
+import { OwnerPushNotificationPrompts } from "@/components/skins/minimal/OwnerPushNotificationPrompts";
 import { ProjectManageSkin } from "@/components/skins/minimal/ProjectManageSkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
+import { SettingsBillingModalSkin } from "@/components/skins/minimal/SettingsBillingModalSkin";
+import { SettingsContactModalSkin } from "@/components/skins/minimal/SettingsContactModalSkin";
+import { SettingsDisplayModalSkin } from "@/components/skins/minimal/SettingsDisplayModalSkin";
+import { SettingsMarketingModalSkin } from "@/components/skins/minimal/SettingsMarketingModalSkin";
+import { SettingsNotifyModalSkin } from "@/components/skins/minimal/SettingsNotifyModalSkin";
+import { SettingsPaymentAccountModalSkin } from "@/components/skins/minimal/SettingsPaymentAccountModalSkin";
+import { SettingsSectionRowSkin } from "@/components/skins/minimal/SettingsSectionRowSkin";
+import { SettingsTechnicianModalSkin } from "@/components/skins/minimal/SettingsTechnicianModalSkin";
 import {
   isProjectSlugPayloadValid,
   ProjectSlugEditorSkin,
   type ProjectSlugPayload,
 } from "@/components/skins/minimal/ProjectSlugEditorSkin";
+import { useBillingMonthDisplayFormat } from "@/hooks/useBillingMonthDisplayFormat";
 import { useCreateProject } from "@/hooks/useCreateProject";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
 import { useProjectManage } from "@/hooks/useProjectManage";
+import { usePropertyMarketing } from "@/hooks/usePropertyMarketing";
 import { usePropertyPaymentSettings } from "@/hooks/usePropertyPaymentSettings";
+import { usePushNotificationPrompt } from "@/hooks/usePushNotificationPrompt";
 import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
 import { slugValidationMessageKey } from "@/services/propertySlugUtils";
+import {
+  buildContactSummary,
+  buildDisplaySummaryParts,
+  buildMarketingSummary,
+  buildNotifySummary,
+  buildPaymentAccountSummary,
+  formatTechnicianSummaryEntry,
+} from "@/services/settingsSummaryService";
+import type { TechnicianDept } from "@/services/types";
+
+type SettingsSectionId =
+  | "payment"
+  | "display"
+  | "billing"
+  | "marketing"
+  | "contact"
+  | "technician"
+  | "notify";
+
+const inputClass =
+  "min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900";
 
 function SettingsContent() {
   const { t } = useLocale();
@@ -42,29 +74,15 @@ function SettingsContent() {
   );
 
   const projectManage = useProjectManage(propertySlug);
-
-  useEffect(() => {
-    if (propertiesStatus !== "idle" || properties.length === 0) return;
-    if (!propertySlug) return;
-    if (slugFromUrl === propertySlug) return;
-    router.replace(`/settings?property=${encodeURIComponent(propertySlug)}`);
-  }, [propertiesStatus, properties.length, slugFromUrl, propertySlug, router]);
-
   const { account, status, error, save, reload: reloadSettings } =
     usePropertyPaymentSettings(propertySlug);
+  const marketing = usePropertyMarketing(propertySlug);
+  const push = usePushNotificationPrompt();
+  const monthDisplay = useBillingMonthDisplayFormat();
+  const { easyMode, setEasyMode } = useEasyMode();
 
-  const [promptPay, setPromptPay] = useState("");
-  const [bankAccount, setBankAccount] = useState("");
-  const [receiverName, setReceiverName] = useState("");
-  const [contactLineUrl, setContactLineUrl] = useState("");
-  const [contactLineQrUrl, setContactLineQrUrl] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [ownerLineUserId, setOwnerLineUserId] = useState("");
-  const [billingDay, setBillingDay] = useState("1");
-  const [meterReminderDays, setMeterReminderDays] = useState("3");
-  const [includeUtilities, setIncludeUtilities] = useState(true);
-  const [waterRate, setWaterRate] = useState("10");
-  const [electricRate, setElectricRate] = useState("7");
+  const [openSection, setOpenSection] = useState<SettingsSectionId | null>(null);
+  const [billingHighlighted, setBillingHighlighted] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [createSlugPayload, setCreateSlugPayload] = useState<ProjectSlugPayload>({
@@ -72,20 +90,11 @@ function SettingsContent() {
   });
 
   useEffect(() => {
-    if (!account) return;
-    setPromptPay(account.prompt_pay ?? "");
-    setBankAccount(account.bank_account ?? "");
-    setReceiverName(account.receiver_name ?? "");
-    setContactLineUrl(account.contact_line_url ?? "");
-    setContactLineQrUrl(account.contact_line_qr_url ?? "");
-    setContactPhone(account.contact_phone ?? "");
-    setOwnerLineUserId(account.owner_line_user_id ?? "");
-    setBillingDay(String(account.billing_day));
-    setMeterReminderDays(String(account.meter_reminder_days_before));
-    setIncludeUtilities(account.include_utilities);
-    setWaterRate(String(account.water_rate_per_unit));
-    setElectricRate(String(account.electric_rate_per_unit));
-  }, [account]);
+    if (propertiesStatus !== "idle" || properties.length === 0) return;
+    if (!propertySlug) return;
+    if (slugFromUrl === propertySlug) return;
+    router.replace(`/settings?property=${encodeURIComponent(propertySlug)}`);
+  }, [propertiesStatus, properties.length, slugFromUrl, propertySlug, router]);
 
   useEffect(() => {
     const reloadOnFocus = () => {
@@ -96,6 +105,17 @@ function SettingsContent() {
     document.addEventListener("visibilitychange", reloadOnFocus);
     return () => document.removeEventListener("visibilitychange", reloadOnFocus);
   }, [propertySlug, reloadSettings]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#billing") return;
+    const timer = window.setTimeout(() => {
+      document.getElementById("billing")?.scrollIntoView({ behavior: "smooth" });
+      setBillingHighlighted(true);
+      window.setTimeout(() => setBillingHighlighted(false), 2000);
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [account]);
 
   const hasProject = properties.length > 0 && Boolean(propertySlug);
 
@@ -132,17 +152,80 @@ function SettingsContent() {
       ? t(slugValidationMessageKey(createProject.error))
       : createProject.error;
 
+  const displayParts = buildDisplaySummaryParts(monthDisplay.format, easyMode);
+  const displaySummary = `${t(displayParts.formatKey as Parameters<typeof t>[0])} · ${
+    displayParts.easyOn ? t("settings.summary.easyOn") : t("settings.summary.easyOff")
+  }`;
+
+  const notifyParts = buildNotifySummary(
+    Boolean(account?.owner_line_user_id?.trim()),
+    push.permission,
+  );
+  const notifySummary = notifyParts.pushUnsupported
+    ? notifyParts.lineConnected
+      ? t("settings.summary.notifyLineOnly")
+      : t("settings.summary.notifyLineOff")
+    : t("settings.summary.notify", {
+        line: notifyParts.lineConnected
+          ? t("settings.summary.lineOn")
+          : t("settings.summary.lineOff"),
+        push: notifyParts.pushEnabled
+          ? t("settings.summary.pushOn")
+          : t("settings.summary.pushOff"),
+      });
+
+  const marketingSummaryRaw = buildMarketingSummary(marketing.marketing);
+  const marketingPhotoCount = marketing.marketing?.gallery_urls?.length ?? 0;
+  const marketingSummary = (() => {
+    const parts: string[] = [];
+    if (marketingPhotoCount > 0) {
+      parts.push(
+        t("settings.summary.marketingPhotos", {
+          count: String(marketingPhotoCount),
+        }),
+      );
+    }
+    const address = marketing.marketing?.marketing_address?.trim();
+    if (address) {
+      parts.push(address.length > 24 ? `${address.slice(0, 24)}…` : address);
+    }
+    if (parts.length === 0 && marketingSummaryRaw) {
+      parts.push(marketingSummaryRaw);
+    }
+    return parts.length > 0 ? parts.join(" · ") : t("settings.summary.marketingEmpty");
+  })();
+
+  const TECHNICIAN_DEPT_LABEL: Record<TechnicianDept, string> = {
+    electrical: "settings.technician.dept.electrical",
+    plumbing: "settings.technician.dept.plumbing",
+    internet: "settings.technician.dept.internet",
+  };
+  const technicianSummary = (() => {
+    const contacts = account?.technician_contacts ?? {};
+    const parts = (["electrical", "plumbing", "internet"] as const)
+      .map((dept) =>
+        formatTechnicianSummaryEntry(
+          t(TECHNICIAN_DEPT_LABEL[dept] as Parameters<typeof t>[0]),
+          contacts[dept],
+        ),
+      )
+      .filter((entry): entry is string => Boolean(entry));
+    return parts.length > 0 ? parts.join(" · ") : t("settings.summary.technicianEmpty");
+  })();
+
+  const handleSave = save;
+
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
-      <div className="mx-auto max-w-xl">
-        <header className="border-b border-zinc-200 pb-6">
+    <main className="min-h-screen bg-white px-4 py-6 pb-24 text-zinc-900">
+      <div className="mx-auto max-w-xl space-y-6">
+        <header className="space-y-4 border-b border-zinc-100 pb-6">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+            <p className="text-sm font-medium uppercase tracking-wide text-green-600">
               {t("settings.tag")}
             </p>
             <LocaleToggleSkin />
           </div>
-          <h1 className="mt-2 text-2xl font-bold">{t("settings.title")}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("settings.title")}</h1>
 
           <ProjectSelectorSkin
             properties={properties}
@@ -154,14 +237,14 @@ function SettingsContent() {
           />
 
           {showAddForm && (
-            <div className="mt-3 rounded-lg border border-zinc-200 bg-white p-3">
-              <label className="block space-y-1 text-sm">
-                <span className="font-medium">{t("owner.projectName")}</span>
+            <div className="mt-3 rounded-xl border border-zinc-100 bg-zinc-50 p-6">
+              <label className="block space-y-1 text-sm text-zinc-500">
+                <span className="font-medium text-zinc-900">{t("owner.projectName")}</span>
                 <input
                   value={newProjectName}
                   onChange={(event) => setNewProjectName(event.target.value)}
                   placeholder={t("owner.projectNamePlaceholder")}
-                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+                  className={inputClass}
                 />
               </label>
               {newProjectName.trim() && (
@@ -174,11 +257,11 @@ function SettingsContent() {
                 </div>
               )}
               {createProject.error === "PROJECT_LIMIT_EXCEEDED" && (
-                <div className="mt-2 text-xs text-amber-800">
+                <div className="mt-2 text-sm text-amber-800">
                   <p>{t("owner.projectLimitReached")}</p>
                   <a
                     href={`/billing?property=${encodeURIComponent(propertySlug)}`}
-                    className="underline"
+                    className="inline-flex min-h-12 items-center underline"
                   >
                     {t("owner.planBilling.managePlan")}
                   </a>
@@ -186,9 +269,9 @@ function SettingsContent() {
               )}
               {createSlugError &&
                 createProject.error !== "PROJECT_LIMIT_EXCEEDED" && (
-                  <p className="mt-2 text-xs text-red-700">{createSlugError}</p>
+                  <p className="mt-2 text-sm text-red-600">{createSlugError}</p>
                 )}
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex gap-3">
                 <button
                   type="button"
                   disabled={
@@ -197,7 +280,7 @@ function SettingsContent() {
                     !isProjectSlugPayloadValid(createSlugPayload)
                   }
                   onClick={() => void handleCreateProject()}
-                  className="rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                  className="flex min-h-14 flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {createProject.status === "creating"
                     ? t("owner.creatingProject")
@@ -210,7 +293,7 @@ function SettingsContent() {
                     setNewProjectName("");
                     setCreateSlugPayload({ manualSlug: null });
                   }}
-                  className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700"
+                  className="flex min-h-12 flex-1 items-center justify-center rounded-lg border border-zinc-200 text-base text-zinc-700"
                 >
                   {t("owner.rooms.close")}
                 </button>
@@ -247,224 +330,190 @@ function SettingsContent() {
           )}
         </header>
 
-        <section className="mt-8 space-y-4">
+        <section className="space-y-3">
           {!hasProject ? (
-            <p className="text-sm text-zinc-600">{t("owner.noProjectSettingsHint")}</p>
+            <p className="text-base text-zinc-600">{t("owner.noProjectSettingsHint")}</p>
           ) : (
             <>
-          <p className="text-sm text-zinc-600">{t("settings.desc")}</p>
+              {status === "loading" && (
+                <p className="text-base text-zinc-500">{t("common.loading")}</p>
+              )}
 
-          {status === "loading" && (
-            <p className="text-sm text-zinc-500">{t("common.loading")}</p>
-          )}
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
 
-          {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {error}
-            </div>
-          )}
+              {account && (
+                <div className="space-y-3">
+                  <SettingsSectionRowSkin
+                    title={t("settings.row.paymentAccount")}
+                    summary={
+                      buildPaymentAccountSummary(account) ||
+                      t("settings.summary.paymentEmpty")
+                    }
+                    disabled={status === "loading"}
+                    onOpen={() => setOpenSection("payment")}
+                  />
+                  <SettingsSectionRowSkin
+                    title={t("settings.displayTitle")}
+                    summary={displaySummary}
+                    onOpen={() => setOpenSection("display")}
+                  />
+                  <SettingsSectionRowSkin
+                    id="billing"
+                    title={t("settings.row.billing")}
+                    summary={t("settings.summary.billing", {
+                      day: String(account.billing_day),
+                      soft: String(account.reminder_soft_days),
+                      firm: String(account.reminder_firm_days),
+                      final: String(account.reminder_final_days),
+                    })}
+                    highlighted={billingHighlighted}
+                    disabled={status === "loading"}
+                    onOpen={() => setOpenSection("billing")}
+                  />
+                  <SettingsSectionRowSkin
+                    title={t("settings.marketingTitle")}
+                    summary={marketingSummary}
+                    disabled={marketing.status === "loading"}
+                    onOpen={() => setOpenSection("marketing")}
+                  />
+                  <SettingsSectionRowSkin
+                    title={t("settings.contactTitle")}
+                    summary={
+                      buildContactSummary(account) || t("settings.summary.contactEmpty")
+                    }
+                    disabled={status === "loading"}
+                    onOpen={() => setOpenSection("contact")}
+                  />
+                  <SettingsSectionRowSkin
+                    title={t("settings.row.technician")}
+                    summary={technicianSummary}
+                    disabled={status === "loading"}
+                    onOpen={() => setOpenSection("technician")}
+                  />
+                  <SettingsSectionRowSkin
+                    title={t("settings.row.notify")}
+                    summary={notifySummary}
+                    onOpen={() => setOpenSection("notify")}
+                  />
+                </div>
+              )}
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.promptPay")}</span>
-            <input
-              value={promptPay}
-              onChange={(event) => setPromptPay(event.target.value)}
-              placeholder="0812345678"
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-            />
-          </label>
-
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.bankAccount")}</span>
-            <input
-              value={bankAccount}
-              onChange={(event) => setBankAccount(event.target.value)}
-              placeholder="123-4-56789-0"
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-            />
-          </label>
-
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.receiverName")}</span>
-            <input
-              value={receiverName}
-              onChange={(event) => setReceiverName(event.target.value)}
-              placeholder={t("settings.receiverPlaceholder")}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-            />
-          </label>
-
-          <div id="billing" className="scroll-mt-6 border-t border-zinc-200 pt-6">
-            <h2 className="text-sm font-semibold">{t("settings.billingTitle")}</h2>
-            <p className="mt-1 text-xs text-zinc-500">{t("settings.billingDesc")}</p>
-
-            <label className="mt-4 block space-y-1 text-sm">
-              <span className="font-medium">{t("settings.billingDay")}</span>
-              <input
-                type="number"
-                min={1}
-                max={28}
-                value={billingDay}
-                onChange={(event) => setBillingDay(event.target.value)}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-              />
-            </label>
-
-            <label className="mt-4 block space-y-1 text-sm">
-              <span className="font-medium">{t("settings.meterReminder")}</span>
-              <input
-                type="number"
-                min={1}
-                max={7}
-                value={meterReminderDays}
-                onChange={(event) => setMeterReminderDays(event.target.value)}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-              />
-            </label>
-
-            <label className="mt-4 flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-white px-3 py-3 text-sm">
-              <span className="font-medium">{t("settings.includeUtilities")}</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={includeUtilities}
-                onClick={() => setIncludeUtilities((prev) => !prev)}
-                className={`relative h-6 w-11 rounded-full transition ${
-                  includeUtilities ? "bg-green-600" : "bg-zinc-300"
-                }`}
+              <a
+                href={`/billing?property=${encodeURIComponent(propertySlug)}`}
+                className="flex min-h-12 items-center justify-center text-center text-base text-green-700 underline"
               >
-                <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition ${
-                    includeUtilities ? "left-5" : "left-0.5"
-                  }`}
-                />
-              </button>
-            </label>
-            <p className="mt-1 text-xs text-zinc-500">
-              {includeUtilities
-                ? t("settings.includeUtilitiesOn")
-                : t("settings.includeUtilitiesOff")}
-            </p>
+                {t("owner.planBilling.managePlan")}
+              </a>
 
-            {includeUtilities && (
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="block space-y-1 text-sm">
-                  <span className="font-medium">{t("settings.waterRate")}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={999}
-                    step={0.01}
-                    value={waterRate}
-                    onChange={(event) => setWaterRate(event.target.value)}
-                    className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-                  />
-                </label>
-                <label className="block space-y-1 text-sm">
-                  <span className="font-medium">{t("settings.electricRate")}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={999}
-                    step={0.01}
-                    value={electricRate}
-                    onChange={(event) => setElectricRate(event.target.value)}
-                    className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-                  />
-                </label>
-              </div>
-            )}
-          </div>
-
-          <PropertyMarketingSettingsSkin propertySlug={propertySlug} />
-
-          <div className="border-t border-zinc-200 pt-6">
-            <h2 className="text-sm font-semibold">{t("settings.contactTitle")}</h2>
-            <p className="mt-1 text-xs text-zinc-500">{t("settings.contactDesc")}</p>
-          </div>
-
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.contactLineUrl")}</span>
-            <input
-              value={contactLineUrl}
-              onChange={(event) => setContactLineUrl(event.target.value)}
-              placeholder="https://line.me/ti/p/..."
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-            />
-            <p className="text-xs text-zinc-500">{t("settings.contactLineUrlHint")}</p>
-          </label>
-
-          <ContactLineQrSkin
-            propertySlug={propertySlug}
-            qrUrl={contactLineQrUrl || null}
-            onUploaded={setContactLineQrUrl}
-            onRemove={() => {
-              setContactLineQrUrl("");
-              void save({ contact_line_qr_url: null });
-            }}
-          />
-
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.contactPhone")}</span>
-            <input
-              value={contactPhone}
-              onChange={(event) => setContactPhone(event.target.value)}
-              placeholder="0812345678"
-              inputMode="numeric"
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
-            />
-          </label>
-
-          <OwnerLineNotifySkin
-            propertySlug={propertySlug}
-            ownerLineUserId={ownerLineUserId || null}
-            onDisconnect={() => {
-              setOwnerLineUserId("");
-              void save({ owner_line_user_id: null });
-            }}
-          />
-
-          <button
-            type="button"
-            disabled={status === "loading" || status === "saving"}
-            onClick={() =>
-              void save({
-                prompt_pay: promptPay,
-                bank_account: bankAccount,
-                receiver_name: receiverName,
-                contact_line_url: contactLineUrl,
-                contact_line_qr_url: contactLineQrUrl || null,
-                contact_phone: contactPhone,
-                owner_line_user_id: ownerLineUserId || null,
-                billing_day: Number(billingDay),
-                meter_reminder_days_before: Number(meterReminderDays),
-                include_utilities: includeUtilities,
-                water_rate_per_unit: Number(waterRate),
-                electric_rate_per_unit: Number(electricRate),
-              })
-            }
-            className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {status === "saving" ? t("common.saving") : t("settings.save")}
-          </button>
-
-          <a
-            href={`/billing?property=${encodeURIComponent(propertySlug)}`}
-            className="block text-center text-sm text-green-700 underline"
-          >
-            {t("owner.planBilling.managePlan")}
-          </a>
-
-          <a
-            href={`/dashboard?property=${encodeURIComponent(propertySlug)}`}
-            className="block text-center text-sm text-zinc-600 underline"
-          >
-            {t("common.backToDashboard")}
-          </a>
+              <a
+                href={`/dashboard?property=${encodeURIComponent(propertySlug)}`}
+                className="flex min-h-12 items-center justify-center text-center text-base text-zinc-600 underline"
+              >
+                {t("common.backToDashboard")}
+              </a>
             </>
           )}
         </section>
       </div>
+
+      {openSection === "payment" && account && (
+        <SettingsPaymentAccountModalSkin
+          promptPay={account.prompt_pay ?? ""}
+          bankAccount={account.bank_account ?? ""}
+          receiverName={account.receiver_name ?? ""}
+          saving={status === "saving"}
+          onClose={() => setOpenSection(null)}
+          onSave={(input) => handleSave(input)}
+        />
+      )}
+
+      {openSection === "display" && (
+        <SettingsDisplayModalSkin
+          format={monthDisplay.format}
+          easyMode={easyMode}
+          onFormatChange={monthDisplay.setFormat}
+          onEasyModeChange={setEasyMode}
+          onClose={() => setOpenSection(null)}
+        />
+      )}
+
+      {openSection === "billing" && account && (
+        <SettingsBillingModalSkin
+          billingDay={account.billing_day}
+          meterReminderDays={account.meter_reminder_days_before}
+          reminderSoftDays={account.reminder_soft_days}
+          reminderFirmDays={account.reminder_firm_days}
+          reminderFinalDays={account.reminder_final_days}
+          reminderTemplateSoft={account.reminder_template_soft}
+          reminderTemplateFirm={account.reminder_template_firm}
+          reminderTemplateFinal={account.reminder_template_final}
+          includeUtilities={account.include_utilities}
+          waterRate={account.water_rate_per_unit}
+          electricRate={account.electric_rate_per_unit}
+          saving={status === "saving"}
+          onClose={() => setOpenSection(null)}
+          onSave={(input) => handleSave(input)}
+        />
+      )}
+
+      {openSection === "marketing" && propertySlug && (
+        <SettingsMarketingModalSkin
+          propertySlug={propertySlug}
+          onClose={() => {
+            setOpenSection(null);
+            void marketing.reload();
+          }}
+        />
+      )}
+
+      {openSection === "contact" && account && propertySlug && (
+        <SettingsContactModalSkin
+          propertySlug={propertySlug}
+          contactLineUrl={account.contact_line_url ?? ""}
+          contactLineQrUrl={account.contact_line_qr_url ?? ""}
+          contactPhone={account.contact_phone ?? ""}
+          saving={status === "saving"}
+          onClose={() => setOpenSection(null)}
+          onSave={(input) => handleSave(input)}
+          onQrRemove={() => {
+            void handleSave({ contact_line_qr_url: null });
+          }}
+        />
+      )}
+
+      {openSection === "technician" && account && (
+        <SettingsTechnicianModalSkin
+          contacts={account.technician_contacts}
+          saving={status === "saving"}
+          onClose={() => setOpenSection(null)}
+          onSave={(input) => handleSave(input)}
+        />
+      )}
+
+      {openSection === "notify" && propertySlug && account && (
+        <SettingsNotifyModalSkin
+          propertySlug={propertySlug}
+          ownerLineUserId={account.owner_line_user_id}
+          pushPermission={push.permission}
+          pushConfigured={Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)}
+          pushRequesting={push.requesting}
+          onDisconnectLine={() => {
+            void handleSave({ owner_line_user_id: null });
+          }}
+          onEnablePush={() => void push.requestPermission()}
+          onClose={() => setOpenSection(null)}
+        />
+      )}
+
+      {propertySlug && (
+        <OwnerBottomNavSkin activeTab="home" propertySlug={propertySlug} />
+      )}
+
+      <OwnerPushNotificationPrompts push={push} />
     </main>
   );
 }

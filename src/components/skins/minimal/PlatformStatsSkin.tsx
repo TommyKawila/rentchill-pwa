@@ -16,6 +16,7 @@ const LINE_TYPE_LABELS: Record<string, string> = {
   payment_reminder: "admin.platform.lineType.payment_reminder",
   slip_rejected: "admin.platform.lineType.slip_rejected",
   owner_slip_submitted: "admin.platform.lineType.owner_slip_submitted",
+  maintenance_reported: "admin.platform.lineType.maintenance_reported",
   payment_confirmed: "admin.platform.lineType.payment_confirmed",
   subscription_grace: "admin.platform.lineType.subscription_grace",
   webhook_fallback: "admin.platform.lineType.webhook_fallback",
@@ -80,7 +81,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
       <section className="rounded-lg border border-zinc-200 bg-white p-4">
         <h2 className="text-sm font-semibold">{t("admin.platform.lineOaTitle")}</h2>
         {!stats.line_oa_available ? (
-          <p className="mt-2 text-xs text-zinc-500">
+          <p className="mt-2 text-sm text-zinc-500">
             {t("admin.platform.lineOaUnavailable")}
           </p>
         ) : stats.line_oa_limit !== null ? (
@@ -104,7 +105,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
                 style={{ width: `${Math.min(100, stats.line_oa_percent ?? 0)}%` }}
               />
             </div>
-            <p className="text-xs text-zinc-500">
+            <p className="text-sm text-zinc-500">
               {t("admin.platform.lineOaPlan", {
                 plan: t(`admin.platform.lineOaPlan.${stats.line_oa_plan}`),
               })}
@@ -116,7 +117,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
           </p>
         )}
         {stats.line_log_gap > 0 && (
-          <p className="mt-2 text-xs text-amber-800">
+          <p className="mt-2 text-sm text-amber-800">
             {t("admin.platform.lineGap", { gap: stats.line_log_gap })}
           </p>
         )}
@@ -136,13 +137,13 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
         </div>
         {stats.line_push_top.length > 0 && (
           <div className="mt-3 space-y-2">
-            <p className="text-xs font-medium text-zinc-600">
+            <p className="text-sm font-medium text-zinc-600">
               {t("admin.platform.linePushTop")}
             </p>
             {stats.line_push_top.map((property) => (
               <div
                 key={property.slug}
-                className="flex items-center justify-between rounded-md bg-zinc-50 px-3 py-2 text-xs"
+                className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm"
               >
                 <span>{property.name}</span>
                 <span className="font-semibold">{property.count}</span>
@@ -163,7 +164,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
                   style={{ height: `${(day.total / dailyMax) * 64}px` }}
                   title={`${day.date}: ${day.total}`}
                 />
-                <span className="text-[9px] text-zinc-400">
+                <span className="text-sm text-zinc-400">
                   {day.date.slice(8)}
                 </span>
               </div>
@@ -181,7 +182,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
               return (
                 <div
                   key={row.message_type}
-                  className="flex items-center justify-between rounded-md bg-zinc-50 px-3 py-2 text-xs"
+                  className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm"
                 >
                   <span>
                     {labelKey
@@ -202,7 +203,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
           {PLAN_TIERS.map((tier) => (
             <div
               key={tier}
-              className="flex items-center justify-between rounded-md bg-zinc-50 px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm"
             >
               <span>{t(`owner.plan.tier.${tier}`)}</span>
               <span className="font-semibold">{stats.plan_breakdown[tier]}</span>
@@ -217,7 +218,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
-      <p className="text-xs text-zinc-500">{label}</p>
+      <p className="text-sm text-zinc-500">{label}</p>
       <p className="text-2xl font-bold">{value}</p>
     </div>
   );

@@ -43,7 +43,7 @@ export function usePropertyPaymentSettings(propertySlug: string) {
   }, [load]);
 
   const save = useCallback(
-    async (input: PropertyPaymentInput) => {
+    async (input: PropertyPaymentInput): Promise<boolean> => {
       setStatus("saving");
       setError(null);
 
@@ -69,9 +69,11 @@ export function usePropertyPaymentSettings(propertySlug: string) {
 
         setAccount(payload.account);
         setStatus("idle");
+        return true;
       } catch (err) {
         setStatus("error");
         setError(err instanceof Error ? err.message : "บันทึกไม่สำเร็จ");
+        return false;
       }
     },
     [propertySlug],

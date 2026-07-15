@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/services/supabase/admin";
+import { auditInvoiceApprove } from "@/services/auditLogService";
 import { INVOICE_SELECT, mapInvoiceRow } from "@/services/invoiceFields";
 import { safeNotifyPaymentConfirmed } from "@/services/notificationService";
 import { matchSlipReceiver } from "@/services/slipAccountMatchService";
@@ -23,8 +24,11 @@ export type SlipVerificationOutcome = {
   };
 };
 
+export type SlipVerifyTrigger = "tenant_submit" | "owner_verify";
+
 export async function verifyInvoiceSlip(
   invoiceId: string,
+  options?: { trigger?: SlipVerifyTrigger },
 ): Promise<SlipVerificationOutcome> {
   const supabase = createAdminClient();
 
@@ -102,6 +106,16 @@ export async function verifyInvoiceSlip(
   }
 
   void safeNotifyPaymentConfirmed(invoiceId);
+
+  await auditInvoiceApprove({
+    invoiceId,
+    method: "slip_review_auto",
+    actorType: "system",
+    detail: {
+      trigger: options?.trigger ?? "tenant_submit",
+      trans_ref: result.transRef,
+    },
+  });
 
   return {
     invoice: mapInvoice(paid),

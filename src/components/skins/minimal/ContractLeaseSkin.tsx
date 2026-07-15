@@ -27,7 +27,7 @@ export function ContractLeaseSkin({
 
   if (!canGenerateContractPdf(planTier)) {
     return (
-      <p className="text-xs text-zinc-500">{t("owner.contract.upgradeHint")}</p>
+      <p className="text-sm text-zinc-500">{t("owner.contract.upgradeHint")}</p>
     );
   }
 
@@ -45,20 +45,20 @@ export function ContractLeaseSkin({
           title={t("owner.contract.title")}
           onClose={() => setOpen(false)}
         >
-          <div className="space-y-2">
-            <p className="text-[11px] text-zinc-500">{t("owner.contract.desc")}</p>
+          <div className="space-y-3">
+            <p className="text-sm text-zinc-500">{t("owner.contract.desc")}</p>
             <button
               type="button"
               disabled={disabled || loading}
               onClick={onGenerate}
-              className="min-h-11 w-full rounded-md border border-zinc-200 bg-zinc-50 py-2 text-xs font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? t("common.saving") : t("owner.contract.generate")}
             </button>
             {canUseESign(planTier) && (
-              <p className="text-[11px] text-green-700">{t("owner.contract.esignHint")}</p>
+              <p className="text-sm text-green-600">{t("owner.contract.esignHint")}</p>
             )}
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
           </div>
         </RoomDetailSubModalShell>
       )}

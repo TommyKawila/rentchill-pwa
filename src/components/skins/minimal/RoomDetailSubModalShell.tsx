@@ -39,25 +39,25 @@ export function RoomDetailSubModalShell({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 flex max-h-[85vh] w-full max-w-xl flex-col rounded-t-xl border border-zinc-200 bg-white shadow-lg sm:rounded-xl"
+        className="relative z-10 flex max-h-[85vh] w-full max-w-xl flex-col rounded-t-xl border border-zinc-200 bg-white sm:rounded-xl"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
+        <header className="flex items-start justify-between gap-3 border-b border-zinc-100 p-6 pb-4">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
+            <h2 className="text-base font-semibold text-zinc-900">{title}</h2>
             {subtitle && (
-              <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>
+              <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 rounded-md border border-zinc-200 px-2 py-1 text-xs font-medium text-zinc-600"
+            className="inline-flex min-h-12 shrink-0 items-center rounded-lg border border-zinc-200 px-4 text-base font-medium text-zinc-600"
           >
             {t("owner.rooms.close")}
           </button>
         </header>
 
-        <div className="overflow-y-auto px-4 py-4">{children}</div>
+        <div className="overflow-y-auto p-6 pt-0">{children}</div>
       </div>
     </div>
   );

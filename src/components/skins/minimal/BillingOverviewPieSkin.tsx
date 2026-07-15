@@ -9,10 +9,12 @@ import {
 import {
   SEGMENT_COLORS,
   SEGMENT_LABEL_KEYS,
+  CHILL_COLORS,
 } from "@/components/skins/minimal/billingOverviewChartUtils";
 
 interface BillingOverviewPieSkinProps {
   overview: BillingOverview;
+  chillMode?: boolean;
 }
 
 const SIZE = 120;
@@ -22,9 +24,13 @@ const R = 40;
 const STROKE = 12;
 const CIRCUMFERENCE = 2 * Math.PI * R;
 
-function DonutChart({ overview }: { overview: BillingOverview }) {
-  const segments = getOverviewSegments(overview).filter((s) => s.value > 0);
-
+function DonutChart({
+  overview,
+  chillMode,
+}: {
+  overview: BillingOverview;
+  chillMode: boolean;
+}) {
   if (overview.total === 0) {
     return (
       <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden>
@@ -39,6 +45,23 @@ function DonutChart({ overview }: { overview: BillingOverview }) {
       </svg>
     );
   }
+
+  if (chillMode) {
+    return (
+      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden>
+        <circle
+          cx={CX}
+          cy={CY}
+          r={R}
+          fill="none"
+          stroke={CHILL_COLORS.stroke}
+          strokeWidth={STROKE}
+        />
+      </svg>
+    );
+  }
+
+  const segments = getOverviewSegments(overview).filter((s) => s.value > 0);
 
   let accumulated = 0;
 
@@ -68,12 +91,35 @@ function DonutChart({ overview }: { overview: BillingOverview }) {
   );
 }
 
-function Legend({ overview }: { overview: BillingOverview }) {
+function Legend({
+  overview,
+  chillMode,
+}: {
+  overview: BillingOverview;
+  chillMode: boolean;
+}) {
   const { t } = useLocale();
+
+  if (chillMode && overview.total > 0) {
+    return (
+      <ul className="grid grid-cols-1 gap-y-3 text-sm text-zinc-600">
+        <li className="flex items-center gap-1.5">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${CHILL_COLORS.dot}`} />
+          <span className="min-w-0 truncate font-medium text-[var(--color-rc-green)]">
+            {t("owner.overview.chillBadge")}
+          </span>
+          <span className="ml-auto tabular-nums font-medium text-zinc-900">
+            {overview.total}
+          </span>
+        </li>
+      </ul>
+    );
+  }
+
   const segments = getOverviewSegments(overview);
 
   return (
-    <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-zinc-600">
+    <ul className="grid grid-cols-2 gap-x-3 gap-y-3 text-sm text-zinc-600">
       {segments.map((seg) => (
         <li key={seg.key} className="flex items-center gap-1.5">
           <span
@@ -89,7 +135,10 @@ function Legend({ overview }: { overview: BillingOverview }) {
   );
 }
 
-export function BillingOverviewPieSkin({ overview }: BillingOverviewPieSkinProps) {
+export function BillingOverviewPieSkin({
+  overview,
+  chillMode = false,
+}: BillingOverviewPieSkinProps) {
   const { t } = useLocale();
   const labels = {
     notIssued: t("owner.overview.notIssued"),
@@ -97,7 +146,9 @@ export function BillingOverviewPieSkin({ overview }: BillingOverviewPieSkinProps
     unpaid: t("owner.overview.unpaid"),
     scanning: t("owner.overview.scanning"),
   };
-  const summary = getOverviewSummary(overview, labels);
+  const summary = chillMode
+    ? t("owner.overview.chillBadge")
+    : getOverviewSummary(overview, labels);
 
   return (
     <div
@@ -105,16 +156,16 @@ export function BillingOverviewPieSkin({ overview }: BillingOverviewPieSkinProps
       aria-label={summary || t("owner.overview.chartSummaryEmpty")}
     >
       <div className="relative shrink-0">
-        <DonutChart overview={overview} />
+        <DonutChart overview={overview} chillMode={chillMode} />
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <p className="text-2xl font-bold tabular-nums tracking-tight text-zinc-900">
             {overview.total}
           </p>
-          <p className="text-[10px] text-zinc-500">{t("owner.overview.centerTotal")}</p>
+          <p className="text-sm text-zinc-500">{t("owner.overview.centerTotal")}</p>
         </div>
       </div>
       <div className="w-full min-w-0 sm:flex-1">
-        <Legend overview={overview} />
+        <Legend overview={overview} chillMode={chillMode} />
       </div>
     </div>
   );

@@ -16,14 +16,14 @@ export function TenantMeterPhotosSkin({ photos }: TenantMeterPhotosSkinProps) {
   const electric = photos.filter((p) => p.utility_type === "electric");
 
   return (
-    <section className="border-t border-zinc-200 px-6 py-4">
-      <p className="text-xs font-medium text-zinc-600">{t("tenant.meterPhoto.title")}</p>
-      <p className="mt-1 text-[11px] text-zinc-500">{t("tenant.meterPhoto.desc")}</p>
+    <section className="border-t border-zinc-100 px-6 py-4">
+      <p className="text-sm font-medium text-zinc-900">{t("tenant.meterPhoto.title")}</p>
+      <p className="mt-1 text-sm text-zinc-500">{t("tenant.meterPhoto.desc")}</p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         {water.length > 0 && (
           <div>
-            <p className="text-[11px] text-zinc-500">{t("owner.billing.water")}</p>
-            <div className="mt-1 flex gap-2 overflow-x-auto">
+            <p className="text-sm text-zinc-500">{t("owner.billing.water")}</p>
+            <div className="mt-1 flex gap-3 overflow-x-auto">
               {water.map((photo) => (
                 <a key={photo.id} href={photo.public_url} target="_blank" rel="noopener noreferrer">
                   <img
@@ -38,8 +38,8 @@ export function TenantMeterPhotosSkin({ photos }: TenantMeterPhotosSkinProps) {
         )}
         {electric.length > 0 && (
           <div>
-            <p className="text-[11px] text-zinc-500">{t("owner.billing.electric")}</p>
-            <div className="mt-1 flex gap-2 overflow-x-auto">
+            <p className="text-sm text-zinc-500">{t("owner.billing.electric")}</p>
+            <div className="mt-1 flex gap-3 overflow-x-auto">
               {electric.map((photo) => (
                 <a key={photo.id} href={photo.public_url} target="_blank" rel="noopener noreferrer">
                   <img

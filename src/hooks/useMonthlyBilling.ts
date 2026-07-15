@@ -19,6 +19,9 @@ type BillingResult = {
 const defaultSettings: PropertyBillingSettings = {
   billing_day: 1,
   meter_reminder_days_before: 3,
+  reminder_soft_days: 3,
+  reminder_firm_days: 7,
+  reminder_final_days: 10,
   include_utilities: true,
   water_rate_per_unit: 10,
   electric_rate_per_unit: 7,

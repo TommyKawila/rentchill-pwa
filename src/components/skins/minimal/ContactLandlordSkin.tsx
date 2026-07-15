@@ -16,18 +16,18 @@ export function ContactLandlordSkin({ contact }: ContactLandlordSkinProps) {
   if (!lineUrl && !qrUrl && !phone) return null;
 
   return (
-    <section className="border-t border-zinc-200 px-6 py-4">
-      <p className="text-xs text-zinc-500">{t("tenant.contact.hint")}</p>
-      <div className="mt-2 flex flex-col gap-2">
+    <section className="border-t border-zinc-100 px-6 py-4">
+      <p className="text-sm text-zinc-500">{t("tenant.contact.hint")}</p>
+      <div className="mt-3 flex flex-col gap-3">
         {qrUrl && (
-          <div className="rounded-md border border-zinc-200 bg-white p-3 text-center">
+          <div className="rounded-xl border border-zinc-100 bg-white p-4 text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={qrUrl}
               alt={t("tenant.contact.qrAlt")}
               className="mx-auto h-36 w-36 object-contain"
             />
-            <p className="mt-2 text-xs text-zinc-500">{t("tenant.contact.qrHint")}</p>
+            <p className="mt-2 text-sm text-zinc-500">{t("tenant.contact.qrHint")}</p>
           </div>
         )}
         {lineUrl && (
@@ -35,7 +35,7 @@ export function ContactLandlordSkin({ contact }: ContactLandlordSkinProps) {
             href={lineUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full rounded-md border border-zinc-300 bg-white py-2.5 text-center text-sm font-medium text-zinc-800"
+            className="flex min-h-12 w-full items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-zinc-800"
           >
             {t("tenant.contact.line")}
           </a>
@@ -43,7 +43,7 @@ export function ContactLandlordSkin({ contact }: ContactLandlordSkinProps) {
         {phone && (
           <a
             href={`tel:${phone.replace(/\s/g, "")}`}
-            className="w-full rounded-md border border-zinc-300 bg-white py-2.5 text-center text-sm font-medium text-zinc-800"
+            className="flex min-h-12 w-full items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-zinc-800"
           >
             {t("tenant.contact.phone")}
           </a>

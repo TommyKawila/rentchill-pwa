@@ -55,13 +55,13 @@ export function TenantLineInvitePanel({
 
   if (!expanded) {
     return (
-      <div className={`rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5 ${className}`}>
+      <div className={`rounded-xl border border-zinc-100 bg-zinc-50 p-4 ${className}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-medium text-amber-700">
+            <p className="text-base font-medium text-amber-700">
               {t("owner.billing.lineNotLinked")}
             </p>
-            <p className="mt-0.5 text-zinc-600">
+            <p className="mt-1 text-sm text-zinc-600">
               {t("owner.billing.lineInviteRequired")}
             </p>
           </div>
@@ -69,7 +69,7 @@ export function TenantLineInvitePanel({
             type="button"
             aria-expanded={false}
             onClick={() => setExpanded(true)}
-            className="shrink-0 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 font-medium text-zinc-700"
+            className="inline-flex min-h-12 shrink-0 items-center rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-700"
           >
             {t("owner.billing.inviteHowTo")}
           </button>
@@ -79,13 +79,13 @@ export function TenantLineInvitePanel({
   }
 
   return (
-    <div className={`rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-3 ${className}`}>
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="font-medium text-amber-700">
+    <div className={`rounded-xl border border-zinc-100 bg-zinc-50 p-4 ${className}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-base font-medium text-amber-700">
             {t("owner.billing.lineNotLinked")}
           </p>
-          <p className="mt-0.5 text-zinc-600">
+          <p className="mt-1 text-sm text-zinc-600">
             {t("owner.billing.lineInviteRequired")}
           </p>
         </div>
@@ -93,20 +93,20 @@ export function TenantLineInvitePanel({
           type="button"
           aria-expanded={true}
           onClick={() => setExpanded(false)}
-          className="shrink-0 text-zinc-500 underline"
+          className="inline-flex min-h-12 shrink-0 items-center text-base text-zinc-600 underline"
         >
           {t("owner.billing.inviteCollapse")}
         </button>
       </div>
 
-      <p className="mt-3 text-zinc-500">
+      <p className="mt-3 text-sm text-zinc-500">
         {t("owner.billing.inviteCode")}:{" "}
-        <span className="font-mono font-medium text-zinc-800">
+        <span className="font-mono text-base font-medium text-zinc-800">
           {inviteCode || "-"}
         </span>
       </p>
 
-      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
           onClick={() => {
@@ -118,7 +118,7 @@ export function TenantLineInvitePanel({
               })
               .catch(() => setCopyError(t("owner.billing.copyFailed")));
           }}
-          className="flex-1 rounded-lg border border-zinc-200 bg-white py-2.5 font-medium text-zinc-800"
+          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-zinc-800"
         >
           {copied ? t("owner.billing.copied") : t("owner.billing.copyInvite")}
         </button>
@@ -135,7 +135,7 @@ export function TenantLineInvitePanel({
                 })
                 .catch(() => setCopyError(t("owner.billing.copyFailed")));
             }}
-            className="flex-1 rounded-lg border border-zinc-200 bg-white py-2.5 font-medium text-zinc-800"
+            className="inline-flex min-h-12 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-zinc-800"
           >
             {t("owner.billing.shareInvite")}
           </button>
@@ -149,7 +149,7 @@ export function TenantLineInvitePanel({
       />
 
       {copyError && (
-        <p className="mt-2 text-amber-800">{copyError}</p>
+        <p className="mt-2 text-sm text-red-600">{copyError}</p>
       )}
     </div>
   );

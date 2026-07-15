@@ -55,7 +55,7 @@ export function OwnerToolsMenuSkin({
   }, [open]);
 
   const itemClass =
-    "group flex min-h-11 w-full items-center gap-x-3 rounded-lg px-3 py-2 text-left font-medium hover:bg-zinc-50 disabled:opacity-50";
+    "group flex min-h-12 w-full items-center gap-x-3 rounded-lg px-3 py-2 text-left text-base font-medium hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
     <div ref={rootRef} className="relative min-w-0 flex-1">
@@ -63,7 +63,7 @@ export function OwnerToolsMenuSkin({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className="group flex min-h-11 w-full items-center justify-center gap-x-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 font-medium"
+        className="group flex min-h-12 w-full items-center justify-center gap-x-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-base font-medium"
       >
         <NavMenuItemLabel icon={Wrench}>{t("owner.nav.tools")}</NavMenuItemLabel>
         <span className="text-zinc-500 group-hover:text-zinc-900" aria-hidden>
@@ -73,7 +73,11 @@ export function OwnerToolsMenuSkin({
 
       {open && (
         <div className="absolute left-0 right-0 z-20 mt-1 rounded-xl border border-zinc-100 bg-white p-1">
-          <a href="/import" className={itemClass} onClick={() => setOpen(false)}>
+          <a
+            href={`/import?property=${encodeURIComponent(propertySlug)}`}
+            className={itemClass}
+            onClick={() => setOpen(false)}
+          >
             <NavMenuItemLabel icon={FileSpreadsheet}>
               {t("owner.nav.import")}
             </NavMenuItemLabel>

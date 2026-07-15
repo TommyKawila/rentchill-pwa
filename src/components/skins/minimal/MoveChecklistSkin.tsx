@@ -47,28 +47,28 @@ export function MoveChecklistSkin({
           title={t("owner.moveChecklist.title")}
           onClose={() => setOpen(false)}
         >
-          <div className="space-y-2">
-            <ul className="space-y-1 text-[11px] text-zinc-500">
+          <div className="space-y-3">
+            <ul className="space-y-1 text-sm text-zinc-500">
               <li>· {t("owner.moveChecklist.item.room")}</li>
               <li>· {t("owner.moveChecklist.item.meter")}</li>
               <li>· {t("owner.moveChecklist.item.keys")}</li>
             </ul>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => capture("move_in")}
-                className="min-h-11 flex-1 rounded-md border border-zinc-200 bg-zinc-50 py-2 text-xs font-medium disabled:opacity-50"
+                className="flex min-h-14 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {t("owner.moveChecklist.moveIn")}
+                {busy ? t("common.saving") : t("owner.moveChecklist.moveIn")}
               </button>
               <button
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => capture("move_out")}
-                className="min-h-11 flex-1 rounded-md border border-zinc-200 bg-zinc-50 py-2 text-xs font-medium disabled:opacity-50"
+                className="flex min-h-14 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {t("owner.moveChecklist.moveOut")}
+                {busy ? t("common.saving") : t("owner.moveChecklist.moveOut")}
               </button>
             </div>
             <input

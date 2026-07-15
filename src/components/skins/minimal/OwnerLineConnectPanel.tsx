@@ -100,7 +100,7 @@ export function OwnerLineConnectPanel({
             <p className="text-sm text-zinc-600">{t("settings.notifySuccessHint")}</p>
             <a
               href={`/settings?property=${encodeURIComponent(propertySlug)}`}
-              className="mt-2 rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white"
+              className="mt-2 flex min-h-14 items-center rounded-lg bg-rc-green px-6 text-base font-medium text-white hover:bg-rc-green-dark"
             >
               {t("settings.notifyBackToSettings")}
             </a>
@@ -111,7 +111,7 @@ export function OwnerLineConnectPanel({
             <p className="text-sm text-red-700">{error}</p>
             <a
               href={`/settings?property=${encodeURIComponent(propertySlug)}`}
-              className="mt-2 text-sm text-zinc-600 underline"
+              className="mt-2 inline-flex min-h-12 items-center text-base text-zinc-600 underline"
             >
               {t("settings.notifyBackToSettings")}
             </a>

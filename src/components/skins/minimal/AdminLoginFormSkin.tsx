@@ -13,6 +13,9 @@ const LOGIN_PATHS: Record<AdminLoginVariant, string> = {
   platform: "/admin/platform/login",
 };
 
+const inputClass =
+  "min-h-12 w-full rounded-lg border border-zinc-200 px-3 py-2 text-base text-zinc-900";
+
 function resolveDestination(
   variant: AdminLoginVariant,
   isSuperadmin: boolean,
@@ -78,44 +81,44 @@ export function AdminLoginFormSkin({ variant }: { variant: AdminLoginVariant }) 
   };
 
   const badgeClass = isPlatform
-    ? "text-xs font-medium uppercase tracking-wide text-amber-700"
-    : "text-xs font-medium uppercase tracking-wide text-green-600";
+    ? "text-sm font-medium uppercase tracking-wide text-amber-700"
+    : "text-sm font-medium uppercase tracking-wide text-green-600";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-white px-4">
       <form
         onSubmit={(event) => void onSubmit(event)}
-        className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-6"
+        className="w-full max-w-sm rounded-xl border border-zinc-100 bg-white p-6"
       >
         <div className="mb-4 flex justify-end">
           <LocaleToggleSkin />
         </div>
         <p className={badgeClass}>RentChill</p>
-        <h1 className="mt-2 text-xl font-bold">
+        <h1 className="mt-2 text-xl font-bold tracking-tight">
           {isPlatform ? t("admin.login.portalTitle") : t("admin.login.title")}
         </h1>
-        <p className="mt-2 text-sm text-zinc-600">
+        <p className="mt-2 text-base text-zinc-600">
           {isPlatform ? t("admin.login.portalDesc") : t("admin.login.desc")}
         </p>
 
-        <label className="mt-6 block space-y-1 text-sm">
-          <span className="text-zinc-600">{t("admin.login.email")}</span>
+        <label className="mt-6 block space-y-1 text-sm text-zinc-500">
+          <span className="font-medium text-zinc-900">{t("admin.login.email")}</span>
           <input
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-md border border-zinc-200 px-3 py-2"
+            className={inputClass}
             required
           />
         </label>
 
-        <label className="mt-4 block space-y-1 text-sm">
-          <span className="text-zinc-600">{t("admin.login.password")}</span>
+        <label className="mt-4 block space-y-1 text-sm text-zinc-500">
+          <span className="font-medium text-zinc-900">{t("admin.login.password")}</span>
           <input
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-md border border-zinc-200 px-3 py-2"
+            className={inputClass}
             required
           />
         </label>
@@ -125,14 +128,14 @@ export function AdminLoginFormSkin({ variant }: { variant: AdminLoginVariant }) 
         <button
           type="submit"
           disabled={isLoading}
-          className="mt-4 w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+          className="mt-4 flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? t("admin.login.loading") : t("admin.login.submit")}
         </button>
 
         {!isPlatform && (
-          <p className="mt-4 text-center text-sm text-zinc-500">
-            <Link href="/admin/signup" className="text-zinc-900 underline">
+          <p className="mt-4 text-center text-base text-zinc-500">
+            <Link href="/admin/signup" className="inline-flex min-h-12 items-center text-zinc-900 underline">
               {t("admin.login.signupLink")}
             </Link>
           </p>

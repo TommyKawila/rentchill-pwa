@@ -32,3 +32,9 @@ export const SEGMENT_LABEL_KEYS = {
   unpaid: "owner.overview.unpaid",
   scanning: "owner.overview.scanning",
 } as const;
+
+export const CHILL_COLORS = {
+  bar: "bg-[var(--color-rc-green)]",
+  dot: "bg-[var(--color-rc-green)]",
+  stroke: "#32b04d",
+} as const;

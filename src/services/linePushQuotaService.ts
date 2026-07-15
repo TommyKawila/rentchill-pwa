@@ -16,6 +16,7 @@ export type LinePushType =
   | "payment_reminder"
   | "slip_rejected"
   | "owner_slip_submitted"
+  | "maintenance_reported"
   | "payment_confirmed"
   | "subscription_grace"
   | "webhook_fallback";

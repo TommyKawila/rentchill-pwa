@@ -14,20 +14,14 @@ function DevOwnerResetPanel({
   onReset: () => void;
 }) {
   const [devSecret, setDevSecret] = useState("");
+  const [confirming, setConfirming] = useState(false);
   const [status, setStatus] = useState<"idle" | "resetting" | "done" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
 
-  const handleReset = async () => {
-    if (!email.trim() || !devSecret) {
-      setStatus("error");
-      setMessage("กรอกอีเมลและ dev secret");
-      return;
-    }
-
-    if (!window.confirm(`ลบบัญชี ${email} และข้อมูลทั้งหมด?`)) return;
-
+  const runReset = async () => {
     setStatus("resetting");
     setMessage(null);
+    setConfirming(false);
     onReset();
 
     try {
@@ -56,10 +50,20 @@ function DevOwnerResetPanel({
     }
   };
 
+  const handleResetClick = () => {
+    if (!email.trim() || !devSecret) {
+      setStatus("error");
+      setMessage("กรอกอีเมลและ dev secret");
+      return;
+    }
+    setConfirming(true);
+    setMessage(null);
+  };
+
   return (
-    <div className="mt-6 rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Dev only</p>
-      <p className="mt-1 text-xs text-zinc-500">
+    <div className="mt-6 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 p-6">
+      <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">Dev only</p>
+      <p className="mt-1 text-sm text-zinc-500">
         ลบบัญชีทดสอบเพื่อสมัครใหม่ (ใช้ ADMIN_SECRET)
       </p>
       <label className="mt-3 block space-y-1 text-sm">
@@ -68,21 +72,49 @@ function DevOwnerResetPanel({
           type="password"
           value={devSecret}
           onChange={(event) => setDevSecret(event.target.value)}
-          className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2"
+          className="min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 text-base"
           placeholder="ADMIN_SECRET"
         />
       </label>
-      <button
-        type="button"
-        disabled={status === "resetting"}
-        onClick={() => void handleReset()}
-        className="mt-3 w-full rounded-lg border border-red-200 bg-red-50 py-2 text-sm font-medium text-red-700 disabled:opacity-50"
-      >
-        {status === "resetting" ? "กำลังลบ..." : "Reset บัญชีทดสอบ"}
-      </button>
+
+      {confirming ? (
+        <div className="mt-4 space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-base text-red-800">
+            ลบบัญชี <span className="font-semibold">{email}</span> และข้อมูลทั้งหมด?
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              disabled={status === "resetting"}
+              onClick={() => setConfirming(false)}
+              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              disabled={status === "resetting"}
+              onClick={() => void runReset()}
+              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-lg bg-red-700 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {status === "resetting" ? "กำลังลบ..." : "ยืนยันลบ"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={status === "resetting"}
+          onClick={handleResetClick}
+          className="mt-3 flex min-h-12 w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 text-base font-medium text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Reset บัญชีทดสอบ
+        </button>
+      )}
+
       {message && (
         <p
-          className={`mt-2 text-xs ${status === "done" ? "text-green-700" : "text-red-600"}`}
+          className={`mt-2 text-sm ${status === "done" ? "text-green-700" : "text-red-600"}`}
         >
           {message}
         </p>
@@ -134,7 +166,7 @@ export default function AdminSignupPage() {
         <div className="mb-4 flex justify-end">
           <LocaleToggleSkin />
         </div>
-        <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+        <p className="text-sm font-medium uppercase tracking-wide text-green-600">
           RentChill
         </p>
         <h1 className="mt-2 text-xl font-bold">{t("admin.signup.title")}</h1>
@@ -179,7 +211,7 @@ export default function AdminSignupPage() {
         <button
           type="submit"
           disabled={isLoading}
-          className="mt-4 w-full rounded-lg bg-green-600 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 w-full rounded-lg bg-green-600 py-3 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? t("admin.signup.loading") : t("admin.signup.submit")}
         </button>

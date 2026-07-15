@@ -32,7 +32,7 @@ export function RoomInviteQrSkin({
   <p><strong>${t("owner.qr.room", { number: roomNumber })}</strong></p>
   <p>${tenantName}</p>
   <img id="qr" src="${qrSrc}" width="240" height="240" alt="${t("owner.qr.alt")}" />
-  <p style="font-size:12px">${t("owner.qr.scanHint")}</p>
+  <p style="font-size:14px">${t("owner.qr.scanHint")}</p>
 </body></html>`);
     popup.document.close();
 
@@ -52,21 +52,21 @@ export function RoomInviteQrSkin({
   };
 
   return (
-    <div className="mt-2 rounded-md border border-zinc-200 bg-white p-3">
-      <p className="text-xs font-medium text-zinc-700">{t("owner.qr.title")}</p>
-      <div className="mt-2 flex items-center gap-3">
+    <div className="mt-2 rounded-xl border border-zinc-100 bg-white p-4">
+      <p className="text-sm font-medium text-zinc-900">{t("owner.qr.title")}</p>
+      <div className="mt-3 flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={qrSrc}
           alt={t("owner.qr.alt")}
           width={72}
           height={72}
-          className="rounded border border-zinc-200"
+          className="rounded-lg border border-zinc-200"
         />
         <button
           type="button"
           onClick={handlePrint}
-          className="flex-1 rounded-md border border-zinc-300 bg-zinc-50 py-2 text-xs font-medium text-zinc-800"
+          className="flex min-h-12 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium text-zinc-800"
         >
           {t("owner.qr.print")}
         </button>

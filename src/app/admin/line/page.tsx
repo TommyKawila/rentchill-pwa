@@ -26,7 +26,7 @@ function LineSetupContent() {
       <section className="mt-8 space-y-4 text-sm">
         <div>
           <h2 className="text-sm font-semibold">{t("line.title")}</h2>
-          <p className="mt-1 text-xs text-zinc-500">{t("line.desc")}</p>
+          <p className="mt-1 text-sm text-zinc-500">{t("line.desc")}</p>
         </div>
 
         {loading && <p className="text-zinc-500">{t("common.loading")}</p>}
@@ -66,13 +66,13 @@ function LineSetupContent() {
             <button
               type="button"
               onClick={() => setShowTechnical((v) => !v)}
-              className="text-xs text-zinc-500 underline"
+              className="inline-flex min-h-12 items-center text-sm text-zinc-500 underline"
             >
               {t("line.technical")}
             </button>
 
             {showTechnical && (
-              <div className="space-y-2 border-t border-zinc-100 pt-2 text-xs text-zinc-600">
+              <div className="space-y-2 border-t border-zinc-100 pt-2 text-sm text-zinc-600">
                 <p>
                   <span className="text-zinc-500">{t("line.liffUrl")}</span>{" "}
                   <a href={status.liffUrl} className="break-all underline">
@@ -98,19 +98,19 @@ function LineSetupContent() {
           type="button"
           disabled={deploying || loading || !status?.configured}
           onClick={() => void deploy()}
-          className="w-full rounded-md bg-zinc-900 py-3 font-medium text-white disabled:opacity-50"
+          className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {deploying ? t("line.deploying") : t("line.deploy")}
         </button>
 
         {success && (
-          <p className="rounded-md border border-green-200 bg-green-50 p-3 text-green-800">
+          <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-base text-green-800">
             {success}
           </p>
         )}
 
         {error && (
-          <p className="rounded-md border border-red-200 bg-red-50 p-3 text-red-700">
+          <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-base text-red-700">
             {error}
           </p>
         )}

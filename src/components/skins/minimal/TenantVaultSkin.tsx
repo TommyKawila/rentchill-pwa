@@ -4,8 +4,6 @@ import { useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import type { TenantDocumentRow } from "@/services/documentVaultService";
 import {
-  canTenantSignContract,
-  canTenantUploadDocuments,
   TENANT_UPLOAD_DOC_TYPES,
   type DocumentType,
 } from "@/services/planLimits";
@@ -92,16 +90,16 @@ export function TenantVaultSkin({
   };
 
   return (
-    <section className="border-t border-zinc-200 px-6 py-4 space-y-4">
+    <section className="space-y-4 border-t border-zinc-100 px-6 py-4">
       {canUpload && (
         <div>
-          <p className="text-xs font-medium text-zinc-700">{t("tenant.docVault.title")}</p>
-          <div className="mt-2 flex gap-2">
+          <p className="text-sm font-medium text-zinc-900">{t("tenant.docVault.title")}</p>
+          <div className="mt-3 flex gap-3">
             <select
               value={docType}
               disabled={disabled}
               onChange={(e) => setDocType(e.target.value as DocumentType)}
-              className="min-h-11 flex-1 rounded-lg border border-zinc-200 px-3 text-xs"
+              className="min-h-12 flex-1 rounded-lg border border-zinc-200 px-3 text-base"
             >
               {TENANT_UPLOAD_DOC_TYPES.map((type) => (
                 <option key={type} value={type}>
@@ -115,9 +113,9 @@ export function TenantVaultSkin({
               type="button"
               disabled={disabled}
               onClick={() => fileRef.current?.click()}
-              className="min-h-11 rounded-lg border border-zinc-200 px-4 text-xs font-medium"
+              className="min-h-12 rounded-lg border border-zinc-200 px-4 text-base font-medium disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {t("owner.docVault.upload")}
+              {disabled ? t("common.saving") : t("owner.docVault.upload")}
             </button>
             <input
               ref={fileRef}
@@ -136,12 +134,12 @@ export function TenantVaultSkin({
 
       {canSign && hasLease && !signed && (
         <div>
-          <p className="text-xs font-medium text-zinc-700">{t("tenant.contract.signTitle")}</p>
+          <p className="text-sm font-medium text-zinc-900">{t("tenant.contract.signTitle")}</p>
           <canvas
             ref={canvasRef}
             width={280}
             height={120}
-            className="mt-2 w-full rounded-lg border border-zinc-200 bg-white touch-none"
+            className="mt-3 w-full rounded-lg border border-zinc-200 bg-white touch-none"
             onPointerDown={(e) => {
               const { x, y } = pointerPos(e);
               startDraw(x, y);
@@ -153,12 +151,12 @@ export function TenantVaultSkin({
             onPointerUp={() => setDrawing(false)}
             onPointerLeave={() => setDrawing(false)}
           />
-          <div className="mt-2 flex gap-2">
+          <div className="mt-3 flex gap-3">
             <button
               type="button"
               disabled={disabled}
               onClick={clearCanvas}
-              className="min-h-11 flex-1 rounded-lg border border-zinc-200 text-xs"
+              className="flex min-h-12 flex-1 items-center justify-center rounded-lg border border-zinc-200 text-base disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t("tenant.contract.clear")}
             </button>
@@ -166,23 +164,28 @@ export function TenantVaultSkin({
               type="button"
               disabled={disabled}
               onClick={() => void submitSignature()}
-              className="min-h-11 flex-1 rounded-lg bg-zinc-900 text-xs font-medium text-white disabled:opacity-50"
+              className="flex min-h-14 flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {t("tenant.contract.submitSign")}
+              {disabled ? t("common.saving") : t("tenant.contract.submitSign")}
             </button>
           </div>
         </div>
       )}
 
       {signed && (
-        <p className="text-xs text-green-700">{t("tenant.contract.signed")}</p>
+        <p className="text-sm text-green-600">{t("tenant.contract.signed")}</p>
       )}
 
       {documents.length > 0 && (
-        <ul className="space-y-1 text-xs text-zinc-600">
+        <ul className="space-y-2 text-base text-zinc-600">
           {documents.map((doc) => (
             <li key={doc.id}>
-              <a href={doc.public_url} target="_blank" rel="noopener noreferrer" className="underline">
+              <a
+                href={doc.public_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-12 items-center underline"
+              >
                 {doc.label ?? doc.doc_type}
               </a>
             </li>

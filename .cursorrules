@@ -1,39 +1,22 @@
 # RentChill Core Development Rules
 
-## 1. Architecture (Separation of Concerns)
-- Strictly separate Logic from UI. 
-- Business logic, database calls, and state management must reside in `src/hooks/` or `src/services/`.
-- UI components (`src/components/`) must be "dumb" presentation layers (Headless UI pattern).
+## 1. Architecture & Separation of Concerns
+- Strictly separate Logic from UI.
+- All business logic, database mutations/queries (Supabase), and state operations must reside in `src/hooks/` or `src/services/`.
+- UI components (`src/components/`) must be pure presentation layers (Headless UI pattern where applicable). No direct DB calls inside UI components.
 
-## 2. Coding Standard & Philosophy
-- Use Next.js App Router, React Server Components where possible, and Tailwind CSS.
-- Follow the "Less is More" philosophy. Eliminate redundant code. Complexity is the enemy.
-- Do not generate graphical assets or images unless explicitly requested.
-- Always prioritize precision, readability, and performance.
-- RentChill Metaphor: It acts as "The Shield" that protects landlords from operational and emotional hassles. Keep code silent, secure, and effective.
-- **Global Ready Architecture:** Write clean, modular functions for notifications and authentication. Do not hardcode LINE-specific logic directly into core database services. Prepare the schema to accept multi-currency (`currency` column) and standard UTC timestamptz for international scaling.
-- **Error Logging:** Unexpected failures must `console.error("[module.action]", context, error)` before returning. Never swallow catch blocks. Never log secrets. See `.cursor/rules/error-logging.mdc`.
+## 2. Coding Standard & Tech Stack
+- Framework: Next.js App Router, React Server Components (RSC) where applicable, Tailwind CSS.
+- Philosophy: "Less is More". Eliminate redundant code. Keep systems modular and compact.
+- Image Constraint: Do not generate graphical assets or placeholder images unless explicitly requested.
+- Global Ready: Keep core DB services clean of hardcoded LINE-specific logic. Keep schemas scalable with `currency` strings and UTC `timestamptz`.
+- Error Logging: Unexpected failures must `console.error("[module.action]", context, error)` before returning. Never swallow catch blocks or expose secrets.
 
-## 3. UI/UX & Design Taste (Linear.app-Inspired Precision)
-- General Aesthetic: Ultra-crisp, high-precision software design. Focus on strict horizontal/vertical alignment and clean vertical rhythms.
-- Color Palette (Light Mode):
-  - Primary Background: Pure white (`bg-white`).
-  - Panel/Secondary Background: Ultra-subtle off-white (`bg-zinc-50`) for sidebars or inner containers.
-  - Text Hierarchy: Deep charcoal (`text-zinc-900`) for primary text, muted zinc (`text-zinc-500`) for labels.
-  - Status Accents: Clean green (`text-green-600` / `bg-green-50`) for paid states, soft red/orange for unpaid. Keep it high-contrast and minimal.
-- Borders & Dividers: Avoid floating boxes or heavy shadows. Delineate sections using sharp, 1px faint borders or dividers (`border border-zinc-100` or `divide-y divide-zinc-100`).
-- Geometry: Use clean, professional radiuses—specifically `rounded-xl` for cards and `rounded-lg` for buttons/inputs. Avoid oversized, bubbly roundings.
-- Spacing & Typography: Tighten header tracking (`tracking-tight`). Pay extra attention to generous padding and gaps (`p-6`, `gap-y-4`) so every component has room to breathe. Ensure currency and room numbers are bold and highly readable.
-- Constraints: Never inject arbitrary icons, flashy multi-colored gradients, or unrequested widgets.
-- **Accessible Easy Mode Ready:** All UI components should be ready for an "Easy Mode" toggle (for older users aged 60+). Do not hardcode small text sizes (`text-sm`). Ensure font scaling and high-contrast color switching (e.g., shifting from `text-zinc-500` to `text-black` with bold weights) can be applied conditionally via a global accessible state.
+## 3. Frontend & UI Implementation Rules
+- **Design System Enforcement:** For all UI rendering, layout patterns, and CSS classes, follow the strict guidelines specified in `UXUI.md`. Do not invent non-standard spacing or custom components.
+- Borders & Dividers: Delineate sections using sharp, 1px faint borders/dividers (`border-zinc-100` or `divide-zinc-100`). Avoid floating boxes or heavy shadows.
+- Geometry: Use professional radiuses: `rounded-xl` for container cards and `rounded-lg` for active elements (buttons/inputs). No bubbly or oversized rounded shapes.
 
-## 4. UX & Interaction Patterns (Zero Friction & Error Prevention)
-- **Form Submission Safety:** Every action button (e.g., "Submit Slip", "Create Invoice") MUST implement a loading state. When an async action is running, disable the button, change its opacity, and change the cursor to `cursor-not-allowed` to strictly prevent double submissions.
-- **Mobile Input Optimization:** For all monetary, room number, or phone number inputs, always enforce appropriate HTML attributes to trigger correct native mobile keyboards (e.g., `type="number"`, `inputmode="decimal"`, or `inputmode="numeric"`).
-- **Thumb-Friendly Touch Targets:** All interactive elements (buttons, links, inputs) on the tenant mobile view (LINE LIFF) must have a minimum touch target size of 44x44 pixels to ensure ease of use for all age groups.
-- **Form Validation & Errors:** Display validation errors inline right below the specific input field using a clean, soft red text. Never use browser alert dialogs. Keep inputs focused on error if possible.
-- **Empty States:** If a dashboard or list has no data (e.g., "No unpaid invoices"), never leave a blank screen. Provide a beautifully padded, silent text message with a clear primary call-to-action button (if applicable) to guide the user on their next step.
-
-## 5. Communication
-- All prompts and technical instructions provided to Cursor Composer/Chat will be in English.
-- Always answer directly, cleanly, and concisely. No fluff, no filler text.
+## 4. AI Communication Strategy
+- All instructions and responses inside Cursor Composer/Chat must be in English.
+- Deliver direct, clean, and concise technical outputs. No fluff, no filler explanations.

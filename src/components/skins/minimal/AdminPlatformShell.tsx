@@ -56,7 +56,7 @@ export function AdminPlatformShell({
 
   const navClass = (active: boolean) =>
     [
-      "group inline-flex min-h-11 items-center gap-x-3 rounded-full border bg-white px-3 py-1.5 text-xs font-medium",
+      "group inline-flex min-h-12 items-center gap-x-3 rounded-lg border bg-white px-4 py-2 text-sm font-medium",
       active
         ? "border-zinc-900 text-zinc-900"
         : "border-zinc-300 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900",
@@ -68,10 +68,10 @@ export function AdminPlatformShell({
         <header className="border-b border-zinc-200 pb-6">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-green-600">
+              <p className="text-sm font-medium uppercase tracking-wide text-green-600">
                 RentChill
               </p>
-              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-800">
+              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-sm font-medium uppercase tracking-wide text-amber-800">
                 {t("admin.platform.roleBadge")}
               </span>
             </div>
@@ -80,7 +80,7 @@ export function AdminPlatformShell({
           <h1 className="mt-2 text-2xl font-bold">{t("admin.platform.title")}</h1>
           <p className="mt-2 text-sm text-zinc-600">{t("admin.platform.desc")}</p>
 
-          <nav className="mt-4 flex flex-wrap gap-2">
+          <nav className="mt-4 flex flex-wrap gap-3">
             {navItems.map((item) => {
               const active = isNavActive(pathname, item.href);
               return (
@@ -89,7 +89,7 @@ export function AdminPlatformShell({
                     {item.label}
                   </NavMenuItemLabel>
                   {item.badge !== undefined && (
-                    <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] text-white">
+                    <span className="rounded-full bg-amber-500 px-2 py-0.5 text-sm text-white">
                       {item.badge}
                     </span>
                   )}

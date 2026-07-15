@@ -49,6 +49,8 @@ export function useInvoiceEngine() {
           status: "pending",
           slip_image_url: null,
           slip_rejection_note: null,
+          owner_payment_proof_url: null,
+          owner_payment_note: null,
           water_prev: null,
           water_curr: null,
           water_recorded_at: null,

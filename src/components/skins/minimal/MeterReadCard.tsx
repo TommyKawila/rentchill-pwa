@@ -46,13 +46,13 @@ export function MeterReadCard({
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-      <p className="text-sm font-semibold text-zinc-900">{label}</p>
+    <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
+      <p className="text-base font-semibold text-zinc-900">{label}</p>
 
-      <div className="mt-2 space-y-1 text-xs text-zinc-600">
+      <div className="mt-2 space-y-1 text-sm text-zinc-600">
         <p>
           {t("owner.meter.prev")}{" "}
-          <span className="font-medium text-zinc-900">
+          <span className="font-bold text-zinc-900">
             {prev ? formatMeterNumber(prev.value) : t("owner.meter.noBaseline")}
           </span>
           {prev && (
@@ -64,8 +64,8 @@ export function MeterReadCard({
         </p>
       </div>
 
-      <label className="mt-3 block space-y-1 text-sm">
-        <span className="text-zinc-500">{t("owner.meter.curr")}</span>
+      <label className="mt-3 block space-y-1 text-sm text-zinc-500">
+        <span className="font-medium text-zinc-900">{t("owner.meter.curr")}</span>
         <input
           type="number"
           min={0}
@@ -74,16 +74,16 @@ export function MeterReadCard({
           value={currValue}
           onChange={(e) => onCurrChange(e.target.value)}
           placeholder={t("owner.meter.currPlaceholder")}
-          className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 disabled:bg-zinc-100"
+          className="min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base disabled:bg-zinc-100"
         />
       </label>
 
       {rolledBack && (
-        <p className="mt-2 text-xs text-red-700">{t("owner.meter.rolledBack")}</p>
+        <p className="mt-2 text-sm text-red-600">{t("owner.meter.rolledBack")}</p>
       )}
 
       {units !== null && amount !== null && !rolledBack && (
-        <div className="mt-2 space-y-0.5 text-xs text-zinc-600">
+        <div className="mt-2 space-y-0.5 text-sm text-zinc-600">
           <p>
             {t("owner.meter.units", { units: formatMeterNumber(units) })}
           </p>

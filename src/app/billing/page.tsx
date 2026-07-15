@@ -3,9 +3,10 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
-import { EasyModeToggleSkin } from "@/components/skins/minimal/EasyModeToggleSkin";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { PlanBillingSkin } from "@/components/skins/minimal/PlanBillingSkin";
+import { OwnerBottomNavSkin } from "@/components/skins/minimal/OwnerBottomNavSkin";
+import { OwnerPushNotificationPrompts } from "@/components/skins/minimal/OwnerPushNotificationPrompts";
 import { SubscriptionBannerSkin } from "@/components/skins/minimal/SubscriptionBannerSkin";
 import { usePlatformBilling } from "@/hooks/usePlatformBilling";
 
@@ -18,15 +19,14 @@ function BillingContent() {
   const isBusy = billing.status === "loading" || billing.status === "uploading";
 
   return (
-    <main className="min-h-screen bg-white px-4 py-6 text-zinc-900">
+    <main className="min-h-screen bg-white px-4 py-6 pb-24 text-zinc-900">
       <div className="mx-auto max-w-xl space-y-6">
         <header className="space-y-4 border-b border-zinc-100 pb-6">
           <div className="flex items-start justify-between gap-3">
             <p className="font-medium tracking-tight text-green-600">
               {t("owner.planBilling.tag")}
             </p>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <EasyModeToggleSkin />
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <LocaleToggleSkin />
             </div>
           </div>
@@ -34,13 +34,13 @@ function BillingContent() {
             <h1 className="text-2xl font-bold tracking-tight">
               {t("owner.planBilling.title")}
             </h1>
-            <p className="mt-2 text-zinc-500">{t("owner.planBilling.desc")}</p>
+            <p className="mt-2 text-base text-zinc-500">{t("owner.planBilling.desc")}</p>
           </div>
         </header>
 
         <section className="space-y-4">
           {billing.status === "loading" && !billing.subscription && (
-            <p className="text-zinc-500">{t("common.loading")}</p>
+            <p className="text-base text-zinc-500">{t("common.loading")}</p>
           )}
 
           {billing.subscription && (
@@ -63,12 +63,15 @@ function BillingContent() {
 
           <a
             href={`/dashboard?property=${encodeURIComponent(propertySlug)}`}
-            className="block rounded-lg py-3 text-center font-medium text-zinc-600 underline underline-offset-2"
+            className="flex min-h-12 items-center justify-center text-center text-base font-medium text-zinc-600 underline underline-offset-2"
           >
             {t("common.backToDashboard")}
           </a>
         </section>
       </div>
+
+      <OwnerBottomNavSkin activeTab="home" propertySlug={propertySlug} />
+      <OwnerPushNotificationPrompts />
     </main>
   );
 }

@@ -28,10 +28,10 @@ export function PlanTierSwitcherSkin({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+      <p className="text-sm font-medium text-zinc-500">
         {t("trial.planSwitcher.label")}
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-3">
         {TIERS.map((tier) => {
           const active = tier === currentTier;
           return (
@@ -40,7 +40,7 @@ export function PlanTierSwitcherSkin({
               type="button"
               disabled={disabled || active}
               onClick={() => onSelect(tier)}
-              className={`min-h-11 rounded-lg border px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`min-h-12 rounded-lg border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
                 active
                   ? "border-rc-green bg-rc-green-soft text-zinc-900"
                   : "border-zinc-200 bg-white text-zinc-700"

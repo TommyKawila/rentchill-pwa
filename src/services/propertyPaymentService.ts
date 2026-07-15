@@ -3,11 +3,45 @@ import {
   clampReminderDays,
   clampUtilityRate,
 } from "@/services/propertyBillingSettingsService";
+import {
+  DEFAULT_REMINDER_DAYS,
+  normalizeReminderDaySettings,
+} from "@/services/paymentReminderTier";
+import { sanitizeReminderTemplate } from "@/services/paymentReminderMessageService";
 import { createAdminClient } from "@/services/supabase/admin";
 import { createServerClient } from "@/services/supabase/server";
-import type { PropertyPaymentAccount, PropertyPaymentInput } from "@/services/types";
+import { normalizeTechnicianContacts } from "@/services/settingsSummaryService";
+import { normalizeLineChatUrl } from "@/services/technicianLineService";
+import type {
+  PropertyPaymentAccount,
+  PropertyPaymentInput,
+  TechnicianContacts,
+} from "@/services/types";
+
+function sanitizeTechnicianContacts(
+  input: TechnicianContacts,
+): TechnicianContacts {
+  const result: TechnicianContacts = {};
+  for (const dept of ["electrical", "plumbing", "internet"] as const) {
+    const entry = input[dept];
+    if (!entry) continue;
+    const phone = entry.phone?.trim() || null;
+    const line_url = normalizeLineChatUrl(entry.line_url);
+    const display_name = entry.display_name?.trim() || null;
+    if (phone || line_url || display_name) {
+      result[dept] = { phone, line_url, display_name };
+    }
+  }
+  return result;
+}
 
 function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount {
+  const reminder = normalizeReminderDaySettings({
+    soft: Number(row.reminder_soft_days ?? DEFAULT_REMINDER_DAYS.soft),
+    firm: Number(row.reminder_firm_days ?? DEFAULT_REMINDER_DAYS.firm),
+    final: Number(row.reminder_final_days ?? DEFAULT_REMINDER_DAYS.final),
+  });
+
   return {
     property_id: String(row.id),
     property_name: String(row.name),
@@ -18,9 +52,26 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
     contact_line_url: row.contact_line_url ? String(row.contact_line_url) : null,
     contact_line_qr_url: row.contact_line_qr_url ? String(row.contact_line_qr_url) : null,
     contact_phone: row.contact_phone ? String(row.contact_phone) : null,
+    technician_phone: row.technician_phone ? String(row.technician_phone) : null,
+    technician_contacts: normalizeTechnicianContacts(
+      row.technician_contacts,
+      row.technician_phone ? String(row.technician_phone) : null,
+    ),
     owner_line_user_id: row.owner_line_user_id ? String(row.owner_line_user_id) : null,
     billing_day: Number(row.billing_day ?? 1),
     meter_reminder_days_before: Number(row.meter_reminder_days_before ?? 3),
+    reminder_soft_days: reminder.soft,
+    reminder_firm_days: reminder.firm,
+    reminder_final_days: reminder.final,
+    reminder_template_soft: row.reminder_template_soft
+      ? String(row.reminder_template_soft)
+      : null,
+    reminder_template_firm: row.reminder_template_firm
+      ? String(row.reminder_template_firm)
+      : null,
+    reminder_template_final: row.reminder_template_final
+      ? String(row.reminder_template_final)
+      : null,
     include_utilities: row.include_utilities !== false,
     water_rate_per_unit: Number(row.water_rate_per_unit ?? 10),
     electric_rate_per_unit: Number(row.electric_rate_per_unit ?? 7),
@@ -28,7 +79,7 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
 }
 
 const paymentSelect =
-  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_line_qr_url, contact_phone, owner_line_user_id, billing_day, meter_reminder_days_before, include_utilities, water_rate_per_unit, electric_rate_per_unit";
+  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_line_qr_url, contact_phone, technician_phone, technician_contacts, owner_line_user_id, billing_day, meter_reminder_days_before, reminder_soft_days, reminder_firm_days, reminder_final_days, reminder_template_soft, reminder_template_firm, reminder_template_final, include_utilities, water_rate_per_unit, electric_rate_per_unit";
 
 export async function getPropertyPaymentBySlug(
   slug: string,
@@ -85,6 +136,16 @@ export async function updatePropertyPayment(
       ...(input.contact_phone !== undefined
         ? { contact_phone: input.contact_phone?.trim() || null }
         : {}),
+      ...(input.technician_phone !== undefined
+        ? { technician_phone: input.technician_phone?.trim() || null }
+        : {}),
+      ...(input.technician_contacts !== undefined
+        ? {
+            technician_contacts: sanitizeTechnicianContacts(
+              input.technician_contacts,
+            ),
+          }
+        : {}),
       ...(input.owner_line_user_id !== undefined
         ? { owner_line_user_id: input.owner_line_user_id?.trim() || null }
         : {}),
@@ -95,6 +156,52 @@ export async function updatePropertyPayment(
         ? {
             meter_reminder_days_before: clampReminderDays(
               input.meter_reminder_days_before,
+            ),
+          }
+        : {}),
+      ...((input.reminder_soft_days !== undefined ||
+        input.reminder_firm_days !== undefined ||
+        input.reminder_final_days !== undefined)
+        ? (() => {
+            const reminder = normalizeReminderDaySettings({
+              soft:
+                input.reminder_soft_days ??
+                DEFAULT_REMINDER_DAYS.soft,
+              firm:
+                input.reminder_firm_days ??
+                DEFAULT_REMINDER_DAYS.firm,
+              final:
+                input.reminder_final_days ??
+                DEFAULT_REMINDER_DAYS.final,
+            });
+            return {
+              reminder_soft_days: reminder.soft,
+              reminder_firm_days: reminder.firm,
+              reminder_final_days: reminder.final,
+            };
+          })()
+        : {}),
+      ...(input.reminder_template_soft !== undefined
+        ? {
+            reminder_template_soft: sanitizeReminderTemplate(
+              "soft",
+              input.reminder_template_soft,
+            ),
+          }
+        : {}),
+      ...(input.reminder_template_firm !== undefined
+        ? {
+            reminder_template_firm: sanitizeReminderTemplate(
+              "firm",
+              input.reminder_template_firm,
+            ),
+          }
+        : {}),
+      ...(input.reminder_template_final !== undefined
+        ? {
+            reminder_template_final: sanitizeReminderTemplate(
+              "final",
+              input.reminder_template_final,
             ),
           }
         : {}),

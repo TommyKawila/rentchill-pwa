@@ -15,6 +15,7 @@ import type { BillingOverview } from "@/services/billingOverviewService";
 
 interface BillingOverviewGridSkinProps {
   overview: BillingOverview;
+  chillMode?: boolean;
 }
 
 type StatKey = keyof BillingOverview;
@@ -46,7 +47,26 @@ const LABEL_KEYS = {
   scanning: "owner.overview.scanning",
 } as const satisfies Record<StatKey, MessageKey>;
 
-function cellTone(accent: StatDef["accent"], value: number) {
+function cellTone(
+  accent: StatDef["accent"],
+  value: number,
+  key: StatKey,
+  chillMode: boolean,
+) {
+  if (chillMode && key === "issued" && value > 0) {
+    return {
+      cell: "border-[var(--color-rc-green)]/30 bg-[var(--color-rc-green-soft)]",
+      icon: "text-[var(--color-rc-green)]",
+      value: "text-zinc-900",
+    };
+  }
+  if (chillMode && key === "notIssued") {
+    return {
+      cell: "border-[var(--color-rc-green)]/20 bg-[var(--color-rc-green-soft)]",
+      icon: "text-[var(--color-rc-green)]",
+      value: "text-zinc-900",
+    };
+  }
   if (accent === "paid") {
     return {
       cell: "border-green-200 bg-green-50",
@@ -79,13 +99,15 @@ function StatCell({
   def,
   value,
   label,
+  chillMode,
 }: {
   def: StatDef;
   value: number;
   label: string;
+  chillMode: boolean;
 }) {
   const Icon = def.icon;
-  const tone = cellTone(def.accent, value);
+  const tone = cellTone(def.accent, value, def.key, chillMode);
 
   return (
     <div className={`rounded-xl border px-3 py-3 ${tone.cell}`}>
@@ -99,7 +121,7 @@ function StatCell({
           {value}
         </p>
       </div>
-      <p className="mt-1.5 leading-snug text-zinc-500">{label}</p>
+      <p className="mt-1.5 text-sm leading-snug text-zinc-500">{label}</p>
     </div>
   );
 }
@@ -108,33 +130,44 @@ function StatRow({
   defs,
   overview,
   t,
+  chillMode,
 }: {
   defs: StatDef[];
   overview: BillingOverview;
   t: (key: MessageKey) => string;
+  chillMode: boolean;
 }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 gap-3">
       {defs.map((def) => (
         <StatCell
           key={def.key}
           def={def}
           value={overview[def.key]}
           label={t(LABEL_KEYS[def.key])}
+          chillMode={chillMode}
         />
       ))}
     </div>
   );
 }
 
-export function BillingOverviewGridSkin({ overview }: BillingOverviewGridSkinProps) {
+export function BillingOverviewGridSkin({
+  overview,
+  chillMode = false,
+}: BillingOverviewGridSkinProps) {
   const { t } = useLocale();
 
   return (
-    <div className="space-y-2">
-      <StatRow defs={PIPELINE} overview={overview} t={t} />
-      <div className="border-t border-zinc-100 pt-2">
-        <StatRow defs={PAYMENT} overview={overview} t={t} />
+    <div className="space-y-3">
+      {chillMode && (
+        <span className="inline-flex rounded-full border border-[var(--color-rc-green)]/30 bg-[var(--color-rc-green-soft)] px-3 py-1 text-sm font-medium text-[var(--color-rc-green)]">
+          {t("owner.overview.chillBadge")}
+        </span>
+      )}
+      <StatRow defs={PIPELINE} overview={overview} t={t} chillMode={chillMode} />
+      <div className="border-t border-zinc-100 pt-3">
+        <StatRow defs={PAYMENT} overview={overview} t={t} chillMode={chillMode} />
       </div>
     </div>
   );

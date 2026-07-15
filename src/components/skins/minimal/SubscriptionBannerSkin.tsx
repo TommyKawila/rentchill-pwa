@@ -27,7 +27,7 @@ export function SubscriptionBannerSkin({
         </p>
         <a
           href={billingHref}
-          className="mt-2 inline-flex min-h-11 items-center rounded-lg border border-amber-300 bg-white px-4 py-2 font-medium text-amber-900"
+          className="mt-2 inline-flex min-h-12 items-center rounded-lg border border-amber-300 bg-white px-4 py-2 text-base font-medium text-amber-900"
         >
           {t("owner.subscription.renewCta")}
         </a>
@@ -47,7 +47,7 @@ export function SubscriptionBannerSkin({
         </p>
         <a
           href={billingHref}
-          className="mt-2 inline-flex min-h-11 items-center rounded-lg border border-red-300 bg-white px-4 py-2 font-medium text-red-900"
+          className="mt-2 inline-flex min-h-12 items-center rounded-lg border border-red-300 bg-white px-4 py-2 text-base font-medium text-red-900"
         >
           {t("owner.subscription.renewNowCta")}
         </a>

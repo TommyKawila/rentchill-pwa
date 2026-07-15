@@ -37,7 +37,7 @@ export function ProjectSelectorSkin({
           type="button"
           disabled={addDisabled}
           onClick={onAddClick}
-          className="mt-3 w-full rounded-lg bg-zinc-900 py-3 font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-3 flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t("owner.addProject")}
         </button>
@@ -48,7 +48,7 @@ export function ProjectSelectorSkin({
   return (
     <div className={isInline ? "w-full" : "mt-3"}>
       {isInline ? (
-        <label className="flex min-h-11 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3">
+        <label className="flex min-h-12 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3">
           <Building2
             className="h-4 w-4 shrink-0 text-zinc-400"
             strokeWidth={1.5}
@@ -59,7 +59,7 @@ export function ProjectSelectorSkin({
             disabled={loading || properties.length === 0}
             onChange={(event) => onChange(event.target.value)}
             aria-label={t("owner.selectProject")}
-            className="min-w-0 flex-1 truncate border-0 bg-transparent py-2 text-sm font-medium text-zinc-900 outline-none disabled:text-zinc-400"
+            className="min-w-0 flex-1 truncate border-0 bg-transparent py-2 text-base font-medium text-zinc-900 outline-none disabled:text-zinc-400"
           >
             {properties.map((property) => (
               <option key={property.id} value={property.slug}>
@@ -83,7 +83,7 @@ export function ProjectSelectorSkin({
               value={value}
               disabled={loading || properties.length === 0}
               onChange={(event) => onChange(event.target.value)}
-              className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 disabled:bg-zinc-100"
+              className="min-h-12 min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base disabled:bg-zinc-100"
             >
               {properties.map((property) => (
                 <option key={property.id} value={property.slug}>
@@ -98,7 +98,7 @@ export function ProjectSelectorSkin({
                 onClick={onAddClick}
                 aria-label={t("owner.addProject")}
                 title={t("owner.addProject")}
-                className="flex min-h-11 shrink-0 items-center rounded-lg border border-zinc-200 bg-white px-3 font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-12 shrink-0 items-center rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 +
               </button>

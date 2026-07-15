@@ -9,6 +9,9 @@ interface PropertyMarketingSettingsSkinProps {
   propertySlug: string;
 }
 
+const inputClass =
+  "min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900";
+
 export function PropertyMarketingSettingsSkin({
   propertySlug,
 }: PropertyMarketingSettingsSkinProps) {
@@ -31,57 +34,57 @@ export function PropertyMarketingSettingsSkin({
   const busy = status === "loading" || status === "saving" || status === "uploading";
 
   return (
-    <div className="border-t border-zinc-200 pt-6">
-      <h2 className="text-sm font-semibold">{t("settings.marketingTitle")}</h2>
-      <p className="mt-1 text-xs text-zinc-500">{t("settings.marketingDesc")}</p>
+    <div className="border-t border-zinc-100 pt-6">
+      <h2 className="text-base font-semibold">{t("settings.marketingTitle")}</h2>
+      <p className="mt-1 text-sm text-zinc-500">{t("settings.marketingDesc")}</p>
 
       {status === "loading" && (
-        <p className="mt-4 text-sm text-zinc-500">{t("common.loading")}</p>
+        <p className="mt-4 text-base text-zinc-500">{t("common.loading")}</p>
       )}
 
       {error && (
-        <p className="mt-4 text-xs text-red-700">{error}</p>
+        <p className="mt-4 text-sm text-red-600">{error}</p>
       )}
 
       {marketing && (
         <div className="mt-4 space-y-4">
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.marketingDescription")}</span>
+          <label className="block space-y-1 text-sm text-zinc-500">
+            <span className="font-medium text-zinc-900">{t("settings.marketingDescription")}</span>
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows={4}
               placeholder={t("settings.marketingDescriptionPlaceholder")}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+              className={`${inputClass} min-h-[6rem]`}
             />
           </label>
 
-          <label className="block space-y-1 text-sm">
-            <span className="font-medium">{t("settings.marketingAddress")}</span>
+          <label className="block space-y-1 text-sm text-zinc-500">
+            <span className="font-medium text-zinc-900">{t("settings.marketingAddress")}</span>
             <input
               value={address}
               onChange={(event) => setAddress(event.target.value)}
               placeholder={t("settings.marketingAddressPlaceholder")}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+              className={inputClass}
             />
           </label>
 
-          <div className="space-y-2">
-            <span className="block text-sm font-medium">
+          <div className="space-y-3">
+            <span className="block text-sm font-medium text-zinc-900">
               {t("settings.marketingGallery")}
             </span>
-            <p className="text-xs text-zinc-500">
+            <p className="text-sm text-zinc-500">
               {t("settings.marketingGalleryHint", {
                 max: String(MAX_GALLERY_IMAGES),
               })}
             </p>
 
             {galleryUrls.length > 0 && (
-              <ul className="grid grid-cols-3 gap-2">
+              <ul className="grid grid-cols-3 gap-3">
                 {galleryUrls.map((url) => (
                   <li
                     key={url}
-                    className="relative overflow-hidden rounded-lg border border-zinc-200 bg-white"
+                    className="relative overflow-hidden rounded-xl border border-zinc-100 bg-white"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -93,7 +96,7 @@ export function PropertyMarketingSettingsSkin({
                       type="button"
                       disabled={busy}
                       onClick={() => void removeGallery(url)}
-                      className="absolute right-1 top-1 rounded bg-white/90 px-2 py-0.5 text-xs text-zinc-700 disabled:opacity-50"
+                      className="absolute right-1 top-1 flex min-h-12 items-center rounded-lg bg-white/90 px-3 text-sm text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {t("settings.marketingGalleryRemove")}
                     </button>
@@ -107,7 +110,7 @@ export function PropertyMarketingSettingsSkin({
                 type="button"
                 disabled={busy || !propertySlug}
                 onClick={() => inputRef.current?.click()}
-                className="w-full rounded-lg border border-dashed border-zinc-300 bg-white py-4 text-sm text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-14 w-full items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-white text-base text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {status === "uploading"
                   ? t("common.saving")
@@ -137,7 +140,7 @@ export function PropertyMarketingSettingsSkin({
                 marketing_address: address,
               })
             }
-            className="w-full rounded-md bg-zinc-900 py-3 text-sm font-medium text-white disabled:opacity-50"
+            className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {status === "saving" ? t("common.saving") : t("settings.marketingSave")}
           </button>
@@ -146,7 +149,7 @@ export function PropertyMarketingSettingsSkin({
             href={`/${encodeURIComponent(propertySlug)}?from=owner`}
             target="_blank"
             rel="noopener noreferrer"
-            className="block text-center text-sm text-green-700 underline"
+            className="flex min-h-12 items-center justify-center text-center text-base text-green-700 underline"
           >
             {t("settings.marketingPreview")}
           </a>

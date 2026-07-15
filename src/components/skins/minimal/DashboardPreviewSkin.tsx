@@ -14,10 +14,10 @@ export function DashboardPreviewSkin() {
 
   return (
     <div className="rounded-xl border border-zinc-100 bg-white p-6">
-      <p className="text-xs font-medium uppercase tracking-wide text-rc-green">
+      <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
         {t("landing.preview.tag")}
       </p>
-      <p className="mt-1 text-sm font-semibold text-zinc-900">
+      <p className="mt-1 text-base font-semibold text-zinc-900">
         {t("landing.preview.title")}
       </p>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -30,7 +30,7 @@ export function DashboardPreviewSkin() {
                 : "border-zinc-100 bg-zinc-50"
             }`}
           >
-            <p className="text-xs text-zinc-500">{stat.label}</p>
+            <p className="text-sm text-zinc-500">{stat.label}</p>
             <p className="mt-1 text-xl font-bold text-zinc-900">{stat.value}</p>
           </div>
         ))}
@@ -39,9 +39,9 @@ export function DashboardPreviewSkin() {
         {["101", "102", "103"].map((room) => (
           <div
             key={room}
-            className="flex items-center justify-between px-4 py-3 text-sm"
+            className="flex min-h-12 items-center justify-between px-4 py-3 text-base"
           >
-            <span className="font-medium text-zinc-900">
+            <span className="font-bold text-zinc-900">
               {t("common.room", { number: room })}
             </span>
             <span className="text-rc-green">{t("landing.preview.paid")}</span>

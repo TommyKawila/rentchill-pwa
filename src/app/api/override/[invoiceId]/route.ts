@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getInvoiceAuditContext, logAudit } from "@/services/auditLogService";
+import { getInvoiceApproveContext, getInvoiceAuditContext, logAudit } from "@/services/auditLogService";
 import {
   approveInvoiceManually,
   rejectInvoiceSlip,
@@ -16,6 +16,8 @@ type OverrideBody =
   | {
       action: "approve";
       slip_image_url?: string | null;
+      owner_payment_proof_url?: string | null;
+      owner_payment_note?: string | null;
     }
   | {
       action: "reject";
@@ -37,7 +39,7 @@ async function auditInvoiceAction(
     actorType: "owner",
     actorId: ownerId,
     action,
-    detail,
+    detail: { invoice_id: invoiceId, ...detail },
   });
 }
 
@@ -69,8 +71,38 @@ export async function PATCH(
     }
 
     if (body.action === "approve") {
-      const invoice = await approveInvoiceManually(invoiceId, body.slip_image_url);
-      await auditInvoiceAction(invoiceId, auth.ownerId, "invoice.approve");
+      const prior = await getInvoiceApproveContext(invoiceId);
+      if (!prior) {
+        return NextResponse.json({ error: "ไม่พบบิล" }, { status: 404 });
+      }
+
+      const proofUrl = body.owner_payment_proof_url?.trim() || null;
+      const note = body.owner_payment_note?.trim().slice(0, 200) || null;
+
+      const invoice = await approveInvoiceManually(invoiceId, {
+        slipImageUrl: body.slip_image_url,
+        ownerPaymentProofUrl: proofUrl,
+        ownerPaymentNote: note,
+      });
+      const hasSlip = Boolean(
+        prior.slip_image_url?.trim() || body.slip_image_url?.trim(),
+      );
+      const method =
+        prior.status === "scanning" && hasSlip
+          ? "slip_review_manual"
+          : hasSlip
+            ? "manual_slip"
+            : "manual_cash";
+
+      await auditInvoiceAction(invoiceId, auth.ownerId, "invoice.approve", {
+        billing_month: invoice.billing_month,
+        total_amount: invoice.total_amount,
+        method,
+        prior_status: prior.status,
+        has_slip: hasSlip,
+        has_proof: Boolean(proofUrl),
+        note,
+      });
       return NextResponse.json({ ok: true, invoice });
     }
 

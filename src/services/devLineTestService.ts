@@ -46,6 +46,12 @@ function buildPreviewText(type: LinePushType): string {
         "📩 ลูกบ้านส่งสลิปแล้ว — รอตรวจสอบ",
         `ห้อง ${s.roomNumber} · ${s.tenantName}`,
       ].join("\n");
+    case "maintenance_reported":
+      return [
+        "🔧 ลูกบ้านแจ้งซ่อมใหม่",
+        `ห้อง ${s.roomNumber} · ${s.tenantName}`,
+        "หมวด: แอร์เสีย",
+      ].join("\n");
     case "subscription_grace":
       return ["แผน micro หมดอายุแล้ว", "คุณยังใช้งานได้อีก 7 วัน"].join("\n");
     default:
@@ -139,5 +145,6 @@ export const LINE_TEST_TYPES: LinePushType[] = [
   "slip_rejected",
   "payment_confirmed",
   "owner_slip_submitted",
+  "maintenance_reported",
   "subscription_grace",
 ];

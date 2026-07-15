@@ -20,9 +20,9 @@ export function PropertyQrSkin({ targetUrl }: PropertyQrSkinProps) {
         alt={t("property.qr.alt")}
         width={200}
         height={200}
-        className="mx-auto mt-4 rounded-md border border-zinc-200"
+        className="mx-auto mt-4 rounded-lg border border-zinc-200"
       />
-      <p className="mt-3 break-all text-xs text-zinc-500">{targetUrl}</p>
+      <p className="mt-3 break-all text-sm text-zinc-500">{targetUrl}</p>
     </section>
   );
 }

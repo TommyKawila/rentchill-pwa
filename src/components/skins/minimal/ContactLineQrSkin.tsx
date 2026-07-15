@@ -56,31 +56,31 @@ export function ContactLineQrSkin({
   };
 
   return (
-    <div className="space-y-2">
-      <span className="block text-sm font-medium">{t("settings.contactLineQr")}</span>
-      <p className="text-xs text-zinc-500">{t("settings.contactLineQrHint")}</p>
+    <div className="space-y-3">
+      <span className="block text-sm font-medium text-zinc-900">{t("settings.contactLineQr")}</span>
+      <p className="text-sm text-zinc-500">{t("settings.contactLineQrHint")}</p>
 
       {qrUrl ? (
-        <div className="flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3">
+        <div className="flex items-start gap-3 rounded-xl border border-zinc-100 bg-white p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={qrUrl}
             alt={t("settings.contactLineQrAlt")}
-            className="h-24 w-24 rounded-md border border-zinc-100 object-contain"
+            className="h-24 w-24 rounded-lg border border-zinc-100 object-contain"
           />
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <button
               type="button"
               disabled={status === "uploading"}
               onClick={() => inputRef.current?.click()}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-xs text-zinc-700 disabled:opacity-50"
+              className="flex min-h-12 items-center rounded-lg border border-zinc-200 px-4 text-base text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {status === "uploading" ? t("common.saving") : t("settings.contactLineQrReplace")}
             </button>
             <button
               type="button"
               onClick={onRemove}
-              className="text-left text-xs text-zinc-500 underline"
+              className="inline-flex min-h-12 items-center text-left text-base text-zinc-500 underline"
             >
               {t("settings.contactLineQrRemove")}
             </button>
@@ -91,7 +91,7 @@ export function ContactLineQrSkin({
           type="button"
           disabled={status === "uploading" || !propertySlug}
           onClick={() => inputRef.current?.click()}
-          className="w-full rounded-lg border border-dashed border-zinc-300 bg-white py-4 text-sm text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-14 w-full items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-white text-base text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === "uploading"
             ? t("common.saving")
@@ -111,7 +111,7 @@ export function ContactLineQrSkin({
         }}
       />
 
-      {error && <p className="text-xs text-red-700">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );
 }

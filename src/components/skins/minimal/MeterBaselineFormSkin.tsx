@@ -10,6 +10,9 @@ interface MeterBaselineFormSkinProps {
   onSave: (water: number, electric: number) => void;
 }
 
+const inputClass =
+  "min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base disabled:bg-zinc-100";
+
 export function MeterBaselineFormSkin({
   disabled,
   saving,
@@ -32,16 +35,16 @@ export function MeterBaselineFormSkin({
     electricNum >= 0;
 
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-3">
+    <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-6">
       <div>
-        <p className="text-sm font-semibold text-amber-950">
+        <p className="text-base font-semibold text-amber-950">
           {t("owner.meter.baselineTitle")}
         </p>
-        <p className="mt-1 text-xs text-amber-900">{t("owner.meter.baselineDesc")}</p>
+        <p className="mt-1 text-sm text-amber-900">{t("owner.meter.baselineDesc")}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <label className="space-y-1 text-sm">
-          <span className="text-zinc-600">{t("owner.meter.water")}</span>
+        <label className="space-y-1 text-sm text-zinc-500">
+          <span className="font-medium text-zinc-900">{t("owner.meter.water")}</span>
           <input
             type="number"
             min={0}
@@ -49,11 +52,11 @@ export function MeterBaselineFormSkin({
             disabled={busy}
             value={water}
             onChange={(e) => setWater(e.target.value)}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 disabled:bg-zinc-100"
+            className={inputClass}
           />
         </label>
-        <label className="space-y-1 text-sm">
-          <span className="text-zinc-600">{t("owner.meter.electric")}</span>
+        <label className="space-y-1 text-sm text-zinc-500">
+          <span className="font-medium text-zinc-900">{t("owner.meter.electric")}</span>
           <input
             type="number"
             min={0}
@@ -61,7 +64,7 @@ export function MeterBaselineFormSkin({
             disabled={busy}
             value={electric}
             onChange={(e) => setElectric(e.target.value)}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 disabled:bg-zinc-100"
+            className={inputClass}
           />
         </label>
       </div>
@@ -69,11 +72,11 @@ export function MeterBaselineFormSkin({
         type="button"
         disabled={busy || !valid}
         onClick={() => onSave(waterNum, electricNum)}
-        className="min-h-11 w-full rounded-md bg-zinc-900 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
       >
         {saving ? t("common.saving") : t("owner.meter.baselineSave")}
       </button>
-      {error && <p className="text-xs text-red-700">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );
 }

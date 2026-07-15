@@ -5,6 +5,9 @@ const BANGKOK = "Asia/Bangkok";
 export type PropertyBillingSettings = {
   billing_day: number;
   meter_reminder_days_before: number;
+  reminder_soft_days: number;
+  reminder_firm_days: number;
+  reminder_final_days: number;
   include_utilities: boolean;
   water_rate_per_unit: number;
   electric_rate_per_unit: number;
@@ -18,14 +21,34 @@ export function getBangkokDayOfMonth(date = new Date()) {
   return Number(formatter.format(date));
 }
 
+export function getBangkokDaysInMonth(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: BANGKOK,
+    year: "numeric",
+    month: "numeric",
+  });
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find((p) => p.type === "year")?.value);
+  const month = Number(parts.find((p) => p.type === "month")?.value);
+  return new Date(year, month, 0).getDate();
+}
+
 export function isInMeterReminderWindow(
   billingDay: number,
   reminderDaysBefore: number,
   date = new Date(),
 ) {
   const today = getBangkokDayOfMonth(date);
-  const windowStart = Math.max(1, billingDay - reminderDaysBefore);
-  return today >= windowStart && today <= billingDay;
+  const windowStart = billingDay - reminderDaysBefore;
+
+  if (windowStart >= 1) {
+    return today >= windowStart && today <= billingDay;
+  }
+
+  const daysInMonth = getBangkokDaysInMonth(date);
+  const spillDays = reminderDaysBefore - billingDay;
+  const lateMonthStart = daysInMonth - spillDays + 1;
+  return today >= lateMonthStart || today <= billingDay;
 }
 
 export function isMeterInputComplete(water: string, electric: string) {
@@ -57,7 +80,11 @@ export function clampUtilityRate(value: number) {
 }
 
 export function isRowEditable(row: MonthlyBillingRow) {
-  return row.invoice_status !== "paid" && row.invoice_status !== "scanning";
+  return !row.invoice_id;
+}
+
+export function isMeterEntryLocked(row: MonthlyBillingRow) {
+  return !isRowEditable(row);
 }
 
 export function isRowReadyToBill(
@@ -69,4 +96,27 @@ export function isRowReadyToBill(
   if (!includeUtilities) return true;
   if (!hasMeterBaseline(row)) return false;
   return isMeterDialComplete(meters.water, meters.electric);
+}
+
+export function computeBillingReadiness(
+  rows: MonthlyBillingRow[],
+  meters: Record<string, { water: string; electric: string }>,
+  includeUtilities: boolean,
+) {
+  let readyCount = 0;
+  let pendingMeterCount = 0;
+
+  for (const row of rows) {
+    if (row.invoice_id) continue;
+    if (!isRowEditable(row)) continue;
+
+    const rowMeters = meters[row.tenant_id] ?? { water: "", electric: "" };
+    if (isRowReadyToBill(row, rowMeters, includeUtilities)) {
+      readyCount++;
+    } else {
+      pendingMeterCount++;
+    }
+  }
+
+  return { readyCount, pendingMeterCount };
 }

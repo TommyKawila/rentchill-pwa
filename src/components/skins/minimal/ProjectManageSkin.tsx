@@ -23,6 +23,9 @@ interface ProjectManageSkinProps {
   onDelete: () => Promise<void>;
 }
 
+const inputClass =
+  "min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900";
+
 function formatSlugError(
   t: (key: MessageKey) => string,
   error: string | null,
@@ -133,18 +136,18 @@ export function ProjectManageSkin({
 
   if (!expanded) {
     return (
-      <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
-        <p className="text-sm font-semibold text-zinc-900">{propertyName}</p>
-        <p className="mt-1 break-all font-mono text-xs text-zinc-500">
+      <div className="mt-4 rounded-xl border border-zinc-100 bg-white p-6">
+        <p className="text-base font-semibold text-zinc-900">{propertyName}</p>
+        <p className="mt-1 break-all font-mono text-sm text-zinc-500">
           {projectUrl(propertySlug)}
         </p>
         {savedFlash && (
-          <p className="mt-1 text-xs text-green-600">{t("settings.projectSaved")}</p>
+          <p className="mt-1 text-sm text-green-600">{t("settings.projectSaved")}</p>
         )}
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="mt-3 w-full rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-zinc-700"
+          className="mt-3 flex min-h-12 w-full items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-zinc-700"
         >
           {t("settings.projectManageTitle")}
         </button>
@@ -153,26 +156,26 @@ export function ProjectManageSkin({
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">{t("settings.projectManageTitle")}</h2>
+    <div className="mt-4 rounded-xl border border-zinc-100 bg-white p-6">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold">{t("settings.projectManageTitle")}</h2>
         <button
           type="button"
           disabled={renaming || deleting}
           onClick={handleClose}
-          className="text-sm text-zinc-500 underline disabled:opacity-50"
+          className="inline-flex min-h-12 items-center text-base text-zinc-500 underline disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t("owner.rooms.close")}
         </button>
       </div>
 
-      <label className="mt-4 block space-y-1 text-sm">
-        <span className="font-medium">{t("settings.projectRename")}</span>
+      <label className="mt-4 block space-y-1 text-sm text-zinc-500">
+        <span className="font-medium text-zinc-900">{t("settings.projectRename")}</span>
         <input
           value={name}
           disabled={renaming || deleting}
           onChange={(event) => setName(event.target.value)}
-          className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2"
+          className={inputClass}
         />
       </label>
 
@@ -190,7 +193,7 @@ export function ProjectManageSkin({
         type="button"
         disabled={renaming || deleting || !canSave || !slugValid}
         onClick={() => void handleRename()}
-        className="mt-3 w-full rounded-lg bg-zinc-900 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-3 flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
       >
         {renaming ? t("common.saving") : t("settings.projectRenameSave")}
       </button>
@@ -201,20 +204,20 @@ export function ProjectManageSkin({
             type="button"
             disabled={renaming || deleting}
             onClick={() => setShowDelete(true)}
-            className="w-full rounded-lg border border-red-200 bg-red-50 py-3 text-sm font-medium text-red-700 disabled:opacity-50"
+            className="flex min-h-12 w-full items-center justify-center rounded-lg border border-red-200 bg-red-50 text-base font-medium text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("settings.projectDelete")}
           </button>
         ) : (
-          <div className="space-y-2">
-            <p className="text-xs text-zinc-500">{t("settings.projectDeleteHint")}</p>
+          <div className="space-y-3">
+            <p className="text-sm text-zinc-500">{t("settings.projectDeleteHint")}</p>
             <input
               value={confirmName}
               onChange={(event) => setConfirmName(event.target.value)}
               placeholder={propertyName}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+              className={inputClass}
             />
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <button
                 type="button"
                 disabled={
@@ -223,7 +226,7 @@ export function ProjectManageSkin({
                   confirmName.trim() !== propertyName.trim()
                 }
                 onClick={() => void handleDelete()}
-                className="flex-1 rounded-lg border border-red-300 bg-white py-3 text-sm font-medium text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-12 flex-1 items-center justify-center rounded-lg border border-red-300 bg-white text-base font-medium text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleting ? t("settings.projectDeleting") : t("settings.projectDeleteConfirm")}
               </button>
@@ -234,7 +237,7 @@ export function ProjectManageSkin({
                   setShowDelete(false);
                   setConfirmName("");
                 }}
-                className="rounded-lg border border-zinc-300 px-3 py-3 text-sm text-zinc-700"
+                className="flex min-h-12 items-center rounded-lg border border-zinc-200 px-4 text-base text-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("owner.rooms.close")}
               </button>
@@ -244,7 +247,7 @@ export function ProjectManageSkin({
       </div>
 
       {error && (
-        <p className="mt-2 text-xs text-red-700">{formatSlugError(t, error)}</p>
+        <p className="mt-2 text-sm text-red-600">{formatSlugError(t, error)}</p>
       )}
     </div>
   );

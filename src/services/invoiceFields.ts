@@ -1,5 +1,5 @@
 export const INVOICE_SELECT =
-  "id, property_id, tenant_id, room_id, billing_month, water_unit, electric_unit, base_rent_amount, water_amount, electric_amount, total_amount, status, slip_image_url, slip_rejection_note, water_prev, water_curr, water_recorded_at, electric_prev, electric_curr, electric_recorded_at, water_rate_locked, electric_rate_locked";
+  "id, property_id, tenant_id, room_id, billing_month, water_unit, electric_unit, base_rent_amount, water_amount, electric_amount, total_amount, status, slip_image_url, slip_rejection_note, owner_payment_proof_url, owner_payment_note, water_prev, water_curr, water_recorded_at, electric_prev, electric_curr, electric_recorded_at, water_rate_locked, electric_rate_locked";
 
 export function mapInvoiceRow(row: Record<string, unknown>) {
   return {
@@ -18,6 +18,12 @@ export function mapInvoiceRow(row: Record<string, unknown>) {
     slip_image_url: row.slip_image_url ? String(row.slip_image_url) : null,
     slip_rejection_note: row.slip_rejection_note
       ? String(row.slip_rejection_note)
+      : null,
+    owner_payment_proof_url: row.owner_payment_proof_url
+      ? String(row.owner_payment_proof_url)
+      : null,
+    owner_payment_note: row.owner_payment_note
+      ? String(row.owner_payment_note)
       : null,
     water_prev: row.water_prev != null ? Number(row.water_prev) : null,
     water_curr: row.water_curr != null ? Number(row.water_curr) : null,

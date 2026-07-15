@@ -55,13 +55,13 @@ export function LandingSkin() {
             <LocaleToggleSkin />
             <a
               href="/admin/login"
-              className="hidden min-h-11 items-center px-2 text-sm text-zinc-500 hover:text-zinc-900 sm:flex"
+              className="hidden min-h-12 items-center px-2 text-base text-zinc-500 hover:text-zinc-900 sm:flex"
             >
               {t("landing.ownerLogin")}
             </a>
             <a
               href="/admin/signup"
-              className="flex min-h-11 items-center rounded-lg bg-rc-green px-4 py-2.5 text-sm font-medium text-white hover:bg-rc-green-dark"
+              className="flex min-h-12 items-center rounded-lg bg-rc-green px-4 py-2.5 text-base font-medium text-white hover:bg-rc-green-dark"
             >
               {t("landing.hero.ctaPrimary")}
             </a>
@@ -71,7 +71,7 @@ export function LandingSkin() {
 
       <section className="border-b border-zinc-100 bg-white px-4 py-16 md:py-24">
         <div className="mx-auto max-w-5xl">
-          <p className="text-xs font-medium uppercase tracking-wide text-rc-green">
+          <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
             {t("landing.hero.badge")}
           </p>
           <h1 className="mt-3 max-w-2xl text-3xl font-bold tracking-tight md:text-4xl">
@@ -83,19 +83,19 @@ export function LandingSkin() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <a
               href="/admin/signup"
-              className="flex min-h-11 items-center justify-center rounded-lg bg-rc-green px-6 py-3 text-center text-sm font-medium text-white hover:bg-rc-green-dark"
+              className="flex min-h-14 items-center justify-center rounded-lg bg-rc-green px-6 py-3 text-center text-base font-medium text-white hover:bg-rc-green-dark"
             >
               {t("landing.hero.ctaPrimary")}
             </a>
             <a
               href="/try"
-              className="flex min-h-11 items-center justify-center rounded-lg border border-rc-green/30 bg-rc-green-soft px-6 py-3 text-center text-sm font-medium text-zinc-900"
+              className="flex min-h-12 items-center justify-center rounded-lg border border-rc-green/30 bg-rc-green-soft px-6 py-3 text-center text-base font-medium text-zinc-900"
             >
               {t("landing.hero.ctaTrial")}
             </a>
             <a
               href="/admin/login"
-              className="flex min-h-11 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-3 text-center text-sm font-medium text-zinc-900"
+              className="flex min-h-12 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-3 text-center text-base font-medium text-zinc-900"
             >
               {t("landing.hero.ctaSecondary")}
             </a>
@@ -160,7 +160,7 @@ export function LandingSkin() {
             <div className="mt-4 text-center">
               <a
                 href="/try"
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-3 text-sm font-medium text-zinc-900"
+                className="inline-flex min-h-12 items-center justify-center rounded-lg border border-zinc-200 bg-white px-6 py-3 text-base font-medium text-zinc-900"
               >
                 {t("landing.preview.tryLive")}
               </a>
@@ -198,26 +198,26 @@ export function LandingSkin() {
                 </p>
                 <ul className="mt-3 space-y-1.5">
                   {TIER_FEATURES[plan.tier].map((key) => (
-                    <li key={key} className="text-xs text-zinc-600">
+                    <li key={key} className="text-sm text-zinc-600">
                       · {t(key)}
                     </li>
                   ))}
                 </ul>
                 {plan.tier === "starter" && (
-                  <p className="mt-3 text-xs text-zinc-500">
+                  <p className="mt-3 text-sm text-zinc-500">
                     {t("landing.pricing.starterNote")}
                   </p>
                 )}
                 <a
                   href={`/try?plan=${plan.tier}`}
-                  className="mt-4 flex min-h-11 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-center text-xs font-medium text-zinc-800"
+                  className="mt-4 flex min-h-12 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-center text-sm font-medium text-zinc-800"
                 >
                   {t("landing.pricing.tryPlan")}
                 </a>
               </div>
             ))}
           </div>
-          <p className="mt-4 text-xs text-zinc-500">
+          <p className="mt-4 text-sm text-zinc-500">
             {t("landing.pricing.paidSlipNote")}
           </p>
         </div>
@@ -231,7 +231,7 @@ export function LandingSkin() {
           <p className="mt-3 text-sm text-zinc-300">{t("landing.cta.finalDesc")}</p>
           <a
             href="/admin/signup"
-            className="mt-8 inline-flex min-h-11 items-center justify-center rounded-lg bg-rc-green px-8 py-3 text-sm font-medium text-white hover:bg-rc-green-dark"
+            className="mt-8 inline-flex min-h-14 items-center justify-center rounded-lg bg-rc-green px-8 py-3 text-base font-medium text-white hover:bg-rc-green-dark"
           >
             {t("landing.cta.final")}
           </a>
@@ -241,7 +241,7 @@ export function LandingSkin() {
       <footer className="border-t border-zinc-100 bg-white px-4 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-3">
           <BrandLogoSkin size="sm" />
-          <p className="text-center text-xs text-zinc-500">{t("landing.footer")}</p>
+          <p className="text-center text-sm text-zinc-500">{t("landing.footer")}</p>
         </div>
       </footer>
     </main>

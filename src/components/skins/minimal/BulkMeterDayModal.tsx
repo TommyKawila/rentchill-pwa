@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { useBillingMonthDisplayFormat } from "@/hooks/useBillingMonthDisplayFormat";
 import { MeterReadCard } from "@/components/skins/minimal/MeterReadCard";
 import type { MeterUtilityType } from "@/services/meterPhotoService";
 import type { RoomListRow } from "@/components/skins/minimal/RoomListSkin";
@@ -38,6 +39,7 @@ export function BulkMeterDayModal({
   onUploadPhoto,
 }: BulkMeterDayModalProps) {
   const { t } = useLocale();
+  const { formatMonth } = useBillingMonthDisplayFormat();
   const [index, setIndex] = useState(0);
   const waterRef = useRef<HTMLInputElement>(null);
   const electricRef = useRef<HTMLInputElement>(null);
@@ -54,6 +56,8 @@ export function BulkMeterDayModal({
     await onUploadPhoto(row, utility, file);
   };
 
+  const captureLabel = uploading ? t("common.saving") : t("owner.meterPhoto.capture");
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
@@ -62,14 +66,14 @@ export function BulkMeterDayModal({
         className="absolute inset-0 bg-zinc-900/40"
         onClick={onClose}
       />
-      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-xl border border-zinc-200 bg-white p-4 shadow-lg sm:rounded-xl">
-        <p className="text-xs text-zinc-500">
+      <div className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-xl border border-zinc-200 bg-white p-6 sm:rounded-xl">
+        <p className="text-sm text-zinc-500">
           {t("owner.bulkMeter.progress", { current: index + 1, total: rows.length })}
         </p>
-        <h2 className="mt-1 text-sm font-semibold text-zinc-900">
+        <h2 className="mt-1 text-base font-semibold text-zinc-900">
           {row.tenant_name} · {t("common.room", { number: row.room_number })}
         </h2>
-        <p className="mt-1 text-xs text-zinc-500">{billingMonth}</p>
+        <p className="mt-1 text-sm text-zinc-500">{formatMonth(billingMonth)}</p>
 
         {includeUtilities && (
           <div className="mt-4 space-y-3">
@@ -78,7 +82,7 @@ export function BulkMeterDayModal({
               prev={row.water_prev}
               currValue={meter.water}
               rate={waterRate}
-              disabled={disabled}
+              disabled={disabled || uploading}
               onCurrChange={(value) =>
                 onMeterChange(row.tenant_id, value, meter.electric)
               }
@@ -87,9 +91,9 @@ export function BulkMeterDayModal({
                   type="button"
                   disabled={disabled || uploading}
                   onClick={() => waterRef.current?.click()}
-                  className="min-h-11 w-full rounded-md border border-zinc-200 text-xs font-medium disabled:opacity-50"
+                  className="flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-200 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {t("owner.meterPhoto.capture")}
+                  {captureLabel}
                 </button>
               }
             />
@@ -110,7 +114,7 @@ export function BulkMeterDayModal({
               prev={row.electric_prev}
               currValue={meter.electric}
               rate={electricRate}
-              disabled={disabled}
+              disabled={disabled || uploading}
               onCurrChange={(value) =>
                 onMeterChange(row.tenant_id, meter.water, value)
               }
@@ -119,9 +123,9 @@ export function BulkMeterDayModal({
                   type="button"
                   disabled={disabled || uploading}
                   onClick={() => electricRef.current?.click()}
-                  className="min-h-11 w-full rounded-md border border-zinc-200 text-xs font-medium disabled:opacity-50"
+                  className="flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-200 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {t("owner.meterPhoto.capture")}
+                  {captureLabel}
                 </button>
               }
             />
@@ -140,11 +144,11 @@ export function BulkMeterDayModal({
           </div>
         )}
 
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="min-h-11 flex-1 rounded-md border border-zinc-200 text-sm"
+            className="flex min-h-12 flex-1 items-center justify-center rounded-lg border border-zinc-200 text-base text-zinc-700"
           >
             {t("owner.rooms.close")}
           </button>
@@ -152,9 +156,13 @@ export function BulkMeterDayModal({
             type="button"
             disabled={disabled || uploading}
             onClick={() => (isLast ? onClose() : setIndex((i) => i + 1))}
-            className="min-h-11 flex-1 rounded-md bg-green-700 text-sm font-medium text-white disabled:opacity-50"
+            className="flex min-h-14 flex-1 items-center justify-center rounded-lg bg-green-700 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isLast ? t("owner.bulkMeter.done") : t("owner.bulkMeter.next")}
+            {uploading
+              ? t("common.saving")
+              : isLast
+                ? t("owner.bulkMeter.done")
+                : t("owner.bulkMeter.next")}
           </button>
         </div>
       </div>

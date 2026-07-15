@@ -1,6 +1,8 @@
+import { buildReminderLineText } from "@/services/paymentReminderMessageService";
 import { buildBoardLiffUrl } from "@/services/line/liffUrls";
 import { pushWithQuota } from "@/services/linePushQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
+import { safeSendOwnerPropertyWebPush } from "@/services/webPushService";
 
 function formatAmount(amount: number) {
   return amount.toLocaleString("th-TH");
@@ -83,20 +85,17 @@ export async function notifyPaymentReminder(input: {
   roomNumber: string;
   billingMonth: string;
   totalAmount: number;
+  tier?: "soft" | "firm" | "final";
+  customTemplate?: string | null;
 }) {
-  const total = formatAmount(input.totalAmount);
-  const text = [
-    `⚠️ แจ้งเตือนชำระค่าเช่า — ${input.billingMonth}`,
-    `ห้อง ${input.roomNumber} · ยอด ฿${total}`,
-    "กรุณาชำระโดยเร็วที่สุด",
-    "",
-    `Payment reminder — ${input.billingMonth}`,
-    `Room ${input.roomNumber} · ฿${total}`,
-    "Please pay as soon as possible.",
-    "",
-    "เปิดบิล / View bill:",
-    boardUrl(),
-  ].join("\n");
+  const tier = input.tier ?? "firm";
+  const text = buildReminderLineText({
+    tier,
+    customTemplate: input.customTemplate,
+    roomNumber: input.roomNumber,
+    billingMonth: input.billingMonth,
+    totalAmount: input.totalAmount,
+  });
 
   return pushWithQuota({
     type: "payment_reminder",
@@ -174,6 +173,104 @@ export async function notifyPaymentConfirmed(input: {
   });
 }
 
+function maintenanceUrl(propertySlug: string) {
+  const base = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const path = `/maintenance?property=${encodeURIComponent(propertySlug)}`;
+  return base ? `${base}${path}` : path;
+}
+
+const MAINTENANCE_CATEGORY_TH: Record<string, string> = {
+  ac: "แอร์เสีย",
+  plumbing: "ท่อน้ำ/น้ำรั่ว",
+  electrical: "ไฟ/ไฟฟ้า",
+  other: "อื่นๆ",
+};
+
+export async function notifyMaintenanceReported(input: {
+  propertySlug: string;
+  lineUserId: string;
+  tenantName: string;
+  roomNumber: string;
+  category: string;
+  description: string;
+}) {
+  const categoryLabel = MAINTENANCE_CATEGORY_TH[input.category] ?? input.category;
+  const text = [
+    "🔧 ลูกบ้านแจ้งซ่อมใหม่",
+    `ห้อง ${input.roomNumber} · ${input.tenantName}`,
+    `หมวด: ${categoryLabel}`,
+    input.description.slice(0, 120),
+    "",
+    "New maintenance request",
+    `Room ${input.roomNumber}`,
+    "",
+    "เปิดรายการแจ้งซ่อม / Open tickets:",
+    maintenanceUrl(input.propertySlug),
+  ].join("\n");
+
+  return pushWithQuota({
+    type: "maintenance_reported",
+    propertySlug: input.propertySlug,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text }],
+  });
+}
+
+export async function safeNotifyMaintenanceReported(ticketId: string) {
+  try {
+    const supabase = createAdminClient();
+
+    const { data, error } = await supabase
+      .from("maintenance_tickets")
+      .select(
+        "category, description, tenants(name), rooms(room_number), properties(owner_line_user_id, slug)",
+      )
+      .eq("id", ticketId)
+      .maybeSingle();
+
+    if (error || !data?.properties) {
+      return { sent: false as const, reason: "not_found" as const };
+    }
+
+    const propertyRaw = data.properties as
+      | { owner_line_user_id: string | null; slug: string }
+      | { owner_line_user_id: string | null; slug: string }[];
+    const property = Array.isArray(propertyRaw) ? propertyRaw[0] : propertyRaw;
+    if (!property?.slug) {
+      return { sent: false as const, reason: "not_found" as const };
+    }
+
+    const tenantRaw = data.tenants as { name: string } | { name: string }[] | null;
+    const roomRaw = data.rooms as { room_number: string } | { room_number: string }[] | null;
+    const tenant = Array.isArray(tenantRaw) ? tenantRaw[0] : tenantRaw;
+    const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+
+    const categoryLabel = MAINTENANCE_CATEGORY_TH[String(data.category)] ?? String(data.category);
+    void safeSendOwnerPropertyWebPush({
+      propertySlug: property.slug,
+      title: "ลูกบ้านแจ้งซ่อมใหม่",
+      body: `ห้อง ${room?.room_number ?? "-"} · ${categoryLabel}`,
+      url: maintenanceUrl(property.slug),
+    });
+
+    if (!property.owner_line_user_id) {
+      return { sent: false as const, reason: "no_owner_line" as const };
+    }
+
+    return await notifyMaintenanceReported({
+      propertySlug: property.slug,
+      lineUserId: property.owner_line_user_id,
+      tenantName: tenant?.name ?? "-",
+      roomNumber: room?.room_number ?? "-",
+      category: String(data.category),
+      description: String(data.description),
+    });
+  } catch (error) {
+    console.error("[notifyMaintenanceReported]", error);
+    return { sent: false as const, reason: "error" as const };
+  }
+}
+
 export async function notifyOwnerSlipSubmitted(input: {
   propertySlug: string;
   lineUserId: string;
@@ -223,14 +320,25 @@ export async function safeNotifyOwnerSlipSubmitted(invoiceId: string) {
       | { owner_line_user_id: string | null; slug: string }
       | { owner_line_user_id: string | null; slug: string }[];
     const property = Array.isArray(propertyRaw) ? propertyRaw[0] : propertyRaw;
-    if (!property?.owner_line_user_id) {
-      return { sent: false as const, reason: "no_owner_line" as const };
+    if (!property?.slug) {
+      return { sent: false as const, reason: "not_found" as const };
     }
 
     const tenantRaw = data.tenants as { name: string } | { name: string }[] | null;
     const roomRaw = data.rooms as { room_number: string } | { room_number: string }[] | null;
     const tenant = Array.isArray(tenantRaw) ? tenantRaw[0] : tenantRaw;
     const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+
+    void safeSendOwnerPropertyWebPush({
+      propertySlug: property.slug,
+      title: "ลูกบ้านส่งสลิปแล้ว",
+      body: `ห้อง ${room?.room_number ?? "-"} · ${tenant?.name ?? "-"}`,
+      url: dashboardUrl(property.slug),
+    });
+
+    if (!property.owner_line_user_id) {
+      return { sent: false as const, reason: "no_owner_line" as const };
+    }
 
     return await notifyOwnerSlipSubmitted({
       propertySlug: property.slug,
