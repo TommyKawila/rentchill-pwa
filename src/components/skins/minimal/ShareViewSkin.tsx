@@ -26,7 +26,7 @@ export function ShareViewSkin({ data }: ShareViewSkinProps) {
     <main className="min-h-screen bg-white px-4 py-6 text-zinc-900">
       <div className="mx-auto max-w-xl space-y-6">
         <header className="border-b border-zinc-100 pb-6">
-          <p className="text-sm font-medium uppercase tracking-wide text-green-600">
+          <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
             {t("share.tag")}
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight">{data.property_name}</h1>

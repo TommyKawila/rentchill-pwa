@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale } from "@/components/LocaleProvider";
+import { formatMoney } from "@/services/formatMoney";
 import { statusMessageKey } from "@/services/i18n/translate";
 import type { Invoice } from "@/services/types";
 
@@ -8,14 +9,16 @@ interface BillHistoryListProps {
   invoices: Invoice[];
   selectedMonth: string | null;
   onSelect: (invoice: Invoice) => void;
+  currency?: string;
 }
 
 export function BillHistoryList({
   invoices,
   selectedMonth,
   onSelect,
+  currency = "THB",
 }: BillHistoryListProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   if (invoices.length === 0) return null;
 
@@ -43,7 +46,7 @@ export function BillHistoryList({
                 </span>
               </div>
               <p className="mt-1 text-base font-bold text-zinc-900">
-                ฿{invoice.total_amount.toLocaleString("th-TH")}
+                {formatMoney(invoice.total_amount, currency, locale)}
               </p>
             </button>
           </li>

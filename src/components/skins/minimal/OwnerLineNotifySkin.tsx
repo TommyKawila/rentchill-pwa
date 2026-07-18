@@ -56,8 +56,8 @@ export function OwnerLineNotifySkin({
       <p className="mt-1 text-sm text-zinc-500">{t("settings.notifyDesc")}</p>
 
       {linked ? (
-        <div className="mt-3 flex min-h-12 items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-4">
-          <p className="text-base text-green-800">{t("settings.notifyConnected")}</p>
+        <div className="mt-3 flex min-h-12 items-center justify-between gap-3 rounded-lg border border-rc-green/30 bg-rc-green-soft px-4">
+          <p className="text-base text-rc-green-ink">{t("settings.notifyConnected")}</p>
           <button
             type="button"
             onClick={onDisconnect}
@@ -72,7 +72,7 @@ export function OwnerLineNotifySkin({
             type="button"
             disabled={status === "loading" || !propertySlug}
             onClick={() => void handleConnect()}
-            className="flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] w-full items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {status === "loading"
               ? t("settings.notifyConnecting")

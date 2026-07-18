@@ -73,7 +73,7 @@ export function SettingsSectionModalShell({
               type="button"
               disabled={saveDisabled || saving}
               onClick={onSave}
-              className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? t("common.saving") : (saveLabel ?? t("settings.save"))}
             </button>

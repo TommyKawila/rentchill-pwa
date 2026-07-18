@@ -142,7 +142,7 @@ export function ProjectManageSkin({
           {projectUrl(propertySlug)}
         </p>
         {savedFlash && (
-          <p className="mt-1 text-sm text-green-600">{t("settings.projectSaved")}</p>
+          <p className="mt-1 text-sm text-rc-green">{t("settings.projectSaved")}</p>
         )}
         <button
           type="button"
@@ -193,7 +193,7 @@ export function ProjectManageSkin({
         type="button"
         disabled={renaming || deleting || !canSave || !slugValid}
         onClick={() => void handleRename()}
-        className="mt-3 flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-3 flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
       >
         {renaming ? t("common.saving") : t("settings.projectRenameSave")}
       </button>

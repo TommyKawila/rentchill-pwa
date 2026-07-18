@@ -42,7 +42,7 @@ export function PropertyGallerySkin({
                 })}
                 className={`inline-flex min-h-12 overflow-hidden rounded-lg border bg-white ${
                   index === activeIndex
-                    ? "border-green-600 ring-1 ring-green-600"
+                    ? "border-rc-green ring-1 ring-rc-green"
                     : "border-zinc-200"
                 }`}
               >

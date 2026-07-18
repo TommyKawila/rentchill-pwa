@@ -28,6 +28,7 @@ type BoardState = {
   documents: TenantDocumentRow[];
   propertySlug: string;
   planTier: PlanTier;
+  currency: string;
 };
 
 type TenantIdentity = {
@@ -107,7 +108,8 @@ export function useTenantBoard({
         meterPhotos,
         documents,
         propertySlug: propertyMeta?.slug ?? "",
-        planTier: propertyMeta?.planTier ?? "starter",
+        planTier: propertyMeta?.planTier ?? "free",
+        currency: propertyMeta?.currency ?? "THB",
       });
     } catch {
       setBoard(null);

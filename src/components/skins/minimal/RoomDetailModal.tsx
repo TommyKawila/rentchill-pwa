@@ -3,9 +3,6 @@
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
-import { MeterBaselineFormSkin } from "@/components/skins/minimal/MeterBaselineFormSkin";
-import { MeterPhotoVaultSkin } from "@/components/skins/minimal/MeterPhotoVaultSkin";
-import { MeterReadCard } from "@/components/skins/minimal/MeterReadCard";
 import { MeterHistoryList } from "@/components/skins/minimal/MeterHistoryList";
 import { DocumentVaultSkin } from "@/components/skins/minimal/DocumentVaultSkin";
 import { ContractLeaseSkin } from "@/components/skins/minimal/ContractLeaseSkin";
@@ -16,16 +13,26 @@ import {
   TenantProfileEditorSkin,
 } from "@/components/skins/minimal/TenantProfileEditorSkin";
 import { TenantLineInvitePanel } from "@/components/skins/minimal/TenantLineInvitePanel";
-import { OverrideSkin } from "@/components/skins/minimal/OverrideSkin";
 import { IssuedInvoiceSkin } from "@/components/skins/minimal/IssuedInvoiceSkin";
+import { OwnerSlipApprovedSkin } from "@/components/skins/minimal/OwnerSlipApprovedSkin";
+import { SlipRejectReasonSkin } from "@/components/skins/minimal/SlipRejectReasonSkin";
+import {
+  SlipVerificationFooter,
+  SlipVerificationSkin,
+} from "@/components/skins/minimal/SlipVerificationSkin";
 import { PaidInvoiceSkin } from "@/components/skins/minimal/PaidInvoiceSkin";
 import {
-  RoomDetailBillingFooterSkin,
-  type RoomDetailSavingAction,
-} from "@/components/skins/minimal/RoomDetailBillingFooterSkin";
+  InvoiceGeneratorSkin,
+  buildGeneratorBillPayload,
+  type InvoiceGeneratorIssueInput,
+} from "@/components/skins/minimal/InvoiceGeneratorSkin";
+import { InvoiceLinePreviewSkin } from "@/components/skins/minimal/InvoiceLinePreviewSkin";
 import {
-  calculateFromDialReadings,
-} from "@/services/invoiceCalculator";
+  copyBillPlainText,
+  shareBillPlainText,
+  sendBillToLine,
+} from "@/services/billSendClientService";
+import type { RoomDetailSavingAction } from "@/components/skins/minimal/RoomDetailBillingFooterSkin";
 import { statusMessageKey } from "@/services/i18n/translate";
 import { useMeterPhotos } from "@/hooks/useMeterPhotos";
 import { useMeterHistory } from "@/hooks/useMeterHistory";
@@ -34,13 +41,19 @@ import { useTenantDocuments } from "@/hooks/useTenantDocuments";
 import { useLeaseContract } from "@/hooks/useLeaseContract";
 import { useDepositTracker } from "@/hooks/useDepositTracker";
 import type { PlanTier } from "@/services/propertyQuotaService";
+import { canSendBillViaLineOa } from "@/services/planLimits";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
 import type { ApproveInvoiceInput, OverrideSavingAction } from "@/hooks/useInvoiceOverride";
 import { useTenantProfile } from "@/hooks/useTenantProfile";
 import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
-import { isMeterEntryLocked, isRowReadyToBill } from "@/services/propertyBillingSettingsService";
+import { isMeterEntryLocked } from "@/services/propertyBillingSettingsService";
 import type { ReminderTier } from "@/services/paymentReminderTier";
+import type { PropertyPaymentAccount } from "@/services/types";
+import type { BillLinePayload } from "@/services/line/billFlexMessage";
+import { useTenantInvoiceHistory } from "@/hooks/useTenantInvoiceHistory";
+import { RoomInvoiceHistorySkin } from "@/components/skins/minimal/RoomInvoiceHistorySkin";
+import type { MessageKey } from "@/services/i18n/messages";
 import {
   REMINDER_TIER_BUTTON_CLASS,
   reminderSentTierMessageKey,
@@ -50,6 +63,8 @@ import {
 interface RoomDetailModalProps {
   row: MonthlyBillingRow;
   propertySlug: string;
+  propertyName: string;
+  coverUrl?: string | null;
   planTier: PlanTier;
   billingMonth: string;
   includeUtilities: boolean;
@@ -78,7 +93,9 @@ interface RoomDetailModalProps {
   hasNextRoom?: boolean;
   readyCount?: number;
   onSaveAndNext?: () => void;
-  onIssueRoom?: () => void;
+  onIssueRoom?: (input: InvoiceGeneratorIssueInput) => Promise<boolean>;
+  paymentAccount?: PropertyPaymentAccount | null;
+  approveSuccess?: boolean;
 }
 
 function roomStatusLabel(
@@ -90,9 +107,19 @@ function roomStatusLabel(
   return t("status.noBill");
 }
 
+type DetailTab = "general" | "billing" | "documents";
+
+const DETAIL_TABS: { id: DetailTab; labelKey: MessageKey }[] = [
+  { id: "general", labelKey: "owner.roomDetail.tab.general" },
+  { id: "billing", labelKey: "owner.roomDetail.tab.billing" },
+  { id: "documents", labelKey: "owner.roomDetail.tab.documents" },
+];
+
 export function RoomDetailModal({
   row,
   propertySlug,
+  propertyName,
+  coverUrl,
   planTier,
   billingMonth,
   includeUtilities,
@@ -122,9 +149,17 @@ export function RoomDetailModal({
   readyCount = 0,
   onSaveAndNext,
   onIssueRoom,
+  paymentAccount = null,
+  approveSuccess = false,
 }: RoomDetailModalProps) {
   const { t } = useLocale();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [detailTab, setDetailTab] = useState<DetailTab>("general");
+  const [entered, setEntered] = useState(false);
+  const [slipRejectOpen, setSlipRejectOpen] = useState(false);
+  const [linePreview, setLinePreview] = useState<BillLinePayload | null>(null);
+  const [sendingLine, setSendingLine] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const tenantProfile = useTenantProfile(propertySlug, row.tenant_id);
   const tenantDisplayName = row.tenant_name.trim();
   const meterHistory = useMeterHistory(propertySlug, row.room_id, true);
@@ -155,38 +190,114 @@ export function RoomDetailModal({
     row.tenant_id,
     planTier,
   );
+  const invoiceHistory = useTenantInvoiceHistory(row.tenant_id);
   const meterLocked = isMeterEntryLocked(row);
-  const showBillingFooter =
-    !row.invoice_id && !paidInvoice && !(needsBaseline && includeUtilities);
-  const metersComplete = isRowReadyToBill(row, meters, includeUtilities);
+  const showBillingGenerator =
+    !row.invoice_id &&
+    !paidInvoice &&
+    !(includeUtilities && !row.electric_prev);
+  const showSlipReview =
+    Boolean(scanningInvoice) && detailTab === "billing" && !approveSuccess;
+  const issueMode = Boolean(
+    showBillingGenerator && onIssueRoom && !showSlipReview && !approveSuccess,
+  );
 
-  let total_amount = row.base_rent_price;
-  if (
-    includeUtilities &&
-    row.water_prev &&
-    row.electric_prev &&
-    meters.water.trim() !== "" &&
-    meters.electric.trim() !== ""
-  ) {
+  const handleCopyBillText = async (input: InvoiceGeneratorIssueInput) => {
+    const payload = buildGeneratorBillPayload(
+      row,
+      input,
+      meters,
+      includeUtilities,
+      waterRate,
+      electricRate,
+    );
     try {
-      total_amount = calculateFromDialReadings(
-        row.base_rent_price,
-        row.water_prev.value,
-        Number(meters.water),
-        row.electric_prev.value,
-        Number(meters.electric),
-        waterRate,
-        electricRate,
-      ).total_amount;
-    } catch {
-      total_amount = row.base_rent_price;
+      await copyBillPlainText(payload);
+      setCopySuccess(true);
+      window.setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error("[RoomDetailModal.copyBill]", { tenantId: row.tenant_id }, err);
     }
-  }
+  };
+
+  const handleSaveAndSend = async (input: InvoiceGeneratorIssueInput) => {
+    if (!onIssueRoom) return;
+    const ok = await onIssueRoom(input);
+    if (!ok) return;
+    const payload = buildGeneratorBillPayload(
+      row,
+      input,
+      meters,
+      includeUtilities,
+      waterRate,
+      electricRate,
+    );
+    if (canSendBillViaLineOa(planTier)) {
+      setLinePreview(payload);
+      return;
+    }
+    try {
+      await copyBillPlainText(payload);
+      setCopySuccess(true);
+      window.setTimeout(() => setCopySuccess(false), 2000);
+      onTenantUpdated?.();
+    } catch (err) {
+      console.error("[RoomDetailModal.copyBill]", { tenantId: row.tenant_id }, err);
+    }
+  };
+
+  const handleConfirmSendLine = async () => {
+    if (!linePreview) return;
+    setSendingLine(true);
+    try {
+      if (row.line_linked) {
+        await sendBillToLine({
+          propertySlug,
+          tenantId: row.tenant_id,
+          billingMonth: linePreview.billingMonth,
+        });
+        setLinePreview(null);
+        onTenantUpdated?.();
+        onClose();
+        return;
+      }
+      await shareBillPlainText(linePreview);
+      setLinePreview(null);
+      onTenantUpdated?.();
+    } catch (err) {
+      console.error(
+        "[RoomDetailModal.sendLine]",
+        { tenantId: row.tenant_id, billingMonth: linePreview.billingMonth },
+        err,
+      );
+    } finally {
+      setSendingLine(false);
+    }
+  };
 
   useEffect(() => {
     setIsEditingProfile(false);
+    setSlipRejectOpen(false);
+    const scanningWithSlip =
+      row.invoice_status === "scanning" && Boolean(scanningInvoice);
+    if (showBillingGenerator && onIssueRoom) {
+      setDetailTab("billing");
+    } else {
+      setDetailTab(scanningWithSlip ? "billing" : "general");
+    }
     tenantProfile.clearError();
-  }, [row.tenant_id]);
+  }, [
+    row.tenant_id,
+    showBillingGenerator,
+    onIssueRoom,
+    scanningInvoice,
+    row.invoice_status,
+  ]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -201,7 +312,11 @@ export function RoomDetailModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      className={`fixed inset-0 z-50 flex justify-center ${
+        issueMode ? "items-stretch" : "items-end sm:items-center"
+      }`}
+    >
       <button
         type="button"
         aria-label={t("owner.rooms.close")}
@@ -212,8 +327,66 @@ export function RoomDetailModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 flex max-h-[90vh] w-full max-w-xl flex-col rounded-t-xl border border-zinc-100 bg-white sm:rounded-xl"
+        className={`relative z-10 flex flex-col overflow-hidden transition-transform duration-300 ease-out ${
+          issueMode
+            ? `h-[100dvh] max-h-[100dvh] w-full max-w-[390px] bg-rc-bg ${
+                entered ? "translate-x-0" : "translate-x-full"
+              }`
+            : `max-h-[90vh] w-full max-w-xl rounded-t-xl border border-zinc-100 bg-white sm:rounded-xl ${
+                entered ? "translate-x-0" : "translate-x-full sm:translate-x-0"
+              }`
+        }`}
       >
+        {issueMode ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4">
+            <InvoiceGeneratorSkin
+              row={row}
+              propertyName={propertyName}
+              coverUrl={coverUrl}
+              billingMonth={billingMonth}
+              includeUtilities={includeUtilities}
+              waterRate={waterRate}
+              electricRate={electricRate}
+              meters={meters}
+              onMeterChange={(water, electric) =>
+                onMeterChange(row.tenant_id, water, electric)
+              }
+              paymentAccount={paymentAccount}
+              planTier={planTier}
+              meterPhotos={meterPhotos.photos}
+              meterPhotosUploading={meterPhotos.status === "uploading"}
+              meterPhotosError={meterPhotos.error}
+              onMeterPhotoUpload={(kind, file) =>
+                void meterPhotos.upload(kind, file)
+              }
+              needsBaseline={needsBaseline}
+              meterLocked={meterLocked}
+              meterBaselineSaving={meterBaseline.status === "saving"}
+              meterBaselineError={meterBaseline.error}
+              onSaveBaseline={(water, electric) => {
+                void meterBaseline.save(water, electric).then((ok) => {
+                  if (!ok) return;
+                  void meterHistory.reload();
+                  onTenantUpdated?.();
+                });
+              }}
+              savingAction={roomDetailSaving}
+              disabled={disabled}
+              hasNextRoom={hasNextRoom}
+              readyCount={readyCount}
+              onBack={onClose}
+              onSaveAndNext={onSaveAndNext}
+              onSaveAndSend={(input) => void handleSaveAndSend(input)}
+              onCopyText={(input) => void handleCopyBillText(input)}
+            />
+            {copySuccess && (
+              <p className="text-sm text-rc-green-ink">
+                {t("owner.invoiceGen.copySuccess")}
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
         <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
           <div className="flex min-w-0 items-start gap-x-3">
             <TenantPersonIcon className="mt-0.5 h-5 w-5 shrink-0 text-zinc-400" />
@@ -244,202 +417,181 @@ export function RoomDetailModal({
           </div>
         </header>
 
-        <div className="space-y-4 overflow-y-auto px-4 py-6">
-          {isEditingProfile && (
-            <TenantProfileEditorSkin
-              tenantName={row.tenant_name}
-              saving={tenantProfile.status === "saving"}
-              error={tenantProfile.error}
-              onCancel={() => {
-                setIsEditingProfile(false);
-                tenantProfile.clearError();
-              }}
-              onSave={(input) => {
-                void tenantProfile.save(input).then((result) => {
-                  if (!result) return;
-                  setIsEditingProfile(false);
-                  onTenantUpdated?.();
-                });
-              }}
-            />
-          )}
-          <TenantLineInvitePanel
-            tenantName={tenantDisplayName}
-            roomNumber={row.room_number}
-            inviteCode={row.invite_code}
-            inviteUrl={row.invite_url}
-            lineLinked={row.line_linked}
-          />
+        <div
+          role="tablist"
+          aria-label={t("owner.roomDetail.tab.general")}
+          className="flex gap-2 overflow-x-auto border-b border-zinc-100 px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {DETAIL_TABS.map((tab) => {
+            const active = detailTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setDetailTab(tab.id)}
+                className={`inline-flex min-h-12 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors ${
+                  active
+                    ? "border-rc-green bg-rc-green text-white"
+                    : "border-zinc-100 bg-zinc-50 text-zinc-700 hover:bg-zinc-100"
+                }`}
+              >
+                {t(tab.labelKey)}
+              </button>
+            );
+          })}
+        </div>
 
-          {!row.invoice_id && !paidInvoice && (
+        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="space-y-4 overflow-y-auto px-4 py-6">
+          {detailTab === "general" && (
             <>
-              {includeUtilities ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-zinc-500">
-                    {t("owner.meter.moveInStatus", {
-                      date: row.move_in_date,
-                    })}
-                  </p>
-                  {needsBaseline && !meterLocked && (
-                    <MeterBaselineFormSkin
-                      saving={meterBaseline.status === "saving"}
-                      error={meterBaseline.error}
-                      onSave={(water, electric) => {
-                        void meterBaseline.save(water, electric).then((ok) => {
-                          if (!ok) return;
-                          void meterHistory.reload();
-                          onTenantUpdated?.();
-                        });
-                      }}
-                    />
-                  )}
-                  <MeterReadCard
-                    kind="water"
-                    prev={row.water_prev}
-                    currValue={meters.water}
-                    rate={waterRate}
-                    disabled={disabled || meterLocked}
-                    onCurrChange={(value) =>
-                      onMeterChange(row.tenant_id, value, meters.electric)
-                    }
-                    photoSlot={
-                      <MeterPhotoVaultSkin
-                        planTier={planTier}
-                        photos={meterPhotos.photos.filter(
-                          (p) => p.utility_type === "water",
-                        )}
-                        utilityOnly="water"
-                        compact
-                        disabled={disabled || meterLocked}
-                        uploading={meterPhotos.status === "uploading"}
-                        error={meterPhotos.error}
-                        onUpload={(_, file) =>
-                          void meterPhotos.upload("water", file)
-                        }
-                      />
-                    }
-                  />
-                  <MeterReadCard
-                    kind="electric"
-                    prev={row.electric_prev}
-                    currValue={meters.electric}
-                    rate={electricRate}
-                    disabled={disabled || meterLocked}
-                    onCurrChange={(value) =>
-                      onMeterChange(row.tenant_id, meters.water, value)
-                    }
-                    photoSlot={
-                      <MeterPhotoVaultSkin
-                        planTier={planTier}
-                        photos={meterPhotos.photos.filter(
-                          (p) => p.utility_type === "electric",
-                        )}
-                        utilityOnly="electric"
-                        compact
-                        disabled={disabled || meterLocked}
-                        uploading={meterPhotos.status === "uploading"}
-                        error={meterPhotos.error}
-                        onUpload={(_, file) =>
-                          void meterPhotos.upload("electric", file)
-                        }
-                      />
-                    }
-                  />
-                </div>
-              ) : (
-                <p className="text-sm text-zinc-500">{t("owner.billing.rentOnly")}</p>
+              {isEditingProfile && (
+                <TenantProfileEditorSkin
+                  tenantName={row.tenant_name}
+                  saving={tenantProfile.status === "saving"}
+                  error={tenantProfile.error}
+                  onCancel={() => {
+                    setIsEditingProfile(false);
+                    tenantProfile.clearError();
+                  }}
+                  onSave={(input) => {
+                    void tenantProfile.save(input).then((result) => {
+                      if (!result) return;
+                      setIsEditingProfile(false);
+                      onTenantUpdated?.();
+                    });
+                  }}
+                />
               )}
+              <TenantLineInvitePanel
+                tenantName={tenantDisplayName}
+                roomNumber={row.room_number}
+                inviteCode={row.invite_code}
+                inviteUrl={row.invite_url}
+                lineLinked={row.line_linked}
+              />
+              <div className="space-y-3">
+                <ContractLeaseSkin
+                  planTier={planTier}
+                  disabled={disabled}
+                  loading={leaseContract.status === "loading"}
+                  error={leaseContract.error}
+                  onGenerate={() => {
+                    void leaseContract.generate().then((ok) => {
+                      if (ok) void tenantDocs.reload();
+                    });
+                  }}
+                />
+                <DepositTrackerSkin
+                  planTier={planTier}
+                  deposit={depositTracker.deposit}
+                  disabled={disabled}
+                  saving={depositTracker.status === "saving"}
+                  error={depositTracker.error}
+                  onSave={(input) => void depositTracker.save(input)}
+                />
+                <MoveChecklistSkin
+                  planTier={planTier}
+                  disabled={disabled}
+                  busy={tenantDocs.status === "uploading"}
+                  onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
+                />
+              </div>
             </>
           )}
 
-          {row.invoice_status === "pending" && row.line_linked && onRemind && (
-            <div className="space-y-2">
-              {row.reminder_tier_sent && (
-                <p className="text-sm text-zinc-500">
-                  {t(reminderSentTierMessageKey(row.reminder_tier_sent))}
-                </p>
+          {detailTab === "billing" && (
+            <>
+              {row.invoice_status === "pending" && row.line_linked && onRemind && (
+                <div className="space-y-2">
+                  {row.reminder_tier_sent && (
+                    <p className="text-sm text-zinc-500">
+                      {t(reminderSentTierMessageKey(row.reminder_tier_sent))}
+                    </p>
+                  )}
+                  {row.reminder_recommended && row.reminder_can_send ? (
+                    <button
+                      type="button"
+                      disabled={disabled || reminderDisabled || !canRemind}
+                      onClick={() =>
+                        onRemind(row.tenant_id, row.reminder_recommended!)
+                      }
+                      className={`min-h-12 w-full rounded-lg border text-base font-medium disabled:cursor-not-allowed disabled:opacity-50 ${REMINDER_TIER_BUTTON_CLASS[row.reminder_recommended]}`}
+                    >
+                      <EasyModeCtaIcon name="remind" />
+                      {reminderDisabled
+                        ? t("owner.reminder.sending")
+                        : remindedTenantId === row.tenant_id
+                          ? t("owner.reminder.sent")
+                          : t(reminderTierMessageKey(row.reminder_recommended))}
+                    </button>
+                  ) : row.reminder_days_until_soft != null ? (
+                    <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+                      {t("owner.reminder.availableInDays", {
+                        days: row.reminder_days_until_soft,
+                      })}
+                    </p>
+                  ) : null}
+                </div>
               )}
-              {row.reminder_recommended && row.reminder_can_send ? (
-                <button
-                  type="button"
-                  disabled={disabled || reminderDisabled || !canRemind}
-                  onClick={() =>
-                    onRemind(row.tenant_id, row.reminder_recommended!)
-                  }
-                  className={`min-h-12 w-full rounded-lg border text-base font-medium disabled:cursor-not-allowed disabled:opacity-50 ${REMINDER_TIER_BUTTON_CLASS[row.reminder_recommended]}`}
-                >
-                  <EasyModeCtaIcon name="remind" />
-                  {reminderDisabled
-                    ? t("owner.reminder.sending")
-                    : remindedTenantId === row.tenant_id
-                      ? t("owner.reminder.sent")
-                      : t(reminderTierMessageKey(row.reminder_recommended))}
-                </button>
-              ) : row.reminder_days_until_soft != null ? (
-                <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-                  {t("owner.reminder.availableInDays", {
-                    days: row.reminder_days_until_soft,
-                  })}
-                </p>
-              ) : null}
-            </div>
+
+              {pendingInvoice && (
+                <IssuedInvoiceSkin
+                  invoice={pendingInvoice}
+                  disabled={disabled}
+                  savingAction={overrideSavingAction}
+                  meterPhotos={meterPhotos.photos}
+                  onApprove={(input) => onApprove(pendingInvoice.id, input)}
+                />
+              )}
+
+              {scanningAnomalyInvoice && (
+                <IssuedInvoiceSkin
+                  invoice={scanningAnomalyInvoice}
+                  variant="scanningAnomaly"
+                  disabled={disabled}
+                  savingAction={overrideSavingAction}
+                  meterPhotos={meterPhotos.photos}
+                  onApprove={(input) => onApprove(scanningAnomalyInvoice.id, input)}
+                />
+              )}
+
+              {approveSuccess && <OwnerSlipApprovedSkin />}
+
+              {scanningInvoice && !approveSuccess && (
+                <SlipVerificationSkin
+                  invoice={scanningInvoice}
+                  disabled={disabled}
+                  savingAction={overrideSavingAction}
+                  autoVerifyEnabled={autoVerifyEnabled}
+                  billingHref={billingHref}
+                  onAutoVerify={() => onAutoVerify(scanningInvoice.id)}
+                />
+              )}
+
+              {paidInvoice && <PaidInvoiceSkin invoice={paidInvoice} />}
+
+              {includeUtilities && (
+                <MeterHistoryList
+                  rows={meterHistory.rows}
+                  loading={meterHistory.status === "loading"}
+                />
+              )}
+
+              <RoomInvoiceHistorySkin
+                invoices={invoiceHistory.invoices}
+                loading={invoiceHistory.status === "loading"}
+                error={invoiceHistory.error}
+              />
+            </>
           )}
 
-          {pendingInvoice && (
-            <IssuedInvoiceSkin
-              invoice={pendingInvoice}
-              disabled={disabled}
-              savingAction={overrideSavingAction}
-              meterPhotos={meterPhotos.photos}
-              onApprove={(input) => onApprove(pendingInvoice.id, input)}
-            />
-          )}
-
-          {scanningAnomalyInvoice && (
-            <IssuedInvoiceSkin
-              invoice={scanningAnomalyInvoice}
-              variant="scanningAnomaly"
-              disabled={disabled}
-              savingAction={overrideSavingAction}
-              meterPhotos={meterPhotos.photos}
-              onApprove={(input) => onApprove(scanningAnomalyInvoice.id, input)}
-            />
-          )}
-
-          {scanningInvoice && (
-            <OverrideSkin
-              invoice={scanningInvoice}
-              disabled={disabled}
-              savingAction={overrideSavingAction}
-              autoVerifyEnabled={autoVerifyEnabled}
-              billingHref={billingHref}
-              onAutoVerify={() => onAutoVerify(scanningInvoice.id)}
-              onReject={(note) => onReject(scanningInvoice.id, note)}
-              onApprove={(input) => onApprove(scanningInvoice.id, input)}
-            />
-          )}
-
-          {paidInvoice && (
-            <PaidInvoiceSkin invoice={paidInvoice} />
-          )}
-
-          <div className="space-y-3 border-t border-zinc-100 pt-4">
-            <DepositTrackerSkin
-              planTier={planTier}
-              deposit={depositTracker.deposit}
-              disabled={disabled}
-              saving={depositTracker.status === "saving"}
-              error={depositTracker.error}
-              onSave={(input) => void depositTracker.save(input)}
-            />
-            <MoveChecklistSkin
-              planTier={planTier}
-              disabled={disabled}
-              busy={tenantDocs.status === "uploading"}
-              onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
-            />
+          {detailTab === "documents" && (
             <DocumentVaultSkin
               planTier={planTier}
+              variant="tab"
               documents={tenantDocs.documents}
               disabled={disabled}
               busy={
@@ -449,40 +601,45 @@ export function RoomDetailModal({
               onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
               onDelete={(id) => void tenantDocs.remove(id)}
             />
-            <ContractLeaseSkin
-              planTier={planTier}
-              disabled={disabled}
-              loading={leaseContract.status === "loading"}
-              error={leaseContract.error}
-              onGenerate={() => {
-                void leaseContract.generate().then((ok) => {
-                  if (ok) void tenantDocs.reload();
-                });
-              }}
-            />
-            {includeUtilities && (
-              <MeterHistoryList
-                rows={meterHistory.rows}
-                loading={meterHistory.status === "loading"}
-              />
-            )}
-          </div>
+          )}
         </div>
 
-        {showBillingFooter && onSaveAndNext && onIssueRoom && (
-          <RoomDetailBillingFooterSkin
-            totalAmount={total_amount}
-            metersComplete={metersComplete}
-            includeUtilities={includeUtilities}
-            savingAction={roomDetailSaving}
-            disabled={disabled}
-            hasNextRoom={hasNextRoom}
-            readyCount={readyCount}
-            onSaveAndNext={onSaveAndNext}
-            onIssueRoom={onIssueRoom}
+        {showSlipReview && scanningInvoice && (
+          <SlipVerificationFooter
+            busy={Boolean(disabled || overrideSavingAction)}
+            savingAction={overrideSavingAction}
+            onApprove={() => onApprove(scanningInvoice.id)}
+            onRejectClick={() => setSlipRejectOpen(true)}
           />
         )}
+        </div>
+          </>
+        )}
       </div>
+
+      {slipRejectOpen && scanningInvoice && (
+        <SlipRejectReasonSkin
+          busy={Boolean(disabled || overrideSavingAction)}
+          saving={overrideSavingAction === "reject"}
+          onConfirm={(note) => {
+            onReject(scanningInvoice.id, note);
+            setSlipRejectOpen(false);
+          }}
+          onCancel={() => setSlipRejectOpen(false)}
+        />
+      )}
+
+      {linePreview && (
+        <InvoiceLinePreviewSkin
+          payload={linePreview}
+          lineLinked={row.line_linked}
+          sending={sendingLine}
+          onConfirm={() => void handleConfirmSendLine()}
+          onCancel={() => {
+            if (!sendingLine) setLinePreview(null);
+          }}
+        />
+      )}
     </div>
   );
 }

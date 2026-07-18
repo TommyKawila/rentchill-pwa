@@ -91,7 +91,7 @@ export function ContactLineQrSkin({
           type="button"
           disabled={status === "uploading" || !propertySlug}
           onClick={() => inputRef.current?.click()}
-          className="flex min-h-14 w-full items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-white text-base text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[52px] w-full items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-white text-base text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === "uploading"
             ? t("common.saving")

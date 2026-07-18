@@ -11,8 +11,8 @@ export function PaidInvoiceSkin({ invoice }: PaidInvoiceSkinProps) {
   const { t } = useLocale();
 
   return (
-    <article className="rounded-xl border border-green-200 bg-green-50 p-6">
-      <header className="border-b border-green-100 pb-3">
+    <article className="rounded-xl border border-rc-success/30 bg-rc-success-soft p-6">
+      <header className="border-b border-rc-success/20 pb-3">
         <p className="text-base font-semibold">{invoice.tenant_name}</p>
         <p className="text-sm text-zinc-600">
           {t("common.room", { number: invoice.room_number })} · {invoice.billing_month} ·{" "}

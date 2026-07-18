@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
+import { SettingsReminderPresetSkin } from "@/components/skins/minimal/SettingsReminderPresetSkin";
 import { SettingsSectionModalShell } from "@/components/skins/minimal/SettingsSectionModalShell";
 import {
   DEFAULT_REMINDER_TEMPLATES,
@@ -10,6 +11,13 @@ import {
   sanitizeReminderTemplate,
   validateReminderTemplate,
 } from "@/services/paymentReminderMessageService";
+import {
+  daysForReminderPreset,
+  detectReminderPreset,
+  parseReminderPreset,
+  type NamedReminderPresetId,
+  type ReminderPresetId,
+} from "@/services/reminderPresetService";
 import type { ReminderTier } from "@/services/paymentReminderTier";
 import type { PropertyPaymentInput } from "@/services/types";
 
@@ -29,6 +37,7 @@ const TIER_DAY_LABEL: Record<ReminderTier, string> = {
 interface SettingsBillingModalSkinProps {
   billingDay: number;
   meterReminderDays: number;
+  reminderPreset?: string;
   reminderSoftDays: number;
   reminderFirmDays: number;
   reminderFinalDays: number;
@@ -44,6 +53,7 @@ interface SettingsBillingModalSkinProps {
     PropertyPaymentInput,
     | "billing_day"
     | "meter_reminder_days_before"
+    | "reminder_preset"
     | "reminder_soft_days"
     | "reminder_firm_days"
     | "reminder_final_days"
@@ -56,38 +66,22 @@ interface SettingsBillingModalSkinProps {
   >) => Promise<boolean>;
 }
 
-function ReminderTierBlock({
+function ReminderTemplateBlock({
   tier,
-  days,
   template,
-  onDaysChange,
   onTemplateChange,
 }: {
   tier: ReminderTier;
-  days: string;
   template: string;
-  onDaysChange: (value: string) => void;
   onTemplateChange: (value: string) => void;
 }) {
   const { t } = useLocale();
 
   return (
     <div className="space-y-3 rounded-xl border border-zinc-100 bg-white p-4">
-      <label className="block space-y-1 text-sm text-zinc-500">
-        <span className="font-medium text-zinc-900">
-          {t(TIER_DAY_LABEL[tier] as Parameters<typeof t>[0])}
-        </span>
-        <input
-          type="number"
-          min={1}
-          max={28}
-          inputMode="numeric"
-          value={days}
-          onChange={(event) => onDaysChange(event.target.value)}
-          className={inputClass}
-        />
-      </label>
-
+      <span className="block text-sm font-medium text-zinc-900">
+        {t(TIER_DAY_LABEL[tier] as Parameters<typeof t>[0])}
+      </span>
       <div className="space-y-2">
         <span className="block text-sm font-medium text-zinc-900">
           {t("settings.reminderTemplateLabel")}
@@ -102,7 +96,7 @@ function ReminderTierBlock({
         <button
           type="button"
           onClick={() => onTemplateChange(DEFAULT_REMINDER_TEMPLATES[tier])}
-          className="inline-flex min-h-12 items-center text-base text-green-700 underline"
+          className="inline-flex min-h-12 items-center text-base text-rc-green-ink underline"
         >
           {t("settings.reminderTemplateReset")}
         </button>
@@ -122,6 +116,7 @@ function ReminderTierBlock({
 export function SettingsBillingModalSkin({
   billingDay: initialBillingDay,
   meterReminderDays: initialMeterReminderDays,
+  reminderPreset: initialPreset,
   reminderSoftDays: initialSoft,
   reminderFirmDays: initialFirm,
   reminderFinalDays: initialFinal,
@@ -143,6 +138,22 @@ export function SettingsBillingModalSkin({
   const [reminderSoftDays, setReminderSoftDays] = useState(String(initialSoft));
   const [reminderFirmDays, setReminderFirmDays] = useState(String(initialFirm));
   const [reminderFinalDays, setReminderFinalDays] = useState(String(initialFinal));
+  const [preset, setPreset] = useState<ReminderPresetId>(() =>
+    parseReminderPreset(initialPreset, {
+      soft: initialSoft,
+      firm: initialFirm,
+      final: initialFinal,
+    }),
+  );
+  const [fineTuneOpen, setFineTuneOpen] = useState(
+    () =>
+      parseReminderPreset(initialPreset, {
+        soft: initialSoft,
+        firm: initialFirm,
+        final: initialFinal,
+      }) === "custom",
+  );
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [templateSoft, setTemplateSoft] = useState(
     getReminderTemplate("soft", initialTemplateSoft),
   );
@@ -163,6 +174,13 @@ export function SettingsBillingModalSkin({
     setReminderSoftDays(String(initialSoft));
     setReminderFirmDays(String(initialFirm));
     setReminderFinalDays(String(initialFinal));
+    const nextPreset = parseReminderPreset(initialPreset, {
+      soft: initialSoft,
+      firm: initialFirm,
+      final: initialFinal,
+    });
+    setPreset(nextPreset);
+    setFineTuneOpen(nextPreset === "custom");
     setTemplateSoft(getReminderTemplate("soft", initialTemplateSoft));
     setTemplateFirm(getReminderTemplate("firm", initialTemplateFirm));
     setTemplateFinal(getReminderTemplate("final", initialTemplateFinal));
@@ -173,6 +191,7 @@ export function SettingsBillingModalSkin({
   }, [
     initialBillingDay,
     initialMeterReminderDays,
+    initialPreset,
     initialSoft,
     initialFirm,
     initialFinal,
@@ -184,25 +203,52 @@ export function SettingsBillingModalSkin({
     initialElectricRate,
   ]);
 
+  const applyDays = (soft: string, firm: string, final: string) => {
+    setReminderSoftDays(soft);
+    setReminderFirmDays(firm);
+    setReminderFinalDays(final);
+    const next = detectReminderPreset({
+      soft: Number(soft) || 1,
+      firm: Number(firm) || 1,
+      final: Number(final) || 2,
+    });
+    setPreset(next);
+    if (next === "custom") setFineTuneOpen(true);
+  };
+
+  const handleSelectPreset = (id: NamedReminderPresetId) => {
+    const days = daysForReminderPreset(id);
+    setPreset(id);
+    setReminderSoftDays(String(days.soft));
+    setReminderFirmDays(String(days.firm));
+    setReminderFinalDays(String(days.final));
+  };
+
   const handleSave = () => {
-    const templates = [
+    for (const entry of [
       { tier: "soft" as const, text: templateSoft },
       { tier: "firm" as const, text: templateFirm },
       { tier: "final" as const, text: templateFinal },
-    ];
-
-    for (const entry of templates) {
+    ]) {
       if (!validateReminderTemplate(entry.text)) {
         setValidationError(t("settings.reminderTemplateInvalid"));
+        setTemplatesOpen(true);
         return;
       }
     }
 
     setValidationError(null);
 
+    const nextPreset = detectReminderPreset({
+      soft: Number(reminderSoftDays) || 1,
+      firm: Number(reminderFirmDays) || 1,
+      final: Number(reminderFinalDays) || 2,
+    });
+
     void onSave({
       billing_day: Number(billingDay),
       meter_reminder_days_before: Number(meterReminderDays),
+      reminder_preset: nextPreset,
       reminder_soft_days: Number(reminderSoftDays),
       reminder_firm_days: Number(reminderFirmDays),
       reminder_final_days: Number(reminderFinalDays),
@@ -265,27 +311,59 @@ export function SettingsBillingModalSkin({
             </p>
           </div>
 
-          <ReminderTierBlock
-            tier="soft"
-            days={reminderSoftDays}
-            template={templateSoft}
-            onDaysChange={setReminderSoftDays}
-            onTemplateChange={setTemplateSoft}
+          <SettingsReminderPresetSkin
+            billingDay={Number(billingDay) || 1}
+            preset={preset}
+            softDays={reminderSoftDays}
+            firmDays={reminderFirmDays}
+            finalDays={reminderFinalDays}
+            fineTuneOpen={fineTuneOpen}
+            onSelectPreset={handleSelectPreset}
+            onFineTuneOpenChange={setFineTuneOpen}
+            onSoftDaysChange={(value) =>
+              applyDays(value, reminderFirmDays, reminderFinalDays)
+            }
+            onFirmDaysChange={(value) =>
+              applyDays(reminderSoftDays, value, reminderFinalDays)
+            }
+            onFinalDaysChange={(value) =>
+              applyDays(reminderSoftDays, reminderFirmDays, value)
+            }
           />
-          <ReminderTierBlock
-            tier="firm"
-            days={reminderFirmDays}
-            template={templateFirm}
-            onDaysChange={setReminderFirmDays}
-            onTemplateChange={setTemplateFirm}
-          />
-          <ReminderTierBlock
-            tier="final"
-            days={reminderFinalDays}
-            template={templateFinal}
-            onDaysChange={setReminderFinalDays}
-            onTemplateChange={setTemplateFinal}
-          />
+
+          <button
+            type="button"
+            onClick={() => setTemplatesOpen((prev) => !prev)}
+            className="flex min-h-12 w-full items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 text-sm font-medium text-zinc-900"
+          >
+            <span>{t("settings.reminderPreset.templatesAdvanced")}</span>
+            <span className="text-zinc-400">{templatesOpen ? "▾" : "▸"}</span>
+          </button>
+
+          {templatesOpen ? (
+            <div className="space-y-3">
+              {REMINDER_TIERS.map((tier) => (
+                <ReminderTemplateBlock
+                  key={tier}
+                  tier={tier}
+                  template={
+                    tier === "soft"
+                      ? templateSoft
+                      : tier === "firm"
+                        ? templateFirm
+                        : templateFinal
+                  }
+                  onTemplateChange={
+                    tier === "soft"
+                      ? setTemplateSoft
+                      : tier === "firm"
+                        ? setTemplateFirm
+                        : setTemplateFinal
+                  }
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
 
         {validationError && (
@@ -300,7 +378,7 @@ export function SettingsBillingModalSkin({
             aria-checked={includeUtilities}
             onClick={() => setIncludeUtilities((prev) => !prev)}
             className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full px-1 transition ${
-              includeUtilities ? "bg-green-600" : "bg-zinc-300"
+              includeUtilities ? "bg-rc-green" : "bg-zinc-300"
             }`}
           >
             <span

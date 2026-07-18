@@ -1,9 +1,8 @@
-import type { PlanTier } from "@/services/propertyQuotaService";
+import { normalizePlanTier, type PlanTier } from "@/services/planTierNormalize";
 
 const DEFAULT_TRIAL_OWNER_ID = "00000000-0000-0000-0000-000000000020";
 const DEFAULT_TRIAL_PROPERTY_SLUG = "trial-apartment";
 const DEFAULT_TRIAL_INVITE_CODE = "RCTRY1";
-const VALID_TIERS: PlanTier[] = ["starter", "micro", "growth", "pro"];
 
 export function isTrialEnabled() {
   return process.env.TRIAL_ENABLED === "true";
@@ -51,9 +50,7 @@ export function assertNotTrialOwnerMutation(ownerId: string) {
 }
 
 export function parseTrialPlanTier(raw: string | null | undefined): PlanTier {
-  const tier = raw?.trim().toLowerCase() as PlanTier;
-  if (tier && VALID_TIERS.includes(tier)) return tier;
-  return "growth";
+  return normalizePlanTier(String(raw ?? "premium"));
 }
 
 export function getTrialResetIntervalMs() {

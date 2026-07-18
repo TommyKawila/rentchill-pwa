@@ -1,6 +1,28 @@
-import { buildReminderLineText } from "@/services/paymentReminderMessageService";
+import {
+  buildBillFlexMessage,
+  buildBillPlainText,
+} from "@/services/line/billFlexMessage";
+import {
+  buildMaintenanceFlexMessage,
+  buildMaintenanceStatusLead,
+  buildMaintenanceSubmittedLead,
+  type MaintenanceFlexPayload,
+} from "@/services/line/maintenanceFlexMessage";
+import {
+  buildReceiptFlexMessage,
+  buildReceiptLeadText,
+} from "@/services/line/receiptFlexMessage";
+import type { InvoiceExtraItem } from "@/services/types";
+import type { MaintenanceTicketStatus } from "@/services/types";
+import type { LinePushMessage } from "@/services/line/pushMessageService";
 import { buildBoardLiffUrl } from "@/services/line/liffUrls";
 import { pushWithQuota } from "@/services/linePushQuotaService";
+import { buildReminderFlexMessage } from "@/services/line/reminderFlexMessage";
+import {
+  formatBillingMonthForReminder,
+  formatReminderAmount,
+  interpolateReminderTemplate,
+} from "@/services/paymentReminderMessageService";
 import { createAdminClient } from "@/services/supabase/admin";
 import { safeSendOwnerPropertyWebPush } from "@/services/webPushService";
 
@@ -32,24 +54,30 @@ export async function notifyBillIssued(input: {
   roomNumber: string;
   billingMonth: string;
   totalAmount: number;
+  baseRentAmount?: number;
+  waterAmount?: number;
+  electricAmount?: number;
+  extraItems?: InvoiceExtraItem[];
 }) {
-  const total = formatAmount(input.totalAmount);
-  const text = [
-    `🏠 RentChill — บิลค่าเช่า ${input.billingMonth}`,
-    `ห้อง ${input.roomNumber} · ยอดรวม ฿${total}`,
-    "",
-    `RentChill — Rent bill ${input.billingMonth}`,
-    `Room ${input.roomNumber} · Total ฿${total}`,
-    "",
-    "เปิดบิล / View bill:",
-    boardUrl(),
-  ].join("\n");
+  const payload = {
+    roomNumber: input.roomNumber,
+    billingMonth: input.billingMonth,
+    totalAmount: input.totalAmount,
+    baseRentAmount: input.baseRentAmount ?? 0,
+    waterAmount: input.waterAmount ?? 0,
+    electricAmount: input.electricAmount ?? 0,
+    extraItems: input.extraItems,
+  };
+
+  const flex = buildBillFlexMessage(payload);
+  const text = buildBillPlainText(payload);
+  const messages: LinePushMessage[] = [flex, { type: "text", text }];
 
   return pushWithQuota({
     type: "bill_issued",
     propertySlug: input.propertySlug,
     lineUserId: input.lineUserId,
-    messages: [{ type: "text", text }],
+    messages,
   });
 }
 
@@ -60,15 +88,17 @@ export async function notifySlipRejected(input: {
   billingMonth: string;
   note: string;
 }) {
+  const board = boardUrl();
   const text = [
-    "❌ สลิปไม่ผ่านการตรวจสอบ",
-    input.note,
+    `ขออภัยค่ะ หลักฐานการโอนเงินของห้อง ${input.roomNumber} ไม่ผ่านการตรวจสอบเนื่องจาก: ${input.note}`,
     "",
-    "Slip verification failed",
-    input.note,
+    `ส่งสลิปใหม่ได้ที่ลิงก์ด้านล่าง (${input.billingMonth})`,
+    board,
     "",
-    "ส่งใหม่ / Resubmit:",
-    boardUrl(),
+    `Sorry — your transfer slip for room ${input.roomNumber} was not accepted: ${input.note}`,
+    "",
+    "Resubmit:",
+    board,
   ].join("\n");
 
   return pushWithQuota({
@@ -82,6 +112,8 @@ export async function notifySlipRejected(input: {
 export async function notifyPaymentReminder(input: {
   propertySlug: string;
   lineUserId: string;
+  tenantName: string;
+  propertyName: string;
   roomNumber: string;
   billingMonth: string;
   totalAmount: number;
@@ -89,19 +121,32 @@ export async function notifyPaymentReminder(input: {
   customTemplate?: string | null;
 }) {
   const tier = input.tier ?? "firm";
-  const text = buildReminderLineText({
-    tier,
-    customTemplate: input.customTemplate,
-    roomNumber: input.roomNumber,
-    billingMonth: input.billingMonth,
-    totalAmount: input.totalAmount,
-  });
+  const billingMonthLabel = formatBillingMonthForReminder(input.billingMonth);
+  const customBody = input.customTemplate
+    ? interpolateReminderTemplate(input.customTemplate, {
+        tenantName: input.tenantName.trim() || "ลูกบ้าน",
+        propertyName: input.propertyName.trim() || "หอพัก",
+        monthLabel: billingMonthLabel,
+        room: input.roomNumber,
+        amount: formatReminderAmount(input.totalAmount),
+      })
+    : null;
 
   return pushWithQuota({
     type: "payment_reminder",
     propertySlug: input.propertySlug,
     lineUserId: input.lineUserId,
-    messages: [{ type: "text", text }],
+    messages: [
+      buildReminderFlexMessage({
+        tier,
+        tenantName: input.tenantName,
+        propertyName: input.propertyName,
+        roomNumber: input.roomNumber,
+        billingMonthLabel,
+        totalAmount: input.totalAmount,
+        customBody,
+      }),
+    ],
   });
 }
 
@@ -151,25 +196,23 @@ export async function notifyPaymentConfirmed(input: {
   billingMonth: string;
   totalAmount: number;
 }) {
-  const total = formatAmount(input.totalAmount);
-  const text = [
-    `✅ ชำระเงินสำเร็จ — ${input.billingMonth}`,
-    `ห้อง ${input.roomNumber} · ฿${total}`,
-    "บิลนี้ชำระแล้ว ขอบคุณค่ะ",
-    "",
-    `Payment confirmed — ${input.billingMonth}`,
-    `Room ${input.roomNumber} · ฿${total}`,
-    "This bill is paid. Thank you!",
-    "",
-    "เปิดบิล / View bill:",
-    boardUrl(),
-  ].join("\n");
+  const payload = {
+    roomNumber: input.roomNumber,
+    billingMonth: input.billingMonth,
+    totalAmount: input.totalAmount,
+  };
+  const lead = buildReceiptLeadText(payload);
+
+  const flex = buildReceiptFlexMessage(payload);
 
   return pushWithQuota({
     type: "payment_confirmed",
     propertySlug: input.propertySlug,
     lineUserId: input.lineUserId,
-    messages: [{ type: "text", text }],
+    messages: [
+      { type: "text", text: lead },
+      flex as LinePushMessage,
+    ],
   });
 }
 
@@ -183,6 +226,7 @@ const MAINTENANCE_CATEGORY_TH: Record<string, string> = {
   ac: "แอร์เสีย",
   plumbing: "ท่อน้ำ/น้ำรั่ว",
   electrical: "ไฟ/ไฟฟ้า",
+  furniture: "เฟอร์นิเจอร์",
   other: "อื่นๆ",
 };
 
@@ -271,6 +315,156 @@ export async function safeNotifyMaintenanceReported(ticketId: string) {
   }
 }
 
+async function fetchMaintenanceNotifyContext(ticketId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("maintenance_tickets")
+    .select(
+      "category, description, status, tenants(line_user_id), rooms(room_number), properties(slug)",
+    )
+    .eq("id", ticketId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const tenantRaw = data.tenants as
+    | { line_user_id: string | null }
+    | { line_user_id: string | null }[]
+    | null;
+  const roomRaw = data.rooms as { room_number: string } | { room_number: string }[] | null;
+  const propertyRaw = data.properties as { slug: string } | { slug: string }[] | null;
+  const tenant = Array.isArray(tenantRaw) ? tenantRaw[0] : tenantRaw;
+  const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+  const property = Array.isArray(propertyRaw) ? propertyRaw[0] : propertyRaw;
+
+  if (!tenant?.line_user_id || !property?.slug) return null;
+
+  const categoryLabel =
+    MAINTENANCE_CATEGORY_TH[String(data.category)] ?? String(data.category);
+
+  const payload: MaintenanceFlexPayload = {
+    roomNumber: room?.room_number ?? "-",
+    categoryLabel,
+    description: String(data.description),
+    status: data.status as MaintenanceTicketStatus,
+  };
+
+  return {
+    propertySlug: property.slug,
+    lineUserId: tenant.line_user_id,
+    payload,
+  };
+}
+
+export async function notifyTenantMaintenanceSubmitted(input: {
+  propertySlug: string;
+  lineUserId: string;
+  payload: MaintenanceFlexPayload;
+}) {
+  const lead = buildMaintenanceSubmittedLead(input.payload);
+  const flex = buildMaintenanceFlexMessage(input.payload);
+
+  return pushWithQuota({
+    type: "maintenance_submitted",
+    propertySlug: input.propertySlug,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text: lead }, flex as LinePushMessage],
+  });
+}
+
+export async function notifyTenantMaintenanceStatus(input: {
+  propertySlug: string;
+  lineUserId: string;
+  payload: MaintenanceFlexPayload;
+}) {
+  const lead = buildMaintenanceStatusLead(input.payload, input.payload.status);
+  const flex = buildMaintenanceFlexMessage(input.payload);
+
+  return pushWithQuota({
+    type: "maintenance_status",
+    propertySlug: input.propertySlug,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text: lead }, flex as LinePushMessage],
+  });
+}
+
+export async function safeNotifyTenantMaintenanceSubmitted(ticketId: string) {
+  try {
+    const ctx = await fetchMaintenanceNotifyContext(ticketId);
+    if (!ctx) return { sent: false as const, reason: "no_tenant_line" as const };
+    return await notifyTenantMaintenanceSubmitted(ctx);
+  } catch (error) {
+    console.error("[notifyTenantMaintenanceSubmitted]", { ticketId }, error);
+    return { sent: false as const, reason: "error" as const };
+  }
+}
+
+export async function safeNotifyTenantMaintenanceStatus(ticketId: string) {
+  try {
+    const ctx = await fetchMaintenanceNotifyContext(ticketId);
+    if (!ctx) return { sent: false as const, reason: "no_tenant_line" as const };
+    return await notifyTenantMaintenanceStatus(ctx);
+  } catch (error) {
+    console.error("[notifyTenantMaintenanceStatus]", { ticketId }, error);
+    return { sent: false as const, reason: "error" as const };
+  }
+}
+
+export async function notifyTenantSlipReceived(input: {
+  propertySlug: string;
+  lineUserId: string;
+  roomNumber: string;
+}) {
+  const text = `RentChill ได้รับสลิปเงินโอนของห้อง ${input.roomNumber} เรียบร้อยแล้ว ระบบกำลังแจ้งเตือนให้เจ้าของห้องตรวจสอบความถูกต้อง ขอบคุณค่ะ`;
+
+  return pushWithQuota({
+    type: "tenant_slip_received",
+    propertySlug: input.propertySlug,
+    lineUserId: input.lineUserId,
+    messages: [{ type: "text", text }],
+  });
+}
+
+export async function safeNotifyTenantSlipReceived(invoiceId: string) {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("invoices")
+      .select(
+        "tenants(line_user_id), rooms(room_number), properties(slug)",
+      )
+      .eq("id", invoiceId)
+      .maybeSingle();
+
+    if (error || !data) {
+      return { sent: false as const, reason: "not_found" as const };
+    }
+
+    const tenantRaw = data.tenants as
+      | { line_user_id: string | null }
+      | { line_user_id: string | null }[]
+      | null;
+    const roomRaw = data.rooms as { room_number: string } | { room_number: string }[] | null;
+    const propertyRaw = data.properties as { slug: string } | { slug: string }[] | null;
+    const tenant = Array.isArray(tenantRaw) ? tenantRaw[0] : tenantRaw;
+    const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+    const property = Array.isArray(propertyRaw) ? propertyRaw[0] : propertyRaw;
+
+    if (!tenant?.line_user_id || !property?.slug) {
+      return { sent: false as const, reason: "not_linked" as const };
+    }
+
+    return await notifyTenantSlipReceived({
+      propertySlug: property.slug,
+      lineUserId: String(tenant.line_user_id),
+      roomNumber: room?.room_number ?? "-",
+    });
+  } catch (error) {
+    console.error("[notifyTenantSlipReceived]", { invoiceId }, error);
+    return { sent: false as const, reason: "error" as const };
+  }
+}
+
 export async function notifyOwnerSlipSubmitted(input: {
   propertySlug: string;
   lineUserId: string;
@@ -281,12 +475,11 @@ export async function notifyOwnerSlipSubmitted(input: {
 }) {
   const total = formatAmount(input.totalAmount);
   const text = [
-    "📩 ลูกบ้านส่งสลิปแล้ว — รอตรวจสอบ",
-    `ห้อง ${input.roomNumber} · ${input.tenantName}`,
+    `ห้อง ${input.roomNumber} แนบสลิปแล้ว`,
     `เดือน ${input.billingMonth} · ฿${total}`,
     "",
-    "Tenant submitted a payment slip",
-    `Room ${input.roomNumber} · ฿${total}`,
+    `Room ${input.roomNumber} slip submitted`,
+    `Month ${input.billingMonth} · ฿${total}`,
     "",
     "เปิดแดชบอร์ด / Open dashboard:",
     dashboardUrl(input.propertySlug),
@@ -331,8 +524,8 @@ export async function safeNotifyOwnerSlipSubmitted(invoiceId: string) {
 
     void safeSendOwnerPropertyWebPush({
       propertySlug: property.slug,
-      title: "ลูกบ้านส่งสลิปแล้ว",
-      body: `ห้อง ${room?.room_number ?? "-"} · ${tenant?.name ?? "-"}`,
+      title: "ห้องแนบสลิปแล้ว",
+      body: `ห้อง ${room?.room_number ?? "-"} แนบสลิปแล้ว`,
       url: dashboardUrl(property.slug),
     });
 

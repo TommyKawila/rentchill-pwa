@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     name?: string;
     email?: string;
     password?: string;
+    accepted_legal?: boolean;
   };
 
   try {
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
       name: body.name ?? "",
       email: body.email ?? "",
       password: body.password ?? "",
+      acceptedLegal: Boolean(body.accepted_legal),
     });
 
     const token = await createOwnerSessionToken(owner.id, secret);
@@ -52,8 +54,15 @@ export async function POST(request: Request) {
       if (error.message === "NAME_REQUIRED" || error.message === "EMAIL_REQUIRED") {
         return NextResponse.json({ error: "กรุณากรอกข้อมูลให้ครบ" }, { status: 400 });
       }
+      if (error.message === "LEGAL_CONSENT_REQUIRED") {
+        return NextResponse.json(
+          { error: "กรุณายอมรับนโยบายและข้อกำหนดก่อนสมัคร" },
+          { status: 400 },
+        );
+      }
     }
 
+    console.error("[admin.signup.POST]", error);
     const message = error instanceof Error ? error.message : "สมัครไม่สำเร็จ";
     return NextResponse.json({ error: message }, { status: 400 });
   }

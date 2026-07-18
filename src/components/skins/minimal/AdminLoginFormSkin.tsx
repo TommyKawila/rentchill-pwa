@@ -82,10 +82,10 @@ export function AdminLoginFormSkin({ variant }: { variant: AdminLoginVariant }) 
 
   const badgeClass = isPlatform
     ? "text-sm font-medium uppercase tracking-wide text-amber-700"
-    : "text-sm font-medium uppercase tracking-wide text-green-600";
+    : "text-sm font-medium uppercase tracking-wide text-rc-green";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white px-4">
+    <main className="flex min-h-screen items-center justify-center bg-rc-bg px-4">
       <form
         onSubmit={(event) => void onSubmit(event)}
         className="w-full max-w-sm rounded-xl border border-zinc-100 bg-white p-6"
@@ -128,7 +128,7 @@ export function AdminLoginFormSkin({ variant }: { variant: AdminLoginVariant }) 
         <button
           type="submit"
           disabled={isLoading}
-          className="mt-4 flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? t("admin.login.loading") : t("admin.login.submit")}
         </button>

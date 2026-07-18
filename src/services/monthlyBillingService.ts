@@ -2,10 +2,13 @@ import { createAdminClient } from "@/services/supabase/admin";
 import { auditInvoiceIssue } from "@/services/auditLogService";
 import {
   calculateInvoiceAmounts,
+  computeIssueAmounts,
   getCurrentBillingMonth,
+  totalWithExtras,
 } from "@/services/invoiceCalculator";
+import { isMissingInvoiceExtraColumns } from "@/services/invoiceFields";
 import { safeNotifyBillIssued } from "@/services/notificationService";
-import type { PropertyBillingSettings } from "@/services/propertyBillingSettingsService";
+import type { InvoiceExtraItem } from "@/services/types";
 import {
   DEFAULT_REMINDER_DAYS,
   buildReminderTimeline,
@@ -22,6 +25,7 @@ import {
   linkBillingReadingsToInvoice,
   upsertBillingReading,
 } from "@/services/meterReadingService";
+import type { PropertyBillingSettings } from "@/services/propertyBillingSettingsService";
 import type { InvoiceStatus } from "@/services/types";
 import type { MeterDialSnapshot } from "@/services/meterReadingService";
 
@@ -35,6 +39,9 @@ export type MonthlyBillingRow = {
   move_in_date: string;
   invoice_id: string | null;
   invoice_status: InvoiceStatus | null;
+  slip_rejection_note: string | null;
+  slip_submitted_at: string | null;
+  invoice_total_amount: number | null;
   water_unit: number | null;
   electric_unit: number | null;
   water_prev: MeterDialSnapshot | null;
@@ -55,8 +62,12 @@ export type MonthlyBillingRow = {
 export type BillingEntry = {
   tenant_id: string;
   room_id: string;
-  water_curr: number;
+  water_curr?: number;
   electric_curr: number;
+  water_flat_baht?: number;
+  billing_month?: string;
+  extra_items?: InvoiceExtraItem[];
+  include_promptpay_qr?: boolean;
 };
 
 async function getPropertyContext(propertySlug: string) {
@@ -119,6 +130,7 @@ export async function getMonthlyBillingRows(propertySlug: string) {
     {
       id: string;
       status: InvoiceStatus;
+      total_amount: number;
       water_unit: number;
       electric_unit: number;
       water_prev: number | null;
@@ -127,6 +139,8 @@ export async function getMonthlyBillingRows(propertySlug: string) {
       electric_curr: number | null;
       issued_at: string | null;
       reminder_tier_sent: ReminderTier | null;
+      slip_rejection_note: string | null;
+      slip_submitted_at: string | null;
     }
   >();
 
@@ -134,7 +148,7 @@ export async function getMonthlyBillingRows(propertySlug: string) {
     const { data: invoices, error: invoiceError } = await supabase
       .from("invoices")
       .select(
-        "id, tenant_id, status, water_unit, electric_unit, water_prev, water_curr, electric_prev, electric_curr, issued_at, reminder_tier_sent",
+        "id, tenant_id, status, total_amount, water_unit, electric_unit, water_prev, water_curr, electric_prev, electric_curr, issued_at, reminder_tier_sent, slip_rejection_note, slip_submitted_at",
       )
       .eq("billing_month", billingMonth)
       .in("tenant_id", tenantIds);
@@ -146,6 +160,7 @@ export async function getMonthlyBillingRows(propertySlug: string) {
       invoicesByTenant.set(String(invoice.tenant_id), {
         id: String(invoice.id),
         status: invoice.status as InvoiceStatus,
+        total_amount: Number(invoice.total_amount),
         water_unit: Number(invoice.water_unit),
         electric_unit: Number(invoice.electric_unit),
         water_prev:
@@ -161,6 +176,12 @@ export async function getMonthlyBillingRows(propertySlug: string) {
           tierSent === "soft" || tierSent === "firm" || tierSent === "final"
             ? tierSent
             : null,
+        slip_rejection_note: invoice.slip_rejection_note
+          ? String(invoice.slip_rejection_note)
+          : null,
+        slip_submitted_at: invoice.slip_submitted_at
+          ? String(invoice.slip_submitted_at)
+          : null,
       });
     }
   }
@@ -196,6 +217,9 @@ export async function getMonthlyBillingRows(propertySlug: string) {
         move_in_date: String(row.move_in_date),
         invoice_id: invoice?.id ?? null,
         invoice_status: invoice?.status ?? null,
+        slip_rejection_note: invoice?.slip_rejection_note ?? null,
+        slip_submitted_at: invoice?.slip_submitted_at ?? null,
+        invoice_total_amount: invoice?.total_amount ?? null,
         water_unit: invoice ? invoice.water_unit : null,
         electric_unit: invoice ? invoice.electric_unit : null,
         water_prev: invoice?.water_prev != null
@@ -230,7 +254,8 @@ export async function getMonthlyBillingRows(propertySlug: string) {
             final: settings.reminder_final_days,
           };
           const state = resolveReminderState({
-            issuedAt: invoice?.issued_at ?? null,
+            billingMonth,
+            billingDay: settings.billing_day,
             tierSent: invoice?.reminder_tier_sent ?? null,
             settings: reminderSettings,
           });
@@ -238,7 +263,8 @@ export async function getMonthlyBillingRows(propertySlug: string) {
             invoice?.status === "pending" && Boolean(row.line_user_id);
           const timeline = showTimeline
             ? buildReminderTimeline({
-                issuedAt: invoice?.issued_at ?? null,
+                billingMonth,
+                billingDay: settings.billing_day,
                 tierSent: invoice?.reminder_tier_sent ?? null,
                 settings: reminderSettings,
               })
@@ -262,20 +288,40 @@ export async function getMonthlyBillingRows(propertySlug: string) {
 export async function generateMonthlyInvoices(
   propertySlug: string,
   entries: BillingEntry[],
-  options?: { ownerId?: string },
+  options?: { ownerId?: string; deferLineNotify?: boolean },
 ) {
   const { propertyId, settings } = await getPropertyContext(propertySlug);
-  const billingMonth = getCurrentBillingMonth();
   const supabase = createAdminClient();
   const recordedAt = new Date().toISOString();
+  const resultBillingMonth =
+    entries[0]?.billing_month ?? getCurrentBillingMonth();
 
   let created = 0;
   let updated = 0;
   let skipped = 0;
 
   for (const entry of entries) {
+    const billingMonth = entry.billing_month ?? getCurrentBillingMonth();
+    const extraItems = entry.extra_items ?? [];
+    const includePromptPayQr = entry.include_promptpay_qr !== false;
+
     if (settings.include_utilities) {
-      if (
+      const usesFlatWater = entry.water_flat_baht !== undefined;
+      if (usesFlatWater) {
+        if (
+          entry.electric_curr === undefined ||
+          entry.electric_curr < 0 ||
+          Number.isNaN(entry.electric_curr)
+        ) {
+          throw new Error("METER_REQUIRED");
+        }
+        if (
+          entry.water_flat_baht! < 0 ||
+          !Number.isFinite(entry.water_flat_baht)
+        ) {
+          throw new Error("METER_REQUIRED");
+        }
+      } else if (
         entry.water_curr === undefined ||
         entry.electric_curr === undefined ||
         entry.water_curr < 0 ||
@@ -314,44 +360,92 @@ export async function generateMonthlyInvoices(
 
     if (settings.include_utilities) {
       const meterContext = await getRoomMeterContext(roomId, billingMonth);
-      if (!meterContext.water_prev || !meterContext.electric_prev) {
-        throw new Error("BASELINE_REQUIRED");
+      const usesFlatWater = entry.water_flat_baht !== undefined;
+
+      if (usesFlatWater) {
+        if (!meterContext.electric_prev) {
+          throw new Error("BASELINE_REQUIRED");
+        }
+
+        electricPrev = meterContext.electric_prev.value;
+        electricCurr = entry.electric_curr;
+        waterPrev = meterContext.water_prev?.value ?? null;
+        waterCurr = waterPrev;
+
+        const computed = computeIssueAmounts({
+          baseRent,
+          waterFlatBaht: entry.water_flat_baht!,
+          electricPrev,
+          electricCurr,
+          electricRate: settings.electric_rate_per_unit,
+        });
+        waterUnit = computed.water_unit;
+        electricUnit = computed.electric_unit;
+        amounts = {
+          water_amount: computed.water_amount,
+          electric_amount: computed.electric_amount,
+          total_amount: totalWithExtras(computed.total_amount, extraItems),
+        };
+
+        await upsertBillingReading({
+          propertyId,
+          roomId,
+          tenantId: entry.tenant_id,
+          kind: "electric",
+          readingValue: electricCurr,
+          billingMonth,
+        });
+      } else {
+        if (!meterContext.water_prev || !meterContext.electric_prev) {
+          throw new Error("BASELINE_REQUIRED");
+        }
+
+        waterPrev = meterContext.water_prev.value;
+        if (entry.water_curr === undefined) {
+          throw new Error("METER_REQUIRED");
+        }
+        waterCurr = entry.water_curr;
+        electricPrev = meterContext.electric_prev.value;
+        electricCurr = entry.electric_curr;
+
+        const computed = computeDialBilling({
+          baseRent,
+          waterPrev,
+          waterCurr,
+          electricPrev,
+          electricCurr,
+          waterRate: settings.water_rate_per_unit,
+          electricRate: settings.electric_rate_per_unit,
+        });
+        waterUnit = computed.water_unit;
+        electricUnit = computed.electric_unit;
+        amounts = {
+          ...computed,
+          total_amount: totalWithExtras(computed.total_amount, extraItems),
+        };
+
+        await upsertBillingReading({
+          propertyId,
+          roomId,
+          tenantId: entry.tenant_id,
+          kind: "water",
+          readingValue: waterCurr,
+          billingMonth,
+        });
+        await upsertBillingReading({
+          propertyId,
+          roomId,
+          tenantId: entry.tenant_id,
+          kind: "electric",
+          readingValue: electricCurr,
+          billingMonth,
+        });
       }
-
-      waterPrev = meterContext.water_prev.value;
-      waterCurr = entry.water_curr;
-      electricPrev = meterContext.electric_prev.value;
-      electricCurr = entry.electric_curr;
-
-      const computed = computeDialBilling({
-        baseRent,
-        waterPrev,
-        waterCurr,
-        electricPrev,
-        electricCurr,
-        waterRate: settings.water_rate_per_unit,
-        electricRate: settings.electric_rate_per_unit,
-      });
-      waterUnit = computed.water_unit;
-      electricUnit = computed.electric_unit;
-      amounts = computed;
-
-      await upsertBillingReading({
-        propertyId,
-        roomId,
-        tenantId: entry.tenant_id,
-        kind: "water",
-        readingValue: waterCurr,
-        billingMonth,
-      });
-      await upsertBillingReading({
-        propertyId,
-        roomId,
-        tenantId: entry.tenant_id,
-        kind: "electric",
-        readingValue: electricCurr,
-        billingMonth,
-      });
+    } else {
+      amounts = {
+        ...amounts,
+        total_amount: totalWithExtras(amounts.total_amount, extraItems),
+      };
     }
 
     const { data: existing, error: existingError } = await supabase
@@ -386,20 +480,39 @@ export async function generateMonthlyInvoices(
       ...amounts,
     };
 
-    const { data: inserted, error } = await supabase
+    const insertPayload = {
+      property_id: propertyId,
+      tenant_id: entry.tenant_id,
+      room_id: tenant.room_id,
+      billing_month: billingMonth,
+      base_rent_amount: baseRent,
+      status: "pending" as const,
+      issued_at: new Date().toISOString(),
+      extra_items: extraItems,
+      include_promptpay_qr: includePromptPayQr,
+      ...invoicePayload,
+    };
+
+    let insertedResult = await supabase
       .from("invoices")
-      .insert({
-        property_id: propertyId,
-        tenant_id: entry.tenant_id,
-        room_id: tenant.room_id,
-        billing_month: billingMonth,
-        base_rent_amount: baseRent,
-        status: "pending",
-        issued_at: new Date().toISOString(),
-        ...invoicePayload,
-      })
+      .insert(insertPayload)
       .select("id")
       .single();
+
+    if (
+      insertedResult.error &&
+      isMissingInvoiceExtraColumns(insertedResult.error)
+    ) {
+      const { extra_items: _e, include_promptpay_qr: _q, ...legacyPayload } =
+        insertPayload;
+      insertedResult = await supabase
+        .from("invoices")
+        .insert(legacyPayload)
+        .select("id")
+        .single();
+    }
+
+    const { data: inserted, error } = insertedResult;
 
     if (error) throw error;
     if (inserted) {
@@ -422,16 +535,22 @@ export async function generateMonthlyInvoices(
       }
     }
     created++;
-    void notifyBillIssued({
-      propertySlug,
-      lineUserId: tenant.line_user_id ? String(tenant.line_user_id) : null,
-      roomNumber: room.room_number,
-      billingMonth,
-      totalAmount: amounts.total_amount,
-    });
+    if (!options?.deferLineNotify) {
+      void notifyBillIssued({
+        propertySlug,
+        lineUserId: tenant.line_user_id ? String(tenant.line_user_id) : null,
+        roomNumber: room.room_number,
+        billingMonth,
+        totalAmount: amounts.total_amount,
+        baseRentAmount: baseRent,
+        waterAmount: amounts.water_amount,
+        electricAmount: amounts.electric_amount,
+        extraItems,
+      });
+    }
   }
 
-  return { billingMonth, created, updated, skipped };
+  return { billingMonth: resultBillingMonth, created, updated, skipped };
 }
 
 async function notifyBillIssued(input: {
@@ -440,6 +559,10 @@ async function notifyBillIssued(input: {
   roomNumber: string;
   billingMonth: string;
   totalAmount: number;
+  baseRentAmount?: number;
+  waterAmount?: number;
+  electricAmount?: number;
+  extraItems?: import("@/services/types").InvoiceExtraItem[];
 }) {
   if (!input.lineUserId) return;
   await safeNotifyBillIssued({
@@ -448,5 +571,9 @@ async function notifyBillIssued(input: {
     roomNumber: input.roomNumber,
     billingMonth: input.billingMonth,
     totalAmount: input.totalAmount,
+    baseRentAmount: input.baseRentAmount,
+    waterAmount: input.waterAmount,
+    electricAmount: input.electricAmount,
+    extraItems: input.extraItems,
   });
 }

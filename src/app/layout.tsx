@@ -2,7 +2,19 @@ import { AppSerwistProvider } from "@/components/AppSerwistProvider";
 import { EasyModeProvider } from "@/components/EasyModeProvider";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Sans_Thai, Inter } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const ibmPlexSansThai = IBM_Plex_Sans_Thai({
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-thai",
+});
 
 const APP_NAME = "RentChill";
 const APP_DEFAULT_TITLE = "RentChill";
@@ -44,7 +56,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#32B04D",
+  themeColor: "#1E3A8A",
 };
 
 export default function RootLayout({
@@ -53,8 +65,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">
+    <html
+      lang="th"
+      className={`${inter.variable} ${ibmPlexSansThai.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col font-sans">
         <LocaleProvider>
           <EasyModeProvider>
             <AppSerwistProvider>{children}</AppSerwistProvider>

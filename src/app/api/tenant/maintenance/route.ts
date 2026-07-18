@@ -3,6 +3,7 @@ import {
   listTenantMaintenanceTickets,
   submitMaintenanceTicket,
 } from "@/services/maintenanceTicketService";
+import { jsonFromPlanGate } from "@/services/planGateApi";
 import type { MaintenanceTicketCategory } from "@/services/types";
 
 export async function GET(request: Request) {
@@ -15,6 +16,9 @@ export async function GET(request: Request) {
     const tickets = await listTenantMaintenanceTickets(tenantId);
     return NextResponse.json({ ok: true, tickets });
   } catch (error) {
+    const gate = jsonFromPlanGate(error);
+    if (gate) return gate;
+    console.error("[tenant.maintenance.GET]", { tenantId: "?" }, error);
     const message = error instanceof Error ? error.message : "โหลดรายการไม่สำเร็จ";
     return NextResponse.json({ error: message }, { status: 400 });
   }
@@ -24,6 +28,7 @@ const VALID_CATEGORIES = new Set<MaintenanceTicketCategory>([
   "ac",
   "plumbing",
   "electrical",
+  "furniture",
   "other",
 ]);
 
@@ -40,7 +45,12 @@ export async function POST(request: Request) {
     const tenantId = String(formData.get("tenant_id") ?? "");
     const category = parseCategory(formData.get("category"));
     const description = String(formData.get("description") ?? "");
-    const photo = formData.get("photo");
+    const media =
+      formData.get("media") instanceof File && (formData.get("media") as File).size > 0
+        ? (formData.get("media") as File)
+        : formData.get("photo") instanceof File && (formData.get("photo") as File).size > 0
+          ? (formData.get("photo") as File)
+          : null;
 
     if (!tenantId || !category) {
       return NextResponse.json({ error: "ข้อมูลไม่ครบ" }, { status: 400 });
@@ -50,11 +60,14 @@ export async function POST(request: Request) {
       tenantId,
       category,
       description,
-      photo: photo instanceof File && photo.size > 0 ? photo : null,
+      media,
     });
 
     return NextResponse.json({ ok: true, ticket });
   } catch (error) {
+    const gate = jsonFromPlanGate(error);
+    if (gate) return gate;
+    console.error("[tenant.maintenance.POST]", {}, error);
     const message = error instanceof Error ? error.message : "ส่งเรื่องไม่สำเร็จ";
     return NextResponse.json({ error: message }, { status: 400 });
   }

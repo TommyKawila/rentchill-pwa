@@ -5,7 +5,7 @@ import {
   getLinePushStatsForMonth,
 } from "@/services/linePushQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
-import type { PlanTier } from "@/services/propertyQuotaService";
+import { normalizePlanTier, type PlanTier } from "@/services/planTierNormalize";
 import { getSuperadminOwnerId } from "@/services/superadminGuard";
 
 export type { LineOaAlertLevel, LineOaInferredPlan };
@@ -51,18 +51,16 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     (row) => !row.is_superadmin && String(row.id) !== superadminId,
   );
   const planBreakdown: Record<PlanTier, number> = {
-    starter: 0,
-    micro: 0,
-    growth: 0,
-    pro: 0,
+    free: 0,
+    premium: 0,
   };
 
   let ownersActive = 0;
   let ownersExpired = 0;
 
   for (const row of ownerRows) {
-    const tier = String(row.plan_tier) as PlanTier;
-    if (tier in planBreakdown) planBreakdown[tier] += 1;
+    const tier = normalizePlanTier(String(row.plan_tier));
+    planBreakdown[tier] += 1;
     if (String(row.status) === "expired") ownersExpired += 1;
     else ownersActive += 1;
   }

@@ -34,7 +34,7 @@ function LineSetupContent() {
         {status && (
           <div className="rounded-lg border border-zinc-200 bg-white p-4 space-y-2">
             {status.botReady && status.botName ? (
-              <p className="text-green-700">
+              <p className="text-rc-green-ink">
                 {t("line.bot")} {status.botName}
               </p>
             ) : (
@@ -46,7 +46,7 @@ function LineSetupContent() {
             )}
 
             {status.webhookConfigured ? (
-              <p className="text-green-700">{t("line.webhookReady")}</p>
+              <p className="text-rc-green-ink">{t("line.webhookReady")}</p>
             ) : (
               <p className="text-amber-700">{t("line.webhookMissingSecret")}</p>
             )}
@@ -98,13 +98,13 @@ function LineSetupContent() {
           type="button"
           disabled={deploying || loading || !status?.configured}
           onClick={() => void deploy()}
-          className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {deploying ? t("line.deploying") : t("line.deploy")}
         </button>
 
         {success && (
-          <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-base text-green-800">
+          <p className="rounded-lg border border-rc-green/30 bg-rc-green-soft p-3 text-base text-rc-green-ink">
             {success}
           </p>
         )}

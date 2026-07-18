@@ -3,13 +3,13 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "@/components/LocaleProvider";
-import { PlanUsageSkin } from "@/components/skins/minimal/PlanUsageSkin";
-import { BillingCommandCenterSkin } from "@/components/skins/minimal/BillingCommandCenterSkin";
-import { RentFollowUpStatusSkin } from "@/components/skins/minimal/RentFollowUpStatusSkin";
+import { AccountingHubSkin } from "@/components/skins/minimal/AccountingHubSkin";
+import { DashboardHeaderSkin } from "@/components/skins/minimal/DashboardHeaderSkin";
+import { DashboardSummaryCarouselSkin } from "@/components/skins/minimal/DashboardSummaryCarouselSkin";
 import { BillingQuestRewardSkin } from "@/components/skins/minimal/BillingQuestRewardSkin";
 import { OwnerDashboardAlertsSkin } from "@/components/skins/minimal/OwnerDashboardAlertsSkin";
 import { OwnerDashboardShell } from "@/components/skins/minimal/OwnerDashboardShell";
-import { ShareLinkModal } from "@/components/skins/minimal/ShareLinkModal";
+import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
 import { RoomListSkin } from "@/components/skins/minimal/RoomListSkin";
 import { RoomDetailModal } from "@/components/skins/minimal/RoomDetailModal";
 import { SubscriptionBannerSkin } from "@/components/skins/minimal/SubscriptionBannerSkin";
@@ -19,11 +19,18 @@ import { useInvoiceOverride } from "@/hooks/useInvoiceOverride";
 import { useMagicLink } from "@/hooks/useMagicLink";
 import { useMaintenanceTickets } from "@/hooks/useMaintenanceTickets";
 import { useMonthlyBilling } from "@/hooks/useMonthlyBilling";
+import { useCashFlowBento } from "@/hooks/useCashFlowBento";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
 import { useOwnerSubscription } from "@/hooks/useOwnerSubscription";
 import { usePropertyPlan } from "@/hooks/usePropertyPlan";
 import { usePaymentReminder } from "@/hooks/usePaymentReminder";
+import { useOwnerProfile } from "@/hooks/useOwnerProfile";
+import { useVacantRooms } from "@/hooks/useVacantRooms";
+import { usePropertyMarketing } from "@/hooks/usePropertyMarketing";
+import { useBillingMonthDisplayFormat } from "@/hooks/useBillingMonthDisplayFormat";
 import type { BillingEntry } from "@/services/monthlyBillingService";
+import { usePropertyPaymentSettings } from "@/hooks/usePropertyPaymentSettings";
+import type { InvoiceGeneratorIssueInput } from "@/components/skins/minimal/InvoiceGeneratorSkin";
 import {
   computeBillingReadiness,
   isInMeterReminderWindow,
@@ -31,6 +38,10 @@ import {
   isRowReadyToBill,
 } from "@/services/propertyBillingSettingsService";
 import { computeBillingOverview } from "@/services/billingOverviewService";
+import {
+  computeOccupancyMetrics,
+  computeRevenueMetrics,
+} from "@/services/dashboardMetricsService";
 import { computeUnpaidReminderSummary } from "@/services/unpaidReminderSummaryService";
 import {
   isChillMode,
@@ -41,19 +52,17 @@ import {
 import { AuditLogSkin } from "@/components/skins/minimal/AuditLogSkin";
 import { BulkMeterDayModal } from "@/components/skins/minimal/BulkMeterDayModal";
 import { useAuditLog } from "@/hooks/useAuditLog";
+import { useSubscription } from "@/hooks/useSubscription";
 import { canAutoVerifySlip, canUseBulkMeterDay } from "@/services/planLimits";
 import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
 import {
   getNextPendingMeterRoom,
   isRoomListScrollHash,
-  roomFilterFromHash,
 } from "@/services/roomListFilterService";
 import { saveBillingDraft } from "@/services/billingDraftService";
 import type { RoomDetailSavingAction } from "@/components/skins/minimal/RoomDetailBillingFooterSkin";
 import { useTrialStatus } from "@/hooks/useTrialStatus";
-import { PlanTierSwitcherSkin } from "@/components/skins/minimal/PlanTierSwitcherSkin";
 import { TrialBannerSkin } from "@/components/skins/minimal/TrialBannerSkin";
-import type { PlanTier } from "@/services/propertyQuotaService";
 
 function DashboardContent() {
   const { t } = useLocale();
@@ -82,6 +91,12 @@ function DashboardContent() {
   }, [propertiesStatus, properties.length, slugFromUrl, propertySlug, router]);
 
   const billing = useMonthlyBilling(propertySlug);
+  const cashFlowBento = useCashFlowBento(
+    propertySlug,
+    billing.billingMonth,
+    billing.rows,
+  );
+  const paymentSettings = usePropertyPaymentSettings(propertySlug);
   const maintenance = useMaintenanceTickets(propertySlug);
   const [hash, setHash] = useState("");
 
@@ -101,12 +116,13 @@ function DashboardContent() {
     hash === "#billing-notBilled" ||
     hash === "#billing-pendingMeter" ||
     hash === "#billing-unpaid"
-      ? "billing"
-      : hash === "#rooms" || hash === "#owner-rooms"
-        ? "rooms"
-        : "home";
+      ? "accounting"
+      : "home";
 
-  const roomListUrlFilter = roomFilterFromHash(hash);
+  const ownerProfile = useOwnerProfile();
+  const vacantRooms = useVacantRooms(propertySlug);
+  const marketing = usePropertyMarketing(propertySlug);
+  const { formatMonth } = useBillingMonthDisplayFormat();
 
   useEffect(() => {
     if (!isRoomListScrollHash(hash)) return;
@@ -121,14 +137,24 @@ function DashboardContent() {
   const csvExport = useCsvExport(propertySlug);
   const magicLink = useMagicLink(propertySlug);
   const propertyPlan = usePropertyPlan(propertySlug);
+  const subscription = useSubscription(propertySlug ?? "");
   const ownerSubscription = useOwnerSubscription();
   const addRoomTenant = useAddRoomTenant(propertySlug);
-  const planTier = propertyPlan.plan?.plan_tier ?? "starter";
+  const planTier = propertyPlan.plan?.plan_tier ?? "free";
+  const overRoomLimit =
+    propertyPlan.plan && propertyPlan.plan.room_count > propertyPlan.plan.room_limit
+      ? {
+          count: propertyPlan.plan.room_count,
+          limit: propertyPlan.plan.room_limit,
+        }
+      : undefined;
   const auditLog = useAuditLog(propertySlug ?? "", planTier);
   const trial = useTrialStatus();
 
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
-  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [approveSuccessTenantId, setApproveSuccessTenantId] = useState<string | null>(
+    null,
+  );
   const [bulkMeterOpen, setBulkMeterOpen] = useState(false);
   const [bulkMeterUploading, setBulkMeterUploading] = useState(false);
   const [questRewardOpen, setQuestRewardOpen] = useState(false);
@@ -178,6 +204,25 @@ function DashboardContent() {
     () => computeBillingOverview(billing.rows),
     [billing.rows],
   );
+
+  const currentProperty = useMemo(
+    () => properties.find((p) => p.slug === propertySlug) ?? null,
+    [properties, propertySlug],
+  );
+
+  const revenueMetrics = useMemo(
+    () => computeRevenueMetrics(billing.rows),
+    [billing.rows],
+  );
+
+  const occupancyMetrics = useMemo(
+    () =>
+      computeOccupancyMetrics(billing.rows.length, vacantRooms.rooms),
+    [billing.rows.length, vacantRooms.rooms],
+  );
+
+  const coverUrl = marketing.marketing?.gallery_urls?.[0] ?? null;
+  const billingMonthLabel = formatMonth(billing.billingMonth);
 
   const unpaidReminderSummary = useMemo(
     () => computeUnpaidReminderSummary(billing.rows),
@@ -419,43 +464,56 @@ function DashboardContent() {
       .catch(() => setRoomDetailSaving(null));
   };
 
-  const handleRoomIssue = () => {
-    if (!selectedRow) return;
+  const handleRoomIssue = async (
+    input: InvoiceGeneratorIssueInput,
+  ): Promise<boolean> => {
+    if (!selectedRow || !propertySlug) return false;
     const rowMeters = meters[selectedRow.tenant_id] ?? { water: "", electric: "" };
     if (
       !isRowReadyToBill(
         selectedRow,
         rowMeters,
         billing.settings.include_utilities,
+        { waterFlatBaht: input.waterFlatBaht },
       )
     ) {
-      return;
+      return false;
     }
 
     setRoomDetailSaving("issue");
-    void billing
-      .generate([
-        {
-          tenant_id: selectedRow.tenant_id,
-          room_id: selectedRow.room_id,
-          water_curr: billing.settings.include_utilities
-            ? Number(rowMeters.water)
-            : 0,
-          electric_curr: billing.settings.include_utilities
-            ? Number(rowMeters.electric)
-            : 0,
-        },
-      ])
-      .then(() => {
-        void billing.reload();
-        void override.reload();
-        void auditLog.reload();
-        setSelectedTenantId(null);
-      })
-      .finally(() => setRoomDetailSaving(null));
+    try {
+      const entry: Parameters<typeof billing.generate>[0][number] = {
+        tenant_id: selectedRow.tenant_id,
+        room_id: selectedRow.room_id,
+        electric_curr: billing.settings.include_utilities
+          ? Number(rowMeters.electric)
+          : 0,
+        billing_month: input.billingMonth,
+        extra_items: input.extraItems,
+        include_promptpay_qr: input.includePromptPayQr,
+      };
+      if (billing.settings.include_utilities) {
+        entry.water_flat_baht = input.waterFlatBaht;
+      }
+      const ok = await billing.generate([entry], { deferLineNotify: true });
+      if (!ok) return false;
+      await override.reload();
+      await auditLog.reload();
+      return true;
+    } catch (err) {
+      console.error(
+        "[dashboard.handleRoomIssue]",
+        { tenantId: selectedRow.tenant_id },
+        err,
+      );
+      return false;
+    } finally {
+      setRoomDetailSaving(null);
+    }
   };
 
   const handleAddRoom = (form: Parameters<typeof addRoomTenant.add>[0]) => {
+    if (subscription.addRoomGate !== "allowed") return;
     void addRoomTenant
       .add(form)
       .then(async (result) => {
@@ -465,73 +523,29 @@ function DashboardContent() {
       .catch(() => {});
   };
 
-  const handleTrialPlanChange = (tier: PlanTier) => {
-    void trial.setPlan(tier).then((ok) => {
-      if (!ok) return;
-      void propertyPlan.reload();
-      void billing.reload();
-    });
-  };
-
-  const tenantViewUrl = trial.isTrial && trial.status?.tenant_invite_code
-    ? `/board?invite=${encodeURIComponent(trial.status.tenant_invite_code)}`
-    : undefined;
-
   return (
     <OwnerDashboardShell
       propertySlug={propertySlug}
-      properties={properties}
-      propertiesLoading={propertiesStatus === "loading"}
-      onPropertyChange={(slug) =>
-        router.replace(`/dashboard?property=${encodeURIComponent(slug)}`)
-      }
-      onLogout={() => {
-        void fetch("/api/admin/login", { method: "DELETE" }).then(() => {
-          router.replace(trial.isTrial ? "/try" : "/admin/login");
-        });
-      }}
-      billingMonth={billing.billingMonth}
-      overview={overview}
-      chillMode={chillMode}
-      onExportCsv={() => void csvExport.exportCsv()}
-      csvDisabled={isSaving || !csvExport.canExport}
-      csvLoading={csvExport.status === "exporting"}
-      onOpenShareLink={() => setShareModalOpen(true)}
-      shareDisabled={isSaving || magicLink.status === "loading"}
-      planUsage={
-        propertyPlan.plan && propertySlug ? (
-          <PlanUsageSkin
-            plan={propertyPlan.plan}
-            billingHref={
-              trial.isTrial
-                ? undefined
-                : `/billing?property=${encodeURIComponent(propertySlug)}`
-            }
-          />
-        ) : undefined
-      }
       trialBanner={
         trial.isTrial ? (
           <TrialBannerSkin resetExpiresAt={trial.status?.reset_expires_at} />
         ) : undefined
       }
-      planSwitcher={
-        trial.isTrial && trial.status?.plan_tier ? (
-          <PlanTierSwitcherSkin
-            currentTier={trial.status.plan_tier}
-            disabled={trial.switching || isSaving}
-            onSelect={handleTrialPlanChange}
-          />
-        ) : undefined
-      }
-      tenantViewUrl={tenantViewUrl}
       activeTab={activeTab}
     >
-      {ownerSubscription.subscription && !trial.isTrial && (
+      {overRoomLimit ? (
         <SubscriptionBannerSkin
-          subscription={ownerSubscription.subscription}
           propertySlug={propertySlug}
+          overRoomLimit={overRoomLimit}
         />
+      ) : (
+        ownerSubscription.subscription &&
+        !trial.isTrial && (
+          <SubscriptionBannerSkin
+            subscription={ownerSubscription.subscription}
+            propertySlug={propertySlug}
+          />
+        )
       )}
 
       {propertiesStatus === "idle" && properties.length === 0 && (
@@ -544,17 +558,45 @@ function DashboardContent() {
           </p>
           <a
             href="/settings"
-            className="mt-4 inline-flex min-h-14 items-center justify-center rounded-lg bg-rc-green px-6 text-base font-medium text-white hover:bg-rc-green-dark"
+            className="mt-4 inline-flex min-h-[52px] items-center justify-center rounded-lg bg-rc-primary px-6 text-base font-medium text-white hover:bg-rc-primary-dark"
           >
             {t("owner.onboarding.createProject")}
           </a>
         </div>
       )}
 
+      {propertySlug && activeTab === "home" && (
+        <>
+          <DashboardHeaderSkin
+            ownerName={ownerProfile.profile?.name ?? t("owner.dashboard.roleBadge")}
+            addPropertyHref={`/settings?property=${encodeURIComponent(propertySlug)}`}
+          />
+
+          {properties.length > 1 && (
+            <ProjectSelectorSkin
+              layout="chip"
+              properties={properties}
+              value={propertySlug}
+              loading={propertiesStatus === "loading"}
+              onChange={(slug) =>
+                router.replace(`/dashboard?property=${encodeURIComponent(slug)}`)
+              }
+            />
+          )}
+
+          <DashboardSummaryCarouselSkin
+            billingMonthLabel={billingMonthLabel}
+            revenue={revenueMetrics}
+            occupancy={occupancyMetrics}
+            maintenanceWaiting={maintenance.waitingCount}
+          />
+        </>
+      )}
+
       <OwnerDashboardAlertsSkin
         propertiesError={propertiesError}
         meterReminder={
-          propertySlug && showMeterReminder
+          propertySlug && showMeterReminder && activeTab === "home"
             ? t("owner.billing.meterReminder", {
                 day: billing.settings.billing_day,
               })
@@ -562,7 +604,9 @@ function DashboardContent() {
         }
         lineQuotaHint={propertySlug ? lineQuotaHint : null}
         operationError={operationError}
-        maintenanceWaitingCount={maintenance.waitingCount}
+        maintenanceWaitingCount={
+          activeTab === "home" ? maintenance.waitingCount : 0
+        }
         maintenanceHref={
           propertySlug
             ? `/maintenance?property=${encodeURIComponent(propertySlug)}`
@@ -570,8 +614,12 @@ function DashboardContent() {
         }
       />
 
-      {propertySlug && (
-        <BillingCommandCenterSkin
+      {propertySlug && activeTab === "accounting" && (
+        <AccountingHubSkin
+          propertySlug={propertySlug}
+          billingMonth={billing.billingMonth}
+          overview={overview}
+          chillMode={chillMode}
           notIssued={overview.notIssued}
           readyCount={readyCount}
           pendingMeterCount={pendingMeterCount}
@@ -587,48 +635,30 @@ function DashboardContent() {
           onBulkMeterDay={() => setBulkMeterOpen(true)}
           onBulkIssue={handleBulkSubmit}
           result={billing.result}
+          unpaidSummary={unpaidReminderSummary}
+          bentoMetrics={cashFlowBento.metrics}
+          bentoLoading={cashFlowBento.loading}
         />
       )}
 
-      {propertySlug && (
-        <RentFollowUpStatusSkin
-          summary={unpaidReminderSummary}
-          propertySlug={propertySlug}
-        />
-      )}
-
-      {propertySlug && billing.status === "loading" && billing.rows.length === 0 && (
-        <p className="text-zinc-500">{t("owner.loading.rooms")}</p>
-      )}
-
-      {propertySlug && (
+      {propertySlug && activeTab === "home" && (
       <>
       <RoomListSkin
         propertySlug={propertySlug}
+        propertyName={currentProperty?.name ?? propertySlug}
+        coverUrl={coverUrl}
         billingDay={billing.settings.billing_day}
         includeUtilities={billing.settings.include_utilities}
         rows={listRows}
+        vacantRooms={vacantRooms.rooms}
         meters={meters}
         disabled={isSaving}
+        roomsLoading={billing.status === "loading" && billing.rows.length === 0}
+        slipEvaluating={billing.isRefreshing && billing.hasScanningRows}
         onSelect={setSelectedTenantId}
         onAddRoom={handleAddRoom}
         addRoomSaving={addRoomTenant.status === "saving"}
         addRoomError={addRoomTenant.error}
-        canAddRoom={
-          propertyPlan.plan
-            ? propertyPlan.plan.rooms_remaining > 0
-            : true
-        }
-        roomsRemaining={propertyPlan.plan?.rooms_remaining}
-        billingHref={
-          propertySlug
-            ? `/billing?property=${encodeURIComponent(propertySlug)}`
-            : undefined
-        }
-        urlFilter={roomListUrlFilter}
-        reminderSoftDays={billing.settings.reminder_soft_days}
-        reminderFirmDays={billing.settings.reminder_firm_days}
-        reminderFinalDays={billing.settings.reminder_final_days}
       />
       <AuditLogSkin
         planTier={planTier}
@@ -643,7 +673,9 @@ function DashboardContent() {
         <RoomDetailModal
           row={selectedRow}
           propertySlug={propertySlug}
-          planTier={propertyPlan.plan?.plan_tier ?? "starter"}
+          propertyName={currentProperty?.name ?? propertySlug}
+          coverUrl={coverUrl}
+          planTier={propertyPlan.plan?.plan_tier ?? "free"}
           billingMonth={billing.billingMonth}
           includeUtilities={billing.settings.include_utilities}
           waterRate={billing.settings.water_rate_per_unit}
@@ -664,7 +696,7 @@ function DashboardContent() {
           }
           disabled={isSaving}
           overrideSavingAction={override.savingAction}
-          canRemind={reminder.canRemind}
+          canRemind={!overRoomLimit && reminder.canRemind}
           reminderDisabled={
             reminder.status === "loading" || reminder.status === "sending"
           }
@@ -681,7 +713,10 @@ function DashboardContent() {
                   : "",
             }
           }
-          onClose={() => setSelectedTenantId(null)}
+          onClose={() => {
+            setApproveSuccessTenantId(null);
+            setSelectedTenantId(null);
+          }}
           onMeterChange={(tenantId, water, electric) =>
             setMeters((prev) => ({
               ...prev,
@@ -699,30 +734,21 @@ function DashboardContent() {
           onApprove={(invoiceId, input) =>
             void override.approveInvoice(invoiceId, input).then((ok) => {
               if (ok) {
+                setApproveSuccessTenantId(selectedTenantId);
                 void billing.reload();
+                void override.reload();
                 void auditLog.reload();
               }
             })
           }
+          approveSuccess={approveSuccessTenantId === selectedTenantId}
           onTenantUpdated={() => void billing.reload()}
           roomDetailSaving={roomDetailSaving}
           hasNextRoom={nextPendingMeterRoom !== null}
           readyCount={readyCount}
           onSaveAndNext={handleRoomSaveAndNext}
           onIssueRoom={handleRoomIssue}
-        />
-      )}
-
-      {propertySlug && shareModalOpen && (
-        <ShareLinkModal
-          disabled={isSaving || magicLink.status === "creating"}
-          linkUrl={magicLink.link?.url}
-          expiresAt={magicLink.link?.expires_at}
-          isPermanent={magicLink.link?.is_permanent}
-          copied={magicLink.copied}
-          onClose={() => setShareModalOpen(false)}
-          onCreate={() => void magicLink.createLink()}
-          onCopy={() => void magicLink.copyLink()}
+          paymentAccount={paymentSettings.account}
         />
       )}
 

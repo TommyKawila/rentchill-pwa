@@ -58,7 +58,7 @@ export function MoveChecklistSkin({
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => capture("move_in")}
-                className="flex min-h-14 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[52px] flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {busy ? t("common.saving") : t("owner.moveChecklist.moveIn")}
               </button>
@@ -66,7 +66,7 @@ export function MoveChecklistSkin({
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => capture("move_out")}
-                className="flex min-h-14 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[52px] flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {busy ? t("common.saving") : t("owner.moveChecklist.moveOut")}
               </button>

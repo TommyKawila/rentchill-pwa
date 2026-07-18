@@ -69,8 +69,8 @@ function cellTone(
   }
   if (accent === "paid") {
     return {
-      cell: "border-green-200 bg-green-50",
-      icon: "text-green-600",
+      cell: "border-rc-success/30 bg-rc-success-soft",
+      icon: "text-rc-success",
       value: "text-zinc-900",
     };
   }

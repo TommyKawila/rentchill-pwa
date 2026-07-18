@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import { assertNotTrialOwnerMutation } from "@/services/trialSandboxService";
-import type { PlanTier } from "@/services/propertyQuotaService";
+import { normalizePlanTier, type PlanTier } from "@/services/planTierNormalize";
 import type { UpgradeTier } from "@/services/planTierService";
 import {
   resolveSubscriptionPhase,
@@ -63,7 +63,7 @@ export async function getOwnerSubscription(ownerId: string): Promise<OwnerSubscr
     .limit(1)
     .maybeSingle();
 
-  const planTier = String(owner.plan_tier) as PlanTier;
+  const planTier = normalizePlanTier(String(owner.plan_tier));
   const expiresAt = owner.expires_at ? String(owner.expires_at) : null;
   const lifecycle = resolveSubscriptionPhase(planTier, expiresAt);
 

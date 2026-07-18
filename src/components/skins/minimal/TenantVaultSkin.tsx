@@ -164,7 +164,7 @@ export function TenantVaultSkin({
               type="button"
               disabled={disabled}
               onClick={() => void submitSignature()}
-              className="flex min-h-14 flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[52px] flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
               {disabled ? t("common.saving") : t("tenant.contract.submitSign")}
             </button>
@@ -173,7 +173,7 @@ export function TenantVaultSkin({
       )}
 
       {signed && (
-        <p className="text-sm text-green-600">{t("tenant.contract.signed")}</p>
+        <p className="text-sm text-rc-green">{t("tenant.contract.signed")}</p>
       )}
 
       {documents.length > 0 && (

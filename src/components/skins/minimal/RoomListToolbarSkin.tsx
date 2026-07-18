@@ -15,6 +15,7 @@ const FILTER_LABEL_KEYS: Record<RoomListFilter, MessageKey> = {
   unpaid: "owner.rooms.filter.unpaid",
   paid: "owner.rooms.filter.paid",
   scanning: "owner.rooms.filter.scanning",
+  vacant: "owner.rooms.filter.vacant",
 };
 
 interface RoomListToolbarSkinProps {

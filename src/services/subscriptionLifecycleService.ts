@@ -1,11 +1,11 @@
 import { createAdminClient } from "@/services/supabase/admin";
-import type { PlanTier } from "@/services/propertyQuotaService";
+import { normalizePlanTier, type PlanTier } from "@/services/planTierNormalize";
 
 export const GRACE_DAYS = 7;
 export const WARNING_DAYS = 7;
 
 export type SubscriptionPhase =
-  | "starter"
+  | "free"
   | "active"
   | "expiring_soon"
   | "grace"
@@ -32,9 +32,9 @@ export function resolveSubscriptionPhase(
   expiresAt: string | null,
   now = new Date(),
 ): SubscriptionLifecycle {
-  if (planTier === "starter" || !expiresAt) {
+  if (planTier === "free" || !expiresAt) {
     return {
-      phase: "starter",
+      phase: "free",
       days_until_expiry: null,
       grace_days_remaining: null,
     };
@@ -77,13 +77,13 @@ export function resolveSubscriptionPhase(
   };
 }
 
-export async function downgradeOwnerToStarter(ownerId: string) {
+export async function downgradeOwnerToFree(ownerId: string) {
   const supabase = createAdminClient();
 
   const { error: ownerError } = await supabase
     .from("owners")
     .update({
-      plan_tier: "starter",
+      plan_tier: "free",
       status: "expired",
       expires_at: null,
     })
@@ -93,11 +93,14 @@ export async function downgradeOwnerToStarter(ownerId: string) {
 
   const { error: propertyError } = await supabase
     .from("properties")
-    .update({ plan_tier: "starter" })
+    .update({ plan_tier: "free" })
     .eq("owner_id", ownerId);
 
   if (propertyError) throw propertyError;
 }
+
+/** @deprecated use downgradeOwnerToFree */
+export const downgradeOwnerToStarter = downgradeOwnerToFree;
 
 export type PaidOwnerRow = {
   id: string;
@@ -112,7 +115,7 @@ export async function listPaidOwnersForLifecycle(): Promise<PaidOwnerRow[]> {
   const { data, error } = await supabase
     .from("owners")
     .select("id, plan_tier, expires_at, last_grace_notify_at, is_superadmin")
-    .neq("plan_tier", "starter")
+    .neq("plan_tier", "free")
     .not("expires_at", "is", null);
 
   if (error) throw error;
@@ -121,7 +124,7 @@ export async function listPaidOwnersForLifecycle(): Promise<PaidOwnerRow[]> {
     .filter((row) => !row.is_superadmin)
     .map((row) => ({
       id: String(row.id),
-      plan_tier: String(row.plan_tier) as PlanTier,
+      plan_tier: normalizePlanTier(String(row.plan_tier)),
       expires_at: String(row.expires_at),
       last_grace_notify_at: row.last_grace_notify_at
         ? String(row.last_grace_notify_at)

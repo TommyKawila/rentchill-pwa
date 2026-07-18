@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
     const result = await overrideOwnerPlan({
       owner_email: body.owner_email ?? "",
-      plan_tier: body.plan_tier ?? "starter",
+      plan_tier: body.plan_tier ?? "free",
     });
 
     return NextResponse.json({ ok: true, result });

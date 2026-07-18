@@ -38,7 +38,7 @@ export function RoomDetailBillingFooterSkin({
           {t("common.total")} ฿{totalAmount.toLocaleString("th-TH")}
         </p>
         {metersComplete ? (
-          <span className="inline-flex rounded-full border border-green-200 bg-green-50 px-3 py-1 text-sm font-medium text-green-700">
+          <span className="inline-flex rounded-full border border-rc-green/30 bg-rc-green-soft px-3 py-1 text-sm font-medium text-rc-green-ink">
             {t("owner.roomDetail.readyBadge")}
           </span>
         ) : (
@@ -52,7 +52,7 @@ export function RoomDetailBillingFooterSkin({
             type="button"
             disabled={!canAct}
             onClick={onSaveAndNext}
-            className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {savingAction === "save"
               ? t("common.saving")
@@ -65,7 +65,7 @@ export function RoomDetailBillingFooterSkin({
             type="button"
             disabled={!canAct}
             onClick={onIssueRoom}
-            className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {savingAction === "issue" ? t("common.saving") : t("owner.roomDetail.issueRoom")}
           </button>

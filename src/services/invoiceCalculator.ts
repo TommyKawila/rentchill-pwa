@@ -23,6 +23,41 @@ export function calculateInvoiceAmounts(
   return { water_amount, electric_amount, total_amount };
 }
 
+export function sumExtraItems(
+  items: { amount: number }[] | undefined,
+) {
+  return (items ?? []).reduce(
+    (sum, item) => sum + (Number.isFinite(item.amount) ? item.amount : 0),
+    0,
+  );
+}
+
+export function totalWithExtras(
+  baseTotal: number,
+  items: { amount: number }[] | undefined,
+) {
+  return baseTotal + sumExtraItems(items);
+}
+
+export function computeIssueAmounts(input: {
+  baseRent: number;
+  waterFlatBaht: number;
+  electricPrev: number;
+  electricCurr: number;
+  electricRate: number;
+}) {
+  const electric_unit = calculateMeterUnits(
+    input.electricPrev,
+    input.electricCurr,
+  );
+  const electric_amount = electric_unit * input.electricRate;
+  const water_amount = Math.max(0, input.waterFlatBaht);
+  const water_unit = 0;
+  const total_amount = input.baseRent + water_amount + electric_amount;
+
+  return { water_unit, electric_unit, water_amount, electric_amount, total_amount };
+}
+
 export function calculateFromDialReadings(
   baseRent: number,
   waterPrev: number,

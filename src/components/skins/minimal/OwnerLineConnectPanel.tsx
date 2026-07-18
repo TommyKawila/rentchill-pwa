@@ -94,13 +94,13 @@ export function OwnerLineConnectPanel({
         )}
         {status === "success" && (
           <>
-            <p className="text-lg font-semibold text-green-700">
+            <p className="text-lg font-semibold text-rc-green-ink">
               {t("settings.notifySuccess")}
             </p>
             <p className="text-sm text-zinc-600">{t("settings.notifySuccessHint")}</p>
             <a
               href={`/settings?property=${encodeURIComponent(propertySlug)}`}
-              className="mt-2 flex min-h-14 items-center rounded-lg bg-rc-green px-6 text-base font-medium text-white hover:bg-rc-green-dark"
+              className="mt-2 flex min-h-[52px] items-center rounded-lg bg-rc-green px-6 text-base font-medium text-white hover:bg-rc-green-dark"
             >
               {t("settings.notifyBackToSettings")}
             </a>

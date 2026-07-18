@@ -1,5 +1,38 @@
-export const INVOICE_SELECT =
+export const INVOICE_SELECT_BASE =
   "id, property_id, tenant_id, room_id, billing_month, water_unit, electric_unit, base_rent_amount, water_amount, electric_amount, total_amount, status, slip_image_url, slip_rejection_note, owner_payment_proof_url, owner_payment_note, water_prev, water_curr, water_recorded_at, electric_prev, electric_curr, electric_recorded_at, water_rate_locked, electric_rate_locked";
+
+export const INVOICE_SELECT = `${INVOICE_SELECT_BASE}, extra_items, include_promptpay_qr, slip_submitted_at`;
+
+export function isMissingInvoiceExtraColumns(error: unknown) {
+  const message =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message: unknown }).message)
+      : "";
+  return /extra_items|include_promptpay_qr|slip_submitted_at/.test(message);
+}
+
+export async function queryWithInvoiceSelectFallback<T>(
+  run: (select: string) => PromiseLike<{ data: T; error: unknown }>,
+) {
+  const extended = await run(INVOICE_SELECT);
+  if (!extended.error) return extended;
+  if (!isMissingInvoiceExtraColumns(extended.error)) return extended;
+  return run(INVOICE_SELECT_BASE);
+}
+
+function parseExtraItems(raw: unknown): import("@/services/types").InvoiceExtraItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const row = item as Record<string, unknown>;
+      const label = String(row.label ?? "").trim();
+      const amount = Number(row.amount);
+      if (!label || !Number.isFinite(amount)) return null;
+      return { label, amount };
+    })
+    .filter((item): item is import("@/services/types").InvoiceExtraItem => item !== null);
+}
 
 export function mapInvoiceRow(row: Record<string, unknown>) {
   return {
@@ -39,5 +72,10 @@ export function mapInvoiceRow(row: Record<string, unknown>) {
       row.water_rate_locked != null ? Number(row.water_rate_locked) : null,
     electric_rate_locked:
       row.electric_rate_locked != null ? Number(row.electric_rate_locked) : null,
+    extra_items: parseExtraItems(row.extra_items),
+    include_promptpay_qr: row.include_promptpay_qr !== false,
+    slip_submitted_at: row.slip_submitted_at
+      ? String(row.slip_submitted_at)
+      : null,
   };
 }

@@ -14,7 +14,7 @@ export function OfflineSkin() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="mt-2 inline-flex min-h-14 items-center justify-center rounded-lg bg-rc-green px-6 text-base font-medium text-white hover:bg-rc-green-dark"
+        className="mt-2 inline-flex min-h-[52px] items-center justify-center rounded-lg bg-rc-green px-6 text-base font-medium text-white hover:bg-rc-green-dark"
       >
         {t("offline.retry")}
       </button>

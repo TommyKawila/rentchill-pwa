@@ -290,7 +290,7 @@ export function MonthlyBillingSkin({
           type="button"
           disabled={disabled || readyCount === 0}
           onClick={handleSubmit}
-          className="flex min-h-14 w-full items-center justify-center rounded-lg bg-green-700 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green-dark text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           <EasyModeCtaIcon name="bill" />
           {t("owner.billing.submit", { count: readyCount })}
@@ -298,7 +298,7 @@ export function MonthlyBillingSkin({
       )}
 
       {result && (
-        <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-base text-green-800">
+        <p className="rounded-lg border border-rc-green/30 bg-rc-green-soft p-3 text-base text-rc-green-ink">
           {t("owner.billing.result", {
             created: result.created,
             updated: result.updated,

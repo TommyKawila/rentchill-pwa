@@ -1,5 +1,9 @@
 import { createBrowserClient } from "@/services/supabase/client";
-import { INVOICE_SELECT, mapInvoiceRow } from "@/services/invoiceFields";
+import {
+  INVOICE_SELECT,
+  mapInvoiceRow,
+  queryWithInvoiceSelectFallback,
+} from "@/services/invoiceFields";
 import type { Invoice } from "@/services/types";
 
 const getBillingMonth = () => {
@@ -13,16 +17,18 @@ export async function getInvoiceForTenantMonth(
   billingMonth = getBillingMonth(),
 ): Promise<Invoice | null> {
   const supabase = createBrowserClient();
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(INVOICE_SELECT)
-    .eq("tenant_id", tenantId)
-    .eq("billing_month", billingMonth)
-    .maybeSingle();
+  const { data, error } = await queryWithInvoiceSelectFallback((select) =>
+    supabase
+      .from("invoices")
+      .select(select)
+      .eq("tenant_id", tenantId)
+      .eq("billing_month", billingMonth)
+      .maybeSingle(),
+  );
 
   if (error) throw error;
   if (!data) return null;
-  return mapInvoiceRow(data);
+  return mapInvoiceRow(data as unknown as Record<string, unknown>);
 }
 
 export async function getTenantInvoiceHistory(
@@ -30,15 +36,17 @@ export async function getTenantInvoiceHistory(
   limit = 12,
 ): Promise<Invoice[]> {
   const supabase = createBrowserClient();
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(INVOICE_SELECT)
-    .eq("tenant_id", tenantId)
-    .order("billing_month", { ascending: false })
-    .limit(limit);
+  const { data, error } = await queryWithInvoiceSelectFallback((select) =>
+    supabase
+      .from("invoices")
+      .select(select)
+      .eq("tenant_id", tenantId)
+      .order("billing_month", { ascending: false })
+      .limit(limit),
+  );
 
   if (error) throw error;
-  return (data ?? []).map(mapInvoiceRow);
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map(mapInvoiceRow);
 }
 
 export async function saveInvoice(invoice: Invoice): Promise<Invoice> {

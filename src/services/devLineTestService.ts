@@ -1,4 +1,6 @@
 import { assertDevToolsEnabled } from "@/services/devToolsGuard";
+import { buildReminderFlexMessage } from "@/services/line/reminderFlexMessage";
+import { formatBillingMonthForReminder } from "@/services/paymentReminderMessageService";
 import {
   getLinePushMode,
   getLineTestRecipientId,
@@ -117,6 +119,20 @@ export async function sendTestLinePush(input: {
   const text = buildPreviewText(input.message_type);
   const propertySlug = input.property_slug?.trim() || SAMPLE.propertySlug;
 
+  const messages =
+    input.message_type === "payment_reminder"
+      ? [
+          buildReminderFlexMessage({
+            tier: "firm",
+            tenantName: SAMPLE.tenantName,
+            propertyName: "Demo Property",
+            roomNumber: SAMPLE.roomNumber,
+            billingMonthLabel: formatBillingMonthForReminder(SAMPLE.billingMonth),
+            totalAmount: SAMPLE.totalAmount,
+          }),
+        ]
+      : [{ type: "text" as const, text }];
+
   let ownerId: string | undefined;
   if (input.message_type === "subscription_grace") {
     const supabase = createAdminClient();
@@ -134,7 +150,7 @@ export async function sendTestLinePush(input: {
     propertySlug:
       input.message_type === "subscription_grace" ? undefined : propertySlug,
     ownerId,
-    messages: [{ type: "text", text }],
+    messages,
   });
 }
 

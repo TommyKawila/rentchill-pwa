@@ -1,7 +1,9 @@
 import {
   allowedDocumentTypes,
+  canAccessDocuments,
   canTenantUploadDocuments,
   canUseDocumentVault,
+  canUseStarterManualDocs,
   documentCountLimit,
   type DocumentType,
 } from "@/services/planLimits";
@@ -106,7 +108,7 @@ export async function listTenantDocuments(input: {
   tenantId: string;
 }) {
   const { propertyId, planTier } = await getPropertyContext(input.propertySlug);
-  if (!canUseDocumentVault(planTier)) return [];
+  if (!canAccessDocuments(planTier)) return [];
 
   await assertRoomTenant(propertyId, input.roomId, input.tenantId);
 
@@ -134,10 +136,11 @@ export async function uploadTenantDocument(input: {
 }) {
   const { propertyId, planTier } = await getPropertyContext(input.propertySlug);
 
-  if (input.uploadedBy === "owner" && !canUseDocumentVault(planTier)) {
-    throw new Error("PLAN_DOCUMENT_VAULT");
-  }
-  if (input.uploadedBy === "tenant" && !canTenantUploadDocuments(planTier)) {
+  if (input.uploadedBy === "owner") {
+    if (!canUseDocumentVault(planTier) && !canUseStarterManualDocs(planTier)) {
+      throw new Error("PLAN_DOCUMENT_VAULT");
+    }
+  } else if (!canTenantUploadDocuments(planTier)) {
     throw new Error("PLAN_DOCUMENT_VAULT");
   }
 
@@ -197,7 +200,7 @@ export async function deleteTenantDocument(input: {
   documentId: string;
 }) {
   const { propertyId, planTier } = await getPropertyContext(input.propertySlug);
-  if (!canUseDocumentVault(planTier)) throw new Error("PLAN_DOCUMENT_VAULT");
+  if (!canAccessDocuments(planTier)) throw new Error("PLAN_DOCUMENT_VAULT");
 
   await assertRoomTenant(propertyId, input.roomId, input.tenantId);
 

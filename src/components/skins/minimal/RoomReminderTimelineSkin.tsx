@@ -40,9 +40,9 @@ const TIER_CHIP_CLASS: Record<
 };
 
 function tierDayLabel(tier: ReminderTier, settings: ReminderDaySettings) {
-  if (tier === "soft") return settings.soft;
-  if (tier === "firm") return settings.firm;
-  return settings.final;
+  if (tier === "soft") return `−${settings.soft}`;
+  if (tier === "firm") return `+${settings.firm}`;
+  return `+${settings.final}`;
 }
 
 function timelineTierKey(

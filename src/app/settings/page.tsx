@@ -216,11 +216,11 @@ function SettingsContent() {
   const handleSave = save;
 
   return (
-    <main className="min-h-screen bg-white px-4 py-6 pb-24 text-zinc-900">
+    <main className="min-h-screen bg-rc-bg px-4 py-4 pb-24 text-rc-text">
       <div className="mx-auto max-w-xl space-y-6">
         <header className="space-y-4 border-b border-zinc-100 pb-6">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-sm font-medium uppercase tracking-wide text-green-600">
+            <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
               {t("settings.tag")}
             </p>
             <LocaleToggleSkin />
@@ -280,7 +280,7 @@ function SettingsContent() {
                     !isProjectSlugPayloadValid(createSlugPayload)
                   }
                   onClick={() => void handleCreateProject()}
-                  className="flex min-h-14 flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-[52px] flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {createProject.status === "creating"
                     ? t("owner.creatingProject")
@@ -404,7 +404,7 @@ function SettingsContent() {
 
               <a
                 href={`/billing?property=${encodeURIComponent(propertySlug)}`}
-                className="flex min-h-12 items-center justify-center text-center text-base text-green-700 underline"
+                className="flex min-h-12 items-center justify-center text-center text-base text-rc-green-ink underline"
               >
                 {t("owner.planBilling.managePlan")}
               </a>
@@ -445,6 +445,7 @@ function SettingsContent() {
         <SettingsBillingModalSkin
           billingDay={account.billing_day}
           meterReminderDays={account.meter_reminder_days_before}
+          reminderPreset={account.reminder_preset}
           reminderSoftDays={account.reminder_soft_days}
           reminderFirmDays={account.reminder_firm_days}
           reminderFinalDays={account.reminder_final_days}
@@ -510,7 +511,7 @@ function SettingsContent() {
       )}
 
       {propertySlug && (
-        <OwnerBottomNavSkin activeTab="home" propertySlug={propertySlug} />
+        <OwnerBottomNavSkin activeTab="settings" propertySlug={propertySlug} />
       )}
 
       <OwnerPushNotificationPrompts push={push} />

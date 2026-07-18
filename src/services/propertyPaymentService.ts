@@ -8,6 +8,11 @@ import {
   normalizeReminderDaySettings,
 } from "@/services/paymentReminderTier";
 import { sanitizeReminderTemplate } from "@/services/paymentReminderMessageService";
+import {
+  DEFAULT_REMINDER_PRESET,
+  detectReminderPreset,
+  parseReminderPreset,
+} from "@/services/reminderPresetService";
 import { createAdminClient } from "@/services/supabase/admin";
 import { createServerClient } from "@/services/supabase/server";
 import { normalizeTechnicianContacts } from "@/services/settingsSummaryService";
@@ -60,6 +65,10 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
     owner_line_user_id: row.owner_line_user_id ? String(row.owner_line_user_id) : null,
     billing_day: Number(row.billing_day ?? 1),
     meter_reminder_days_before: Number(row.meter_reminder_days_before ?? 3),
+    reminder_preset: parseReminderPreset(
+      row.reminder_preset ? String(row.reminder_preset) : DEFAULT_REMINDER_PRESET,
+      reminder,
+    ),
     reminder_soft_days: reminder.soft,
     reminder_firm_days: reminder.firm,
     reminder_final_days: reminder.final,
@@ -79,7 +88,7 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
 }
 
 const paymentSelect =
-  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_line_qr_url, contact_phone, technician_phone, technician_contacts, owner_line_user_id, billing_day, meter_reminder_days_before, reminder_soft_days, reminder_firm_days, reminder_final_days, reminder_template_soft, reminder_template_firm, reminder_template_final, include_utilities, water_rate_per_unit, electric_rate_per_unit";
+  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_line_qr_url, contact_phone, technician_phone, technician_contacts, owner_line_user_id, billing_day, meter_reminder_days_before, reminder_preset, reminder_soft_days, reminder_firm_days, reminder_final_days, reminder_template_soft, reminder_template_firm, reminder_template_final, include_utilities, water_rate_per_unit, electric_rate_per_unit";
 
 export async function getPropertyPaymentBySlug(
   slug: string,
@@ -161,7 +170,8 @@ export async function updatePropertyPayment(
         : {}),
       ...((input.reminder_soft_days !== undefined ||
         input.reminder_firm_days !== undefined ||
-        input.reminder_final_days !== undefined)
+        input.reminder_final_days !== undefined ||
+        input.reminder_preset !== undefined)
         ? (() => {
             const reminder = normalizeReminderDaySettings({
               soft:
@@ -175,6 +185,7 @@ export async function updatePropertyPayment(
                 DEFAULT_REMINDER_DAYS.final,
             });
             return {
+              reminder_preset: detectReminderPreset(reminder),
               reminder_soft_days: reminder.soft,
               reminder_firm_days: reminder.firm,
               reminder_final_days: reminder.final,

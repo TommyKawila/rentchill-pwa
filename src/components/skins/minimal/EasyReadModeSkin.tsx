@@ -21,7 +21,7 @@ export function EasyReadModeSkin({ enabled, onChange }: EasyReadModeSkinProps) {
           aria-label={t("settings.easyReadTitle")}
           onClick={() => onChange(!enabled)}
           className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full px-1 transition ${
-            enabled ? "bg-green-600" : "bg-zinc-300"
+            enabled ? "bg-rc-green" : "bg-zinc-300"
           }`}
         >
           <span

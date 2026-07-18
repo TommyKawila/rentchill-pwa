@@ -4,7 +4,7 @@ import { submitPlatformPayment } from "@/services/platformPaymentService";
 import type { UpgradeTier } from "@/services/planTierService";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const VALID_TIERS: UpgradeTier[] = ["micro", "growth", "pro"];
+const VALID_TIERS: UpgradeTier[] = ["premium"];
 
 export async function POST(request: Request) {
   try {

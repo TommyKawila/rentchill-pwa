@@ -43,8 +43,23 @@ function TenantBoardMain() {
   const slipInputRef = useRef<HTMLInputElement>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [hash, setHash] = useState("");
+  const [slipFile, setSlipFile] = useState<File | null>(null);
+  const [slipPreviewUrl, setSlipPreviewUrl] = useState<string | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const searchParams = useSearchParams();
   const inviteFromUrl = searchParams.get("invite") ?? "";
+
+  const clearSlip = useCallback(() => {
+    if (slipPreviewUrl) URL.revokeObjectURL(slipPreviewUrl);
+    setSlipFile(null);
+    setSlipPreviewUrl(null);
+  }, [slipPreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (slipPreviewUrl) URL.revokeObjectURL(slipPreviewUrl);
+    };
+  }, [slipPreviewUrl]);
 
   useEffect(() => {
     const syncHash = () => setHash(window.location.hash);
@@ -112,7 +127,7 @@ function TenantBoardMain() {
     tenantId: board?.tenant.id ?? "",
     propertySlug: board?.propertySlug ?? "",
     roomId: board?.room.id ?? "",
-    planTier: board?.planTier ?? "starter",
+    planTier: board?.planTier ?? "free",
     enabled: !!board,
   });
 
@@ -237,9 +252,26 @@ function TenantBoardMain() {
         meterPhotos={board.meterPhotos}
         tenantName={board.tenant.name}
         isPaying={paymentStatus === "uploading"}
-        onPay={() => {
+        slipPreviewUrl={slipPreviewUrl}
+        slipAttached={!!slipFile}
+        paymentSuccess={paymentSuccess}
+        onAttachSlip={() => {
           if (!isCurrentInvoice || !board.invoice) return;
           slipInputRef.current?.click();
+        }}
+        onClearSlip={clearSlip}
+        onConfirmPay={() => {
+          if (!slipFile || !board.invoice || !isCurrentInvoice) return;
+          void submitSlip(board.invoice.id, board.tenant.id, slipFile).then(
+            (invoice) => {
+              if (!invoice) return;
+              patchInvoice(invoice);
+              setViewingInvoice(null);
+              clearSlip();
+              setPaymentSuccess(true);
+              void reload();
+            },
+          );
         }}
         paymentError={paymentError}
         paymentFeedback={paymentFeedback}
@@ -250,6 +282,7 @@ function TenantBoardMain() {
         onVaultReload={() => void reload()}
         tenantMaintenance={tenantMaintenance}
         contact={board.contact}
+        currency={board.currency}
       />
       <input
         ref={slipInputRef}
@@ -260,15 +293,10 @@ function TenantBoardMain() {
           const file = event.target.files?.[0];
           event.target.value = "";
           if (!file || !board.invoice || !isCurrentInvoice) return;
-
-          void submitSlip(board.invoice.id, board.tenant.id, file).then(
-            (invoice) => {
-              if (!invoice) return;
-              patchInvoice(invoice);
-              setViewingInvoice(null);
-              void reload();
-            },
-          );
+          if (slipPreviewUrl) URL.revokeObjectURL(slipPreviewUrl);
+          setSlipFile(file);
+          setSlipPreviewUrl(URL.createObjectURL(file));
+          setPaymentSuccess(false);
         }}
       />
     </MobileFrame>

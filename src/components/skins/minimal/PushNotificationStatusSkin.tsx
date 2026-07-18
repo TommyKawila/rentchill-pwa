@@ -36,12 +36,12 @@ export function PushNotificationStatusSkin({
       <h2 className="text-base font-semibold text-zinc-900">{t("push.status.title")}</h2>
 
       {enabled ? (
-        <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-4">
-          <p className="inline-flex items-center gap-x-2 text-base font-medium text-green-700">
+        <div className="mt-3 rounded-lg border border-rc-green/30 bg-rc-green-soft p-4">
+          <p className="inline-flex items-center gap-x-2 text-base font-medium text-rc-green-ink">
             <Bell className="h-5 w-5" strokeWidth={1.5} />
             {t("push.status.enabled.title")}
           </p>
-          <p className="mt-1 text-sm text-green-800">{t("push.status.enabled.desc")}</p>
+          <p className="mt-1 text-sm text-rc-green-ink">{t("push.status.enabled.desc")}</p>
         </div>
       ) : (
         <div className="mt-3 space-y-3">
@@ -57,7 +57,7 @@ export function PushNotificationStatusSkin({
               type="button"
               disabled={requesting}
               onClick={onEnable}
-              className="inline-flex min-h-14 w-full items-center justify-center gap-x-2 rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-[52px] w-full items-center justify-center gap-x-2 rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Bell className="h-5 w-5" strokeWidth={1.5} />
               {requesting ? t("common.loading") : t("push.status.enableButton")}

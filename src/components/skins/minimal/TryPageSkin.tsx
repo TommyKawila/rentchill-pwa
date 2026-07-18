@@ -15,7 +15,7 @@ export function TryPageSkin({ plan, loading, error, onStart }: TryPageSkinProps)
   const { t } = useLocale();
 
   return (
-    <main className="min-h-screen bg-white px-4 py-10 text-zinc-900">
+    <main className="min-h-screen bg-rc-bg px-4 py-10 text-rc-text">
       <div className="mx-auto max-w-md space-y-8">
         <header className="flex items-center justify-between">
           <BrandLogoSkin size="sm" />
@@ -43,7 +43,7 @@ export function TryPageSkin({ plan, loading, error, onStart }: TryPageSkinProps)
           type="button"
           disabled={loading}
           onClick={onStart}
-          className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green px-6 py-3 text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green px-6 py-3 text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? t("trial.page.starting") : t("trial.page.start")}
         </button>

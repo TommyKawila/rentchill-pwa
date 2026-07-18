@@ -18,7 +18,7 @@ export async function getPropertyVaultMeta(propertyId: string) {
   const supabase = createBrowserClient();
   const { data, error } = await supabase
     .from("properties")
-    .select("slug, plan_tier")
+    .select("slug, plan_tier, currency")
     .eq("id", propertyId)
     .maybeSingle();
 
@@ -28,6 +28,7 @@ export async function getPropertyVaultMeta(propertyId: string) {
   return {
     slug: String(data.slug),
     planTier: String(data.plan_tier) as PlanTier,
+    currency: data.currency ? String(data.currency) : "THB",
   };
 }
 

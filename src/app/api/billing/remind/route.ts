@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonFromPlanGate } from "@/services/planGateApi";
 import { requireOwnerProperty } from "@/services/ownerApiGuard";
 import { sendPaymentReminder } from "@/services/reminderService";
 import type { ReminderTier } from "@/services/paymentReminderTier";
@@ -30,9 +31,12 @@ export async function POST(request: Request) {
       body.property_slug,
       body.tenant_id,
       parseTier(body.tier),
+      auth.ownerId,
     );
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
+    const gate = jsonFromPlanGate(error);
+    if (gate) return gate;
     if (error instanceof Error && error.message === "QUOTA_EXCEEDED") {
       return NextResponse.json(
         { error: "QUOTA_EXCEEDED", message: "โควต้า LINE หมดแล้วเดือนนี้" },

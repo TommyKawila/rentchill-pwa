@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonFromPlanGate } from "@/services/planGateApi";
 import { requireOwnerProperty } from "@/services/ownerApiGuard";
 import { sendPaymentReminderBulk } from "@/services/reminderService";
 import type { ReminderTier } from "@/services/paymentReminderTier";
@@ -33,9 +34,15 @@ export async function POST(request: Request) {
     const auth = await requireOwnerProperty(request, body.property_slug);
     if ("error" in auth) return auth.error;
 
-    const result = await sendPaymentReminderBulk(body.property_slug, tier);
+    const result = await sendPaymentReminderBulk(
+      body.property_slug,
+      tier,
+      auth.ownerId,
+    );
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
+    const gate = jsonFromPlanGate(error);
+    if (gate) return gate;
     if (error instanceof Error && error.message === "QUOTA_EXCEEDED") {
       return NextResponse.json(
         { error: "QUOTA_EXCEEDED", message: "โควต้า LINE หมดแล้วเดือนนี้" },

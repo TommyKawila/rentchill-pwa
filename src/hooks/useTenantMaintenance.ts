@@ -14,7 +14,7 @@ export function useTenantMaintenance(tenantId: string | null) {
   const [fieldErrors, setFieldErrors] = useState<{
     category?: string;
     description?: string;
-    photo?: string;
+    media?: string;
   }>({});
   const [tickets, setTickets] = useState<MaintenanceTicketRow[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
@@ -51,7 +51,7 @@ export function useTenantMaintenance(tenantId: string | null) {
     async (input: {
       category: MaintenanceTicketCategory | "";
       description: string;
-      photo: File | null;
+      media: File | null;
     }) => {
       const nextFieldErrors: typeof fieldErrors = {};
 
@@ -61,8 +61,12 @@ export function useTenantMaintenance(tenantId: string | null) {
       if (input.description.trim().length < 3) {
         nextFieldErrors.description = "กรุณาอธิบายปัญหาสั้นๆ อย่างน้อย 3 ตัวอักษร";
       }
-      if (input.photo && !input.photo.type.startsWith("image/")) {
-        nextFieldErrors.photo = "รองรับเฉพาะรูปภาพ";
+      if (
+        input.media &&
+        !input.media.type.startsWith("image/") &&
+        !input.media.type.startsWith("video/")
+      ) {
+        nextFieldErrors.media = "รองรับเฉพาะรูปภาพหรือวิดีโอ";
       }
 
       if (Object.keys(nextFieldErrors).length > 0) {
@@ -81,7 +85,7 @@ export function useTenantMaintenance(tenantId: string | null) {
         formData.set("tenant_id", tenantId);
         formData.set("category", input.category);
         formData.set("description", input.description.trim());
-        if (input.photo) formData.set("photo", input.photo);
+        if (input.media) formData.set("media", input.media);
 
         const response = await fetch("/api/tenant/maintenance", {
           method: "POST",

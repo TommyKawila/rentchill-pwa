@@ -68,7 +68,7 @@ export function AdminPlatformShell({
         <header className="border-b border-zinc-200 pb-6">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-sm font-medium uppercase tracking-wide text-green-600">
+              <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
                 RentChill
               </p>
               <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-sm font-medium uppercase tracking-wide text-amber-800">

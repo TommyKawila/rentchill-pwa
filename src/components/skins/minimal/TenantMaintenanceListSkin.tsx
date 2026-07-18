@@ -20,11 +20,11 @@ const STATUS_TONE: Record<
     labelKey: "owner.maintenance.status.waiting",
   },
   in_progress: {
-    badge: "bg-blue-50 text-blue-800 border-blue-200",
+    badge: "bg-rc-warning/10 text-amber-800 border-amber-200",
     labelKey: "owner.maintenance.status.inProgress",
   },
   done: {
-    badge: "bg-green-50 text-green-700 border-green-200",
+    badge: "bg-rc-green-soft text-rc-green-ink border-rc-green/30",
     labelKey: "owner.maintenance.status.done",
   },
 };
@@ -33,12 +33,14 @@ const CATEGORY_KEYS = {
   ac: "tenant.maintenance.category.ac",
   plumbing: "tenant.maintenance.category.plumbing",
   electrical: "tenant.maintenance.category.electrical",
+  furniture: "tenant.maintenance.category.furniture",
   other: "tenant.maintenance.category.other",
 } as const;
 
-function formatDate(iso: string) {
+function formatDate(iso: string, locale: "th" | "en") {
+  const tag = locale === "en" ? "en-US" : "th-TH";
   try {
-    return new Date(iso).toLocaleDateString("th-TH", {
+    return new Date(iso).toLocaleDateString(tag, {
       day: "numeric",
       month: "short",
       hour: "2-digit",
@@ -53,7 +55,7 @@ export function TenantMaintenanceListSkin({
   tickets,
   loading,
 }: TenantMaintenanceListSkinProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   if (loading) {
     return (
@@ -89,7 +91,7 @@ export function TenantMaintenanceListSkin({
                     {ticket.description}
                   </p>
                   <p className="mt-2 text-sm text-zinc-500">
-                    {formatDate(ticket.created_at)}
+                    {formatDate(ticket.created_at, locale)}
                   </p>
                 </div>
                 <span
@@ -104,6 +106,13 @@ export function TenantMaintenanceListSkin({
                   src={ticket.photo_url}
                   alt={t("tenant.maintenance.photoPreviewAlt")}
                   className="mt-3 max-h-32 w-full rounded-lg border border-zinc-200 object-cover"
+                />
+              )}
+              {ticket.video_url && (
+                <video
+                  src={ticket.video_url}
+                  controls
+                  className="mt-3 max-h-32 w-full rounded-lg border border-zinc-200"
                 />
               )}
             </li>

@@ -26,7 +26,7 @@ export async function fetchTenantMeterPhotos(input: {
     .maybeSingle();
 
   if (propertyError) throw propertyError;
-  if (!property || String(property.plan_tier) !== "pro") return [];
+  if (!property) return [];
 
   const { data, error } = await supabase
     .from("room_meter_media")

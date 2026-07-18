@@ -59,6 +59,9 @@ export function useInvoiceEngine() {
           electric_recorded_at: null,
           water_rate_locked: null,
           electric_rate_locked: null,
+          extra_items: [],
+          include_promptpay_qr: true,
+          slip_submitted_at: null,
         };
 
         await delay(1000);

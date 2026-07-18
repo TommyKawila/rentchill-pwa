@@ -62,7 +62,7 @@ export function PlatformSlipsSkin({
             type="button"
             disabled={disabled}
             onClick={() => onApprove(payment.id)}
-            className="flex min-h-14 w-full items-center justify-center rounded-lg bg-green-700 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green-dark text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {disabled ? t("common.saving") : t("admin.slips.approve")}
           </button>

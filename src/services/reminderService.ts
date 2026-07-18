@@ -9,6 +9,9 @@ import {
   type ReminderDaySettings,
   type ReminderTier,
 } from "@/services/paymentReminderTier";
+import {
+  assertOwnerPropertyGated,
+} from "@/services/planGateService";
 import { getPropertyQuota } from "@/services/propertyQuotaService";
 import { createAdminClient } from "@/services/supabase/admin";
 
@@ -20,10 +23,12 @@ export type ReminderTarget = {
   invoice_id: string;
   tenant_id: string;
   tenant_name: string;
+  property_name: string;
   room_id: string;
   room_number: string;
   total_amount: number;
   line_user_id: string;
+  billing_month: string;
   issued_at: string | null;
   reminder_tier_sent: ReminderTier | null;
   recommended: ReminderTier | null;
@@ -36,7 +41,7 @@ async function getPropertyReminderContext(propertySlug: string) {
   const { data, error } = await supabase
     .from("properties")
     .select(
-      "id, owner_id, reminder_soft_days, reminder_firm_days, reminder_final_days, reminder_template_soft, reminder_template_firm, reminder_template_final",
+      "id, owner_id, name, billing_day, reminder_soft_days, reminder_firm_days, reminder_final_days, reminder_template_soft, reminder_template_firm, reminder_template_final",
     )
     .eq("slug", propertySlug)
     .maybeSingle();
@@ -61,6 +66,8 @@ async function getPropertyReminderContext(propertySlug: string) {
   return {
     propertyId: String(data.id),
     ownerId: data.owner_id ? String(data.owner_id) : null,
+    propertyName: String(data.name ?? propertySlug),
+    billingDay: Number(data.billing_day ?? 1),
     settings,
     templates,
   };
@@ -75,7 +82,8 @@ export async function getPendingReminderTargets(
   propertySlug: string,
 ): Promise<{ settings: ReminderDaySettings; targets: ReminderTarget[] }> {
   const billingMonth = getCurrentBillingMonth();
-  const { propertyId, settings } = await getPropertyReminderContext(propertySlug);
+  const { propertyId, settings, propertyName, billingDay } =
+    await getPropertyReminderContext(propertySlug);
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -102,7 +110,8 @@ export async function getPendingReminderTargets(
       const tierSent = mapTierSent(row.reminder_tier_sent);
       const issuedAt = row.issued_at ? String(row.issued_at) : null;
       const state = resolveReminderState({
-        issuedAt,
+        billingMonth,
+        billingDay,
         tierSent,
         settings,
       });
@@ -111,10 +120,12 @@ export async function getPendingReminderTargets(
         invoice_id: String(row.id),
         tenant_id: String(tenant.id),
         tenant_name: String(tenant.name),
+        property_name: propertyName,
         room_id: String(row.room_id),
         room_number: String(room.room_number),
         total_amount: Number(row.total_amount),
         line_user_id: String(tenant.line_user_id),
+        billing_month: billingMonth,
         issued_at: issuedAt,
         reminder_tier_sent: tierSent,
         recommended: state.recommended,
@@ -141,10 +152,18 @@ export async function sendPaymentReminder(
   propertySlug: string,
   tenantId: string,
   tier?: ReminderTier,
+  ownerId?: string,
 ) {
   const billingMonth = getCurrentBillingMonth();
-  const { propertyId, ownerId, templates } =
+  const { propertyId, ownerId: ctxOwnerId, templates, propertyName } =
     await getPropertyReminderContext(propertySlug);
+
+  if (ownerId ?? ctxOwnerId) {
+    await assertOwnerPropertyGated(
+      ownerId ?? String(ctxOwnerId),
+      propertySlug,
+    );
+  }
   const { targets } = await getPendingReminderTargets(propertySlug);
   const target = targets.find((row) => row.tenant_id === tenantId);
 
@@ -172,6 +191,8 @@ export async function sendPaymentReminder(
   await notifyPaymentReminder({
     propertySlug,
     lineUserId: target.line_user_id,
+    tenantName: target.tenant_name,
+    propertyName: target.property_name || propertyName,
     roomNumber: target.room_number,
     billingMonth,
     totalAmount: target.total_amount,
@@ -196,12 +217,12 @@ export async function sendPaymentReminder(
     throw error;
   }
 
-  if (ownerId) {
+  if (ctxOwnerId) {
     await auditInvoiceRemind({
       propertyId,
       roomId: target.room_id,
       tenantId: target.tenant_id,
-      ownerId,
+      ownerId: ownerId ?? String(ctxOwnerId),
       invoiceId: target.invoice_id,
       billingMonth,
       totalAmount: target.total_amount,
@@ -221,7 +242,14 @@ export async function sendPaymentReminder(
 export async function sendPaymentReminderBulk(
   propertySlug: string,
   tier: ReminderTier,
+  ownerId?: string,
 ) {
+  const { ownerId: ctxOwnerId } = await getPropertyReminderContext(propertySlug);
+  const resolvedOwnerId = ownerId ?? ctxOwnerId;
+  if (resolvedOwnerId) {
+    await assertOwnerPropertyGated(String(resolvedOwnerId), propertySlug);
+  }
+
   const { targets } = await getPendingReminderTargets(propertySlug);
   const eligible = targets.filter(
     (row) => row.can_send && row.recommended === tier,
@@ -232,7 +260,12 @@ export async function sendPaymentReminderBulk(
 
   for (const target of eligible) {
     try {
-      await sendPaymentReminder(propertySlug, target.tenant_id, tier);
+      await sendPaymentReminder(
+        propertySlug,
+        target.tenant_id,
+        tier,
+        ownerId ?? (resolvedOwnerId ? String(resolvedOwnerId) : undefined),
+      );
       sent++;
     } catch (error) {
       if (error instanceof Error && error.message === "QUOTA_EXCEEDED") {

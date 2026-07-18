@@ -106,7 +106,7 @@ export async function seedTrialProperty(input?: {
     const resetAt = owner?.trial_reset_at ? String(owner.trial_reset_at) : null;
     return {
       property_slug: propertySlug,
-      plan_tier: (owner?.plan_tier as PlanTier) ?? input?.planTier ?? "growth",
+      plan_tier: (owner?.plan_tier as PlanTier) ?? input?.planTier ?? "premium",
       rooms_created: 0,
       tenant_invite_code: trialInvite,
       reseeded: false,
@@ -117,7 +117,7 @@ export async function seedTrialProperty(input?: {
 
   if (hasRooms) await clearPropertyRooms(propertyId);
 
-  const planTier = input?.planTier ?? "growth";
+  const planTier = input?.planTier ?? "premium";
   const billingMonth = getCurrentBillingMonth();
   const moveInDate = new Date().toISOString().slice(0, 10);
   const nowIso = new Date().toISOString();

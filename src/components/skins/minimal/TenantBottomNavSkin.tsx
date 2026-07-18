@@ -88,7 +88,7 @@ export function TenantBottomNavSkin({
           const active = tab.id === activeTab;
           const Icon = tab.icon;
           const tone = active
-            ? "text-rc-green"
+            ? "text-rc-primary"
             : "text-zinc-500 group-hover:text-zinc-900";
 
           return (
@@ -98,10 +98,10 @@ export function TenantBottomNavSkin({
               onClick={() => onTabChange(tab.id)}
               aria-current={active ? "page" : undefined}
               className={`group relative flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-center ${
-                active ? "bg-rc-green-soft" : ""
+                active ? "bg-rc-primary-soft" : ""
               }`}
             >
-              <Icon className={`h-5 w-5 shrink-0 ${tone}`} strokeWidth={1.5} aria-hidden />
+              <Icon className={`h-6 w-6 shrink-0 ${tone}`} strokeWidth={1.5} aria-hidden />
               <span className={`truncate text-sm font-medium ${tone}`}>
                 {t(tab.labelKey)}
               </span>

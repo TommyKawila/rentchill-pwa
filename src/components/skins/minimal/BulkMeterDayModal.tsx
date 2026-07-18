@@ -91,7 +91,7 @@ export function BulkMeterDayModal({
                   type="button"
                   disabled={disabled || uploading}
                   onClick={() => waterRef.current?.click()}
-                  className="flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-200 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-[52px] w-full items-center justify-center rounded-lg border border-zinc-200 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {captureLabel}
                 </button>
@@ -123,7 +123,7 @@ export function BulkMeterDayModal({
                   type="button"
                   disabled={disabled || uploading}
                   onClick={() => electricRef.current?.click()}
-                  className="flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-200 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-[52px] w-full items-center justify-center rounded-lg border border-zinc-200 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {captureLabel}
                 </button>
@@ -156,7 +156,7 @@ export function BulkMeterDayModal({
             type="button"
             disabled={disabled || uploading}
             onClick={() => (isLast ? onClose() : setIndex((i) => i + 1))}
-            className="flex min-h-14 flex-1 items-center justify-center rounded-lg bg-green-700 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] flex-1 items-center justify-center rounded-lg bg-rc-green-dark text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             {uploading
               ? t("common.saving")

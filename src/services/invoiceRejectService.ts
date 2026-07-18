@@ -16,6 +16,7 @@ export async function markInvoiceSlipRejected(
   const update: Record<string, unknown> = {
     status: "pending",
     slip_rejection_note: note,
+    slip_submitted_at: null,
   };
 
   if (options?.clearSlip) {

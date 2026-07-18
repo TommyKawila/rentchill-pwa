@@ -13,9 +13,27 @@
 - Error Logging: Unexpected failures must `console.error("[module.action]", context, error)` before returning. Never swallow catch blocks or expose secrets.
 
 ## 3. Frontend & UI Implementation Rules
-- **Design System Enforcement:** For all UI rendering, layout patterns, and CSS classes, follow the strict guidelines specified in `UXUI.md`. Do not invent non-standard spacing or custom components.
-- Borders & Dividers: Delineate sections using sharp, 1px faint borders/dividers (`border-zinc-100` or `divide-zinc-100`). Avoid floating boxes or heavy shadows.
-- Geometry: Use professional radiuses: `rounded-xl` for container cards and `rounded-lg` for active elements (buttons/inputs). No bubbly or oversized rounded shapes.
+- **Design System Enforcement:** For all UI rendering, layout patterns, and CSS classes, follow `UXUI.md` (premium tech-savvy condo investor, card-based, clean/modern). Do not invent non-standard spacing or custom components.
+- Persona: Working-class real estate investors aged 30–45, tech-savvy busy pros, 2–10 rental condos in Bangkok / Chiang Mai / Phuket — glanceable cashflow on phone, no Excel-style dense tables on mobile.
+- Prefer card lists with status badges (and cover thumbs when available) over complex wide tables.
+- Keep add-tenant / issue-bill flows within 2–3 screens.
+- Borders & Dividers: Sharp 1px faint borders/dividers (`border-zinc-100` or `divide-zinc-100`). Avoid floating boxes or heavy shadows.
+- Geometry: `rounded-xl` for container cards; `rounded-lg` for inputs/buttons; filter chips may use `rounded-full`. No oversized bubbly shapes.
+- Brand: Teal-forward — `rc-green*` for primary CTA, nav, brand chrome; `rc-primary*` is legacy alias (same teal in `globals.css`). Paid / success / net profit = `rc-success` (`#22C55E`) + `rc-success-soft` / `rc-success-ink`; warning/danger = `rc-warning` / `rc-danger`; page bg = `rc-bg` `#F8FAFC`. LINE send footer only = `#06C755`. No Deep Blue primary. No raw Tailwind `green-*`.
+- Touch targets: interactive `min-h-12` (48px); primary CTAs **48–52px** (`min-h-12` … `min-h-[52px]`). Do not add new primary CTAs at `min-h-14` (56px).
+- Typography: IBM Plex Sans Thai + Inter (numbers/Latin). No decorative fonts.
+- Tenant access: secure LINE / token bill link — no mandatory tenant registration/login wall.
+- LINE / reminder copy: polite, systemic, clear, professional — never aggressive traditional-landlord tone.
+- Room detail modal: 3 top tabs (general / billing / documents); document vault uses thumbnail cards + FAB, not filename-only lists.
+- Billing tab (pre-issue): **Option B** wireframe — generator-only full-screen in room modal (back closes); flat water baht + electric old/new meters; brand-soft summary + QR toggle; sticky LINE-green `#06C755` footer → preview confirm → send; copy plain text link above footer.
+- Tenant bill tab (`/board`): linear 4-block layout (header → breakdown → dynamic QR + save → dashed slip + confirm); slip = attach-then-confirm, not one-tap upload; pastel success panel after submit.
+- Owner slip review (`scanning` + slip): dedicated `SlipVerificationSkin` on billing tab with match-check + pinch-zoom slip + sticky approve/reject footer; reject = `SlipRejectReasonSkin` modal (preset chips, not inline field); approve success = `OwnerSlipApprovedSkin` flash; billing tab auto-focus on open.
+- Maintenance: tenant form uses category icon chips + large media box (not `<select>`); owner `/maintenance` uses equal-width underline status tabs + 96px shadow cards + bottom-sheet detail (pinch-zoom photo, combined technician field, expense input) + status-specific sticky footer; mark done triggers tenant LINE thank-you + Analytics expense.
+- Payment reminders: 3-tier LINE Flex (T−1 / +3 / +7 vs due date); personalized body + mandatory board LIFF CTA; urgent tier uses coral button `#dc2626`.
+- Owner dashboard IA: header (avatar+greeting+add) → summary carousel → search/chips → 88px room cards; bottom nav = Home · Accounting · Maintenance · Settings; Analytics via Accounting hub only.
+- Analytics (`/analytics`): visual-heavy — summary cards + custom SVG charts (not dense tables); revenue/net=`rc-success`, expense=`rc-danger`; logic in services/hooks; Excel export + print/PDF available all tiers.
+- **Pricing / room gating:** single source `planLimits.ts` + `useSubscription.ts`; **Free** = 1 room · **Premium ฿299** = 20 rooms; all features unlocked — only room cap + subscription expiry gate; upgrade CTAs → `/billing?plan=premium`.
+- Landing (`/`): follows `marketing-blueprint.md` §8.5 wireframe; copy in `messages.ts` `landing.*`; hero → 3 pain cards → PWA/LINE solution band → 3-up showcase → pricing + comparison table; CTAs `/admin/signup` + `/try`.
 
 ## 4. AI Communication Strategy
 - All instructions and responses inside Cursor Composer/Chat must be in English.

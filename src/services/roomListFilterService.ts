@@ -2,6 +2,7 @@ import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
 import {
   isRowEditable,
   isRowReadyToBill,
+  isElectricDialComplete,
 } from "@/services/propertyBillingSettingsService";
 
 export type RoomListFilter =
@@ -11,7 +12,17 @@ export type RoomListFilter =
   | "pendingMeter"
   | "unpaid"
   | "paid"
-  | "scanning";
+  | "scanning"
+  | "vacant";
+
+export type DashboardQuickFilter = "all" | "unpaid" | "scanning" | "vacant";
+
+export const DASHBOARD_QUICK_FILTERS: DashboardQuickFilter[] = [
+  "all",
+  "unpaid",
+  "scanning",
+  "vacant",
+];
 
 export const ROOM_LIST_FILTERS: RoomListFilter[] = [
   "all",
@@ -21,6 +32,7 @@ export const ROOM_LIST_FILTERS: RoomListFilter[] = [
   "unpaid",
   "paid",
   "scanning",
+  "vacant",
 ];
 
 export const ROOM_LIST_PAGE_SIZE = 20;
@@ -53,7 +65,9 @@ export function isRoomTodo(
 export function isPendingMeter(row: MonthlyBillingRow, ctx: RoomListFilterContext) {
   if (row.invoice_id) return false;
   if (!isRowEditable(row)) return false;
-  return !isRowReadyToBill(row, rowMeters(ctx, row.tenant_id), ctx.includeUtilities);
+  if (!ctx.includeUtilities) return false;
+  if (!row.electric_prev) return true;
+  return !isElectricDialComplete(rowMeters(ctx, row.tenant_id).electric);
 }
 
 function matchesFilter(
@@ -76,6 +90,8 @@ function matchesFilter(
       return row.invoice_status === "paid";
     case "scanning":
       return row.invoice_status === "scanning";
+    case "vacant":
+      return false;
     default:
       return true;
   }
@@ -84,13 +100,42 @@ function matchesFilter(
 export function matchesRoomQuery(
   row: MonthlyBillingRow,
   query: string,
+  propertyName?: string,
 ): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   return (
     row.room_number.toLowerCase().includes(q) ||
-    row.tenant_name.trim().toLowerCase().includes(q)
+    row.tenant_name.trim().toLowerCase().includes(q) ||
+    (propertyName?.trim().toLowerCase().includes(q) ?? false)
   );
+}
+
+export function matchesVacantRoomQuery(
+  roomNumber: string,
+  query: string,
+  propertyName?: string,
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    roomNumber.toLowerCase().includes(q) ||
+    (propertyName?.trim().toLowerCase().includes(q) ?? false)
+  );
+}
+
+export function dashboardQuickCounts(
+  rows: MonthlyBillingRow[],
+  ctx: RoomListFilterContext,
+  vacantCount: number,
+): Record<DashboardQuickFilter, number> {
+  const full = countByFilter(rows, ctx);
+  return {
+    all: full.all,
+    unpaid: full.unpaid,
+    scanning: full.scanning,
+    vacant: vacantCount,
+  };
 }
 
 export function filterRoomRows<T extends MonthlyBillingRow>(
@@ -98,9 +143,12 @@ export function filterRoomRows<T extends MonthlyBillingRow>(
   filter: RoomListFilter,
   query: string,
   ctx: RoomListFilterContext,
+  propertyName?: string,
 ): T[] {
   return rows.filter(
-    (row) => matchesFilter(row, filter, ctx) && matchesRoomQuery(row, query),
+    (row) =>
+      matchesFilter(row, filter, ctx) &&
+      matchesRoomQuery(row, query, propertyName),
   );
 }
 
@@ -116,6 +164,7 @@ export function countByFilter<T extends MonthlyBillingRow>(
     unpaid: rows.filter((row) => row.invoice_status === "pending").length,
     paid: rows.filter((row) => row.invoice_status === "paid").length,
     scanning: rows.filter((row) => row.invoice_status === "scanning").length,
+    vacant: 0,
   };
 }
 

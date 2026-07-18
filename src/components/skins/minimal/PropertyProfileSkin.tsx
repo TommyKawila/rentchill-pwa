@@ -64,7 +64,7 @@ export function PropertyProfileSkin({
             </a>
           )}
           <div className={`flex items-start justify-between gap-3 ${fromOwner ? "mt-3" : ""}`}>
-            <p className="text-sm font-medium uppercase tracking-wide text-green-600">
+            <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
               {t("property.tag")}
             </p>
             <LocaleToggleSkin />
@@ -115,7 +115,7 @@ export function PropertyProfileSkin({
                   </p>
                   <a
                     href={`/dashboard?property=${encodeURIComponent(slug)}`}
-                    className="inline-flex min-h-14 items-center rounded-lg bg-rc-green px-6 text-base font-medium text-white hover:bg-rc-green-dark"
+                    className="inline-flex min-h-[52px] items-center rounded-lg bg-rc-green px-6 text-base font-medium text-white hover:bg-rc-green-dark"
                   >
                     {t("property.ownerEmptyCta")}
                   </a>
@@ -141,7 +141,7 @@ export function PropertyProfileSkin({
                       })}
                     </p>
                   </div>
-                  <span className="rounded-lg bg-green-50 px-3 py-1 text-sm font-medium text-green-600">
+                  <span className="rounded-lg bg-rc-green-soft px-3 py-1 text-sm font-medium text-rc-green">
                     {t("property.vacant")}
                   </span>
                 </li>

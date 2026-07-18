@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import type { MaintenanceTicketRow, MaintenanceTicketStatus } from "@/services/types";
 
+export type MaintenanceTicketUpdateInput = {
+  status?: MaintenanceTicketStatus;
+  technician_name?: string | null;
+  technician_phone?: string | null;
+  expense_amount?: number | null;
+};
+
 export function useMaintenanceTickets(propertySlug: string) {
   const [tickets, setTickets] = useState<MaintenanceTicketRow[]>([]);
   const [waitingCount, setWaitingCount] = useState(0);
@@ -51,8 +58,8 @@ export function useMaintenanceTickets(propertySlug: string) {
     void load();
   }, [load]);
 
-  const updateStatus = useCallback(
-    async (ticketId: string, nextStatus: MaintenanceTicketStatus) => {
+  const updateTicket = useCallback(
+    async (ticketId: string, input: MaintenanceTicketUpdateInput) => {
       if (!propertySlug) return false;
 
       setUpdatingId(ticketId);
@@ -64,7 +71,7 @@ export function useMaintenanceTickets(propertySlug: string) {
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ticket_id: ticketId, status: nextStatus }),
+            body: JSON.stringify({ ticket_id: ticketId, ...input }),
           },
         );
 
@@ -93,6 +100,12 @@ export function useMaintenanceTickets(propertySlug: string) {
     [propertySlug, load],
   );
 
+  const updateStatus = useCallback(
+    async (ticketId: string, nextStatus: MaintenanceTicketStatus) =>
+      updateTicket(ticketId, { status: nextStatus }),
+    [updateTicket],
+  );
+
   return {
     tickets,
     waitingCount,
@@ -101,5 +114,6 @@ export function useMaintenanceTickets(propertySlug: string) {
     error,
     reload: load,
     updateStatus,
+    updateTicket,
   };
 }

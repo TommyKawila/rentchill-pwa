@@ -110,7 +110,7 @@ export function PropertyMarketingSettingsSkin({
                 type="button"
                 disabled={busy || !propertySlug}
                 onClick={() => inputRef.current?.click()}
-                className="flex min-h-14 w-full items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-white text-base text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[52px] w-full items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-white text-base text-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {status === "uploading"
                   ? t("common.saving")
@@ -140,7 +140,7 @@ export function PropertyMarketingSettingsSkin({
                 marketing_address: address,
               })
             }
-            className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {status === "saving" ? t("common.saving") : t("settings.marketingSave")}
           </button>
@@ -149,7 +149,7 @@ export function PropertyMarketingSettingsSkin({
             href={`/${encodeURIComponent(propertySlug)}?from=owner`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex min-h-12 items-center justify-center text-center text-base text-green-700 underline"
+            className="flex min-h-12 items-center justify-center text-center text-base text-rc-green-ink underline"
           >
             {t("settings.marketingPreview")}
           </a>

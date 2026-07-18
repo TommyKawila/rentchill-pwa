@@ -85,7 +85,7 @@ export function MeterPhotoVaultSkin({
                 type="button"
                 disabled={busy}
                 onClick={() => inputRef.current?.click()}
-                className="flex min-h-14 items-center rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[52px] items-center rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {uploading ? t("common.saving") : t("owner.meterPhoto.capture")}
               </button>

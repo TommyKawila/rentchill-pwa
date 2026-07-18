@@ -123,7 +123,7 @@ export function IssuedInvoiceSkin({
             type="button"
             disabled={busy}
             onClick={() => photoInputRef.current?.click()}
-            className="flex min-h-14 items-center rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] items-center rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("owner.cashProof.capture")}
           </button>
@@ -170,7 +170,7 @@ export function IssuedInvoiceSkin({
             note: paymentNote.trim() || undefined,
           })
         }
-        className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
       >
         <EasyModeCtaIcon name="approve" />
         {savingAction === "approve"

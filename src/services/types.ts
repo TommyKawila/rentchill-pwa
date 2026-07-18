@@ -32,6 +32,7 @@ export interface PropertyPaymentAccount {
   owner_line_user_id: string | null;
   billing_day: number;
   meter_reminder_days_before: number;
+  reminder_preset: string;
   reminder_soft_days: number;
   reminder_firm_days: number;
   reminder_final_days: number;
@@ -55,6 +56,7 @@ export type PropertyPaymentInput = {
   owner_line_user_id?: string | null;
   billing_day?: number;
   meter_reminder_days_before?: number;
+  reminder_preset?: string;
   reminder_soft_days?: number;
   reminder_firm_days?: number;
   reminder_final_days?: number;
@@ -67,9 +69,14 @@ export type PropertyPaymentInput = {
 };
 
 export type PropertyContact = {
+  property_name: string | null;
+  billing_day: number;
   contact_line_url: string | null;
   contact_line_qr_url: string | null;
   contact_phone: string | null;
+  payment_prompt_pay: string | null;
+  payment_bank_account: string | null;
+  payment_receiver_name: string | null;
 };
 
 export type RoomStatus = "available" | "occupied" | "maintenance";
@@ -95,6 +102,11 @@ export interface Tenant {
 }
 
 export type InvoiceStatus = "pending" | "scanning" | "paid";
+
+export type InvoiceExtraItem = {
+  label: string;
+  amount: number;
+};
 
 export type MeterKind = "water" | "electric";
 export type MeterReadingSource = "move_in" | "billing" | "override";
@@ -138,9 +150,17 @@ export interface Invoice {
   electric_recorded_at: string | null;
   water_rate_locked: number | null;
   electric_rate_locked: number | null;
+  extra_items: InvoiceExtraItem[];
+  include_promptpay_qr: boolean;
+  slip_submitted_at: string | null;
 }
 
-export type MaintenanceTicketCategory = "ac" | "plumbing" | "electrical" | "other";
+export type MaintenanceTicketCategory =
+  | "ac"
+  | "plumbing"
+  | "electrical"
+  | "furniture"
+  | "other";
 export type MaintenanceTicketStatus = "waiting" | "in_progress" | "done";
 
 export interface MaintenanceTicket {
@@ -151,7 +171,11 @@ export interface MaintenanceTicket {
   category: MaintenanceTicketCategory;
   description: string;
   photo_url: string | null;
+  video_url: string | null;
   status: MaintenanceTicketStatus;
+  technician_name: string | null;
+  technician_phone: string | null;
+  expense_amount: number | null;
   created_at: string;
   updated_at: string;
 }

@@ -2,7 +2,7 @@ import {
   getProjectLimit,
   getRoomLimit,
 } from "@/services/planLimits";
-import type { PlanTier } from "@/services/propertyQuotaService";
+import { normalizePlanTier, type PlanTier } from "@/services/planTierNormalize";
 import { createAdminClient } from "@/services/supabase/admin";
 
 export type OwnerQuota = {
@@ -26,7 +26,7 @@ async function getOwnerTier(ownerId: string): Promise<PlanTier> {
   if (error) throw error;
   if (!data) throw new Error("ไม่พบบัญชีเจ้าของ");
 
-  return String(data.plan_tier) as PlanTier;
+  return normalizePlanTier(String(data.plan_tier));
 }
 
 export async function getOwnerQuota(ownerId: string): Promise<OwnerQuota> {

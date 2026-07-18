@@ -4,6 +4,8 @@ import { useLocale } from "@/components/LocaleProvider";
 import { BillHistoryList } from "@/components/skins/minimal/BillHistoryList";
 import { ContactLandlordSkin } from "@/components/skins/minimal/ContactLandlordSkin";
 import { InvoiceSkin } from "@/components/skins/minimal/InvoiceSkin";
+import { TenantPaymentSuccessSkin } from "@/components/skins/minimal/TenantPaymentSuccessSkin";
+import { dueDateFromBillingMonth } from "@/services/billingDueDateService";
 import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 import { TenantBottomNavSkin } from "@/components/skins/minimal/TenantBottomNavSkin";
 import { TenantMaintenanceFormSkin } from "@/components/skins/minimal/TenantMaintenanceFormSkin";
@@ -40,7 +42,12 @@ interface TenantBoardShellSkinProps {
   meterPhotos: MeterPhotoRow[];
   tenantName: string;
   isPaying: boolean;
-  onPay: () => void;
+  slipPreviewUrl?: string | null;
+  slipAttached?: boolean;
+  paymentSuccess?: boolean;
+  onAttachSlip?: () => void;
+  onClearSlip?: () => void;
+  onConfirmPay?: () => void;
   paymentError: string | null;
   paymentFeedback: PaymentFeedback | null;
   documents: TenantDocumentRow[];
@@ -50,6 +57,7 @@ interface TenantBoardShellSkinProps {
   onVaultReload: () => void;
   tenantMaintenance: TenantMaintenanceState;
   contact: PropertyContact | null;
+  currency?: string;
 }
 
 export function TenantBoardShellSkin({
@@ -68,7 +76,12 @@ export function TenantBoardShellSkin({
   meterPhotos,
   tenantName,
   isPaying,
-  onPay,
+  slipPreviewUrl = null,
+  slipAttached = false,
+  paymentSuccess = false,
+  onAttachSlip,
+  onClearSlip,
+  onConfirmPay,
   paymentError,
   paymentFeedback,
   documents,
@@ -78,8 +91,9 @@ export function TenantBoardShellSkin({
   onVaultReload,
   tenantMaintenance,
   contact,
+  currency = "THB",
 }: TenantBoardShellSkinProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   const hasLease = documents.some((doc) => doc.doc_type === "lease");
   const signed = documents.some((doc) => doc.doc_type === "contract_signed");
@@ -92,7 +106,7 @@ export function TenantBoardShellSkin({
           <div className="min-w-0">
             {activeTab === "bill" ? (
               <>
-                <p className="text-sm font-medium uppercase tracking-wide text-green-600">
+                <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
                   {t("tenant.board.tag")}
                 </p>
                 <h1 className="mt-1 text-xl font-bold tracking-tight text-zinc-900">
@@ -133,13 +147,32 @@ export function TenantBoardShellSkin({
             )}
             {displayInvoice ? (
               <>
+                {paymentSuccess && isCurrentInvoice && <TenantPaymentSuccessSkin />}
                 <InvoiceSkin
                   invoice={displayInvoice}
                   tenantName={tenantName}
                   roomNumber={roomNumber}
+                  propertyName={contact?.property_name}
+                  dueDateLabel={
+                    contact && displayInvoice.status === "pending"
+                      ? dueDateFromBillingMonth(
+                          displayInvoice.billing_month,
+                          contact.billing_day,
+                          locale,
+                        )
+                      : null
+                  }
                   isPaying={isPaying}
                   meterPhotos={isCurrentInvoice ? meterPhotos : []}
-                  onPay={onPay}
+                  promptPay={contact?.payment_prompt_pay ?? null}
+                  bankAccount={contact?.payment_bank_account ?? null}
+                  receiverName={contact?.payment_receiver_name ?? null}
+                  slipPreviewUrl={isCurrentInvoice ? slipPreviewUrl : null}
+                  slipAttached={isCurrentInvoice ? slipAttached : false}
+                  onAttachSlip={isCurrentInvoice ? onAttachSlip : undefined}
+                  onClearSlip={isCurrentInvoice ? onClearSlip : undefined}
+                  onConfirmPay={isCurrentInvoice ? onConfirmPay : undefined}
+                  currency={currency}
                 />
                 {isCurrentInvoice && (
                   <TenantMeterPhotosSkin photos={meterPhotos} />
@@ -149,6 +182,7 @@ export function TenantBoardShellSkin({
                     invoices={invoiceHistory}
                     selectedMonth={viewingInvoice?.billing_month ?? null}
                     onSelect={onSelectHistoryInvoice}
+                    currency={currency}
                   />
                 )}
                 {paymentError && isCurrentInvoice && (
@@ -159,7 +193,7 @@ export function TenantBoardShellSkin({
                 {paymentFeedback?.autoVerified &&
                   isCurrentInvoice &&
                   boardInvoice?.status === "paid" && (
-                    <p className="px-6 pb-4 text-center text-sm text-green-700">
+                    <p className="px-6 pb-4 text-center text-sm text-rc-success-ink">
                       {t("tenant.board.slipVerified")}
                     </p>
                   )}

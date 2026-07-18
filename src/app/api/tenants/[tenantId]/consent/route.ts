@@ -10,6 +10,7 @@ export async function POST(
     await recordPdpaConsent(tenantId);
     return NextResponse.json({ ok: true });
   } catch (error) {
+    console.error("[tenants.consent.POST]", error);
     const message = error instanceof Error ? error.message : "Consent failed";
     return NextResponse.json({ error: message }, { status: 400 });
   }

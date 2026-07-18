@@ -1,13 +1,18 @@
 "use client";
 
-import { CreditCard, Home, LayoutGrid, Wrench } from "lucide-react";
+import { Home, Lock, Receipt, Settings, Wrench } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
 
-export type OwnerBottomNavTab = "home" | "rooms" | "billing" | "maintenance";
+export type OwnerBottomNavTab =
+  | "home"
+  | "accounting"
+  | "maintenance"
+  | "settings";
 
 interface OwnerBottomNavSkinProps {
   activeTab: OwnerBottomNavTab;
   propertySlug: string;
+  lockedTabs?: Partial<Record<OwnerBottomNavTab, string>>;
 }
 
 const TABS: {
@@ -15,9 +20,9 @@ const TABS: {
   icon: typeof Home;
   labelKey:
     | "owner.nav.tab.home"
-    | "owner.nav.tab.rooms"
-    | "owner.nav.tab.billing"
-    | "owner.nav.tab.maintenance";
+    | "owner.nav.tab.accounting"
+    | "owner.nav.tab.maintenance"
+    | "owner.nav.tab.settings";
   href: (propertySlug: string) => string;
 }[] = [
   {
@@ -27,16 +32,9 @@ const TABS: {
     href: (slug) => `/dashboard?property=${encodeURIComponent(slug)}`,
   },
   {
-    id: "rooms",
-    icon: LayoutGrid,
-    labelKey: "owner.nav.tab.rooms",
-    href: (slug) =>
-      `/dashboard?property=${encodeURIComponent(slug)}#rooms`,
-  },
-  {
-    id: "billing",
-    icon: CreditCard,
-    labelKey: "owner.nav.tab.billing",
+    id: "accounting",
+    icon: Receipt,
+    labelKey: "owner.nav.tab.accounting",
     href: (slug) =>
       `/dashboard?property=${encodeURIComponent(slug)}#billing`,
   },
@@ -46,37 +44,60 @@ const TABS: {
     labelKey: "owner.nav.tab.maintenance",
     href: (slug) => `/maintenance?property=${encodeURIComponent(slug)}`,
   },
+  {
+    id: "settings",
+    icon: Settings,
+    labelKey: "owner.nav.tab.settings",
+    href: (slug) => `/settings?property=${encodeURIComponent(slug)}`,
+  },
 ];
 
 export function OwnerBottomNavSkin({
   activeTab,
   propertySlug,
+  lockedTabs,
 }: OwnerBottomNavSkinProps) {
   const { t } = useLocale();
 
   return (
     <nav
       aria-label={t("owner.nav.tab.home")}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-100 bg-white pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-100 bg-white pb-[env(safe-area-inset-bottom)] print:hidden"
     >
       <div className="mx-auto flex max-w-xl gap-1 px-2 py-2">
         {TABS.map((tab) => {
           const active = tab.id === activeTab;
           const Icon = tab.icon;
+          const lockHref = lockedTabs?.[tab.id];
           const tone = active
-            ? "text-rc-green"
+            ? "text-rc-primary"
             : "text-zinc-500 group-hover:text-zinc-900";
+
+          if (lockHref) {
+            return (
+              <a
+                key={tab.id}
+                href={lockHref}
+                className="group flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-center"
+              >
+                <Lock className={`h-5 w-5 shrink-0 ${tone}`} strokeWidth={1.5} aria-hidden />
+                <span className={`truncate text-xs font-medium ${tone}`}>
+                  {t(tab.labelKey)}
+                </span>
+              </a>
+            );
+          }
 
           return (
             <a
               key={tab.id}
               href={tab.href(propertySlug)}
-              className={`group flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-center ${
-                active ? "bg-rc-green-soft" : ""
+              className={`group flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-center ${
+                active ? "bg-rc-primary-soft" : ""
               }`}
             >
-              <Icon className={`h-5 w-5 shrink-0 ${tone}`} strokeWidth={1.5} aria-hidden />
-              <span className={`truncate text-sm font-medium ${tone}`}>
+              <Icon className={`h-6 w-6 shrink-0 ${tone}`} strokeWidth={1.5} aria-hidden />
+              <span className={`truncate text-xs font-medium ${tone}`}>
                 {t(tab.labelKey)}
               </span>
             </a>

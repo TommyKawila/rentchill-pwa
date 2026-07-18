@@ -1,0 +1,2 @@
+export const PRIVACY_POLICY_VERSION = "2026-07-18";
+export const LEGAL_UPDATED_AT = "2026-07-18";

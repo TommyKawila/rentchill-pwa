@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
 
 type OverrideStatus = "idle" | "loading" | "saving" | "error";
@@ -20,10 +20,18 @@ export function useInvoiceOverride(propertySlug: string) {
   const [savingAction, setSavingAction] = useState<OverrideSavingAction>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const hasScanningInvoices = useMemo(
+    () => invoices.some((inv) => inv.status === "scanning"),
+    [invoices],
+  );
+
+  const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!propertySlug) return;
 
-    setStatus("loading");
+    const silent = options?.silent === true;
+    if (!silent) {
+      setStatus("loading");
+    }
     setError(null);
 
     try {
@@ -43,16 +51,39 @@ export function useInvoiceOverride(propertySlug: string) {
 
       setInvoices(payload.invoices ?? []);
       setPaidInvoices(payload.paidInvoices ?? []);
-      setStatus("idle");
+      if (!silent) setStatus("idle");
     } catch (err) {
-      setStatus("error");
+      if (!silent) setStatus("error");
       setError(err instanceof Error ? err.message : "โหลดบิลไม่สำเร็จ");
     }
   }, [propertySlug]);
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [propertySlug]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!propertySlug || !hasScanningInvoices) return;
+
+    const intervalId = window.setInterval(() => {
+      void load({ silent: true });
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [propertySlug, hasScanningInvoices, load]);
+
+  useEffect(() => {
+    if (!propertySlug) return;
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void load({ silent: invoices.length > 0 });
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [propertySlug, load, invoices.length]);
 
   const updateMeters = useCallback(
     async (invoiceId: string, waterUnit: number, electricUnit: number) => {

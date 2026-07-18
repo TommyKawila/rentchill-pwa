@@ -62,7 +62,7 @@ export function TenantProfileEditorSkin({
           type="button"
           disabled={saving || !valid}
           onClick={() => onSave({ tenant_name: name.trim() })}
-          className="flex min-h-14 flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[52px] flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? t("owner.tenant.saving") : t("owner.tenant.save")}
         </button>

@@ -58,6 +58,12 @@ export function isMeterInputComplete(water: string, electric: string) {
   return Number.isFinite(w) && w >= 0 && Number.isFinite(e) && e >= 0;
 }
 
+export function isElectricDialComplete(electric: string) {
+  if (electric.trim() === "") return false;
+  const value = Number(electric);
+  return Number.isFinite(value) && value >= 0;
+}
+
 export function isMeterDialComplete(water: string, electric: string) {
   return isMeterInputComplete(water, electric);
 }
@@ -91,11 +97,14 @@ export function isRowReadyToBill(
   row: MonthlyBillingRow,
   meters: { water: string; electric: string },
   includeUtilities: boolean,
+  options?: { waterFlatBaht?: number },
 ) {
   if (!isRowEditable(row)) return false;
   if (!includeUtilities) return true;
-  if (!hasMeterBaseline(row)) return false;
-  return isMeterDialComplete(meters.water, meters.electric);
+  if (!row.electric_prev) return false;
+  if (!isElectricDialComplete(meters.electric)) return false;
+  const water = options?.waterFlatBaht ?? 0;
+  return Number.isFinite(water) && water >= 0;
 }
 
 export function computeBillingReadiness(

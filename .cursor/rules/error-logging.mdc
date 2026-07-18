@@ -1,0 +1,59 @@
+---
+description: Clear error logging for API routes, services, and hooks
+alwaysApply: true
+---
+
+# Error Logging
+
+Unexpected failures must be logged with a searchable tag and useful context. Do not swallow errors. Do not invent a logging framework — use `console.error` / `console.warn`.
+
+Reference pattern already in the repo: `[lineWebhook]` in `src/services/line/lineWebhookService.ts`.
+
+## Format
+
+```ts
+console.error("[module.action]", context, error);
+```
+
+- `module.action` — domain + method or function name  
+  Examples: `[rooms.POST]`, `[billing.GET]`, `[paymentService.submitSlip]`, `[useAddRoomTenant]`
+- `context` — small object that helps debug (ids, slug, status). Prefer ids/slugs over full PII.
+- Pass the raw `error` / `err` as the last argument so the stack is preserved in Vercel Logs.
+
+## Server (API routes + services)
+
+- Every `catch` for an **unexpected** failure must `console.error` before return or rethrow.
+- Expected business errors (`ROOM_LIMIT_EXCEEDED`, `SLUG_TAKEN`, validation) may return JSON as today; `console.warn` only if useful, otherwise skip.
+- Never send raw stacks to the client UI — return a short user-facing message.
+
+```ts
+} catch (error) {
+  if (error instanceof Error && error.message === "ROOM_LIMIT_EXCEEDED") {
+    return NextResponse.json(
+      { error: "ROOM_LIMIT_EXCEEDED", message: "..." },
+      { status: 403 },
+    );
+  }
+  console.error("[rooms.POST]", { propertySlug: body.property_slug }, error);
+  const message =
+    error instanceof Error ? error.message : "เพิ่มห้องไม่สำเร็จ";
+  return NextResponse.json({ error: message }, { status: 400 });
+}
+```
+
+## Client (hooks / pages)
+
+- Keep `setError(...)` for UI as today.
+- Log **unexpected** failures only: `console.error("[hookName]", context, err)`.
+- Do not log routine validation failures.
+
+## Forbidden
+
+- Empty `catch` / silent swallow
+- Using `console.log` for errors
+- Logging secrets: passwords, tokens, API keys, Authorization headers, raw slip/file payloads
+- Logging unnecessary PII in production paths (full phone/name) when an id or slug is enough
+
+## Scope
+
+Apply on **new code and files you touch**. Do not mass-backfill every existing route unless fixing a bug in that file.

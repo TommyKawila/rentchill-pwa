@@ -1,22 +1,18 @@
-import { getOwnerQuota } from "@/services/ownerQuotaService";
 import {
   getProjectLimit,
   getRoomLimit,
+  PREMIUM_PRICE_THB,
   TIER_PROJECT_LIMITS,
   TIER_ROOM_LIMITS,
 } from "@/services/planLimits";
-import { getPropertyQuota } from "@/services/propertyQuotaService";
-import { createAdminClient } from "@/services/supabase/admin";
-import type { PlanTier } from "@/services/propertyQuotaService";
+import type { PlanTier } from "@/services/planTierNormalize";
 
-export { TIER_PROJECT_LIMITS, TIER_ROOM_LIMITS, getProjectLimit, getRoomLimit };
+export { TIER_PROJECT_LIMITS, TIER_ROOM_LIMITS, getProjectLimit, getRoomLimit, PREMIUM_PRICE_THB };
 
-export type UpgradeTier = Exclude<PlanTier, "starter">;
+export type UpgradeTier = "premium";
 
 export const TIER_PRICES_THB: Record<UpgradeTier, number> = {
-  micro: 290,
-  growth: 590,
-  pro: 990,
+  premium: PREMIUM_PRICE_THB,
 };
 
 export type PropertyPlanUsage = {
@@ -35,7 +31,10 @@ export type PropertyPlanUsage = {
 export async function getPropertyPlanUsage(
   propertySlug: string,
 ): Promise<PropertyPlanUsage> {
-  const supabase = createAdminClient();
+  const { getOwnerQuota } = await import("@/services/ownerQuotaService");
+  const { getPropertyQuota } = await import("@/services/propertyQuotaService");
+
+  const supabase = (await import("@/services/supabase/admin")).createAdminClient();
 
   const { data: property, error: propertyError } = await supabase
     .from("properties")

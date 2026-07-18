@@ -9,15 +9,23 @@ const LINE_PUSH_URL = "https://api.line.me/v2/bot/message/push";
 
 export type LineTextMessage = { type: "text"; text: string };
 
+export type LineFlexMessage = {
+  type: "flex";
+  altText: string;
+  contents: Record<string, unknown>;
+};
+
+export type LinePushMessage = LineTextMessage | LineFlexMessage;
+
 export type LinePushResult =
   | { sent: true; simulated?: boolean; mode: LinePushMode; recipient: string }
   | { sent: false; reason: "no_token" | "no_recipient" };
 
 export function resolveLinePushRecipient(
   lineUserId: string,
-  messages: LineTextMessage[],
+  messages: LinePushMessage[],
   roomLabel?: string,
-): { recipient: string; messages: LineTextMessage[]; simulated: boolean } {
+): { recipient: string; messages: LinePushMessage[]; simulated: boolean } {
   const mode = getLinePushMode();
 
   if (mode === "dry_run") {
@@ -32,10 +40,11 @@ export function resolveLinePushRecipient(
     const prefix = roomLabel ? `[TEST ${roomLabel}] ` : "[TEST] ";
     return {
       recipient: testId,
-      messages: messages.map((msg) => ({
-        ...msg,
-        text: `${prefix}${msg.text}`,
-      })),
+      messages: messages.map((msg) =>
+        msg.type === "text"
+          ? { ...msg, text: `${prefix}${msg.text}` }
+          : msg,
+      ),
       simulated: false,
     };
   }
@@ -45,7 +54,7 @@ export function resolveLinePushRecipient(
 
 export async function pushLineMessages(
   lineUserId: string,
-  messages: LineTextMessage[],
+  messages: LinePushMessage[],
   options?: { roomLabel?: string },
 ): Promise<LinePushResult> {
   if (!lineUserId) {

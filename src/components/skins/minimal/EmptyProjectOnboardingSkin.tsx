@@ -182,7 +182,7 @@ function AddRoomForm({
           type="button"
           disabled={disabled || saving || !stepOneValid}
           onClick={() => setStep(2)}
-          className="mt-4 flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t("owner.onboarding.nextStep")}
         </button>
@@ -200,7 +200,7 @@ function AddRoomForm({
             type="button"
             disabled={disabled || saving || !stepTwoValid}
             onClick={handleSubmit}
-            className="flex min-h-14 flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] flex-1 items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? t("owner.onboarding.saving") : t("owner.onboarding.submit")}
           </button>

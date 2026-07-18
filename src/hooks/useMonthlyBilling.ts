@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { PropertyBillingSettings } from "@/services/propertyBillingSettingsService";
 import type {
   BillingEntry,
@@ -19,9 +19,9 @@ type BillingResult = {
 const defaultSettings: PropertyBillingSettings = {
   billing_day: 1,
   meter_reminder_days_before: 3,
-  reminder_soft_days: 3,
-  reminder_firm_days: 7,
-  reminder_final_days: 10,
+  reminder_soft_days: 1,
+  reminder_firm_days: 3,
+  reminder_final_days: 7,
   include_utilities: true,
   water_rate_per_unit: 10,
   electric_rate_per_unit: 7,
@@ -33,47 +33,90 @@ export function useMonthlyBilling(propertySlug: string) {
   const [settings, setSettings] =
     useState<PropertyBillingSettings>(defaultSettings);
   const [status, setStatus] = useState<BillingStatus>("idle");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<BillingResult | null>(null);
 
-  const load = useCallback(async () => {
-    if (!propertySlug) return;
+  const hasScanningRows = useMemo(
+    () => rows.some((row) => row.invoice_status === "scanning"),
+    [rows],
+  );
 
-    setStatus("loading");
-    setError(null);
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!propertySlug) return;
 
-    try {
-      const response = await fetch(
-        `/api/billing?property_slug=${encodeURIComponent(propertySlug)}`,
-      );
-      const payload = (await response.json()) as {
-        ok?: boolean;
-        error?: string;
-        billingMonth?: string;
-        rows?: MonthlyBillingRow[];
-        settings?: PropertyBillingSettings;
-      };
-
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error ?? "โหลดข้อมูลไม่สำเร็จ");
+      const silent = options?.silent === true;
+      if (silent) {
+        setIsRefreshing(true);
+      } else {
+        setStatus("loading");
       }
+      setError(null);
 
-      setBillingMonth(payload.billingMonth ?? "");
-      setRows(payload.rows ?? []);
-      setSettings(payload.settings ?? defaultSettings);
-      setStatus("idle");
-    } catch (err) {
-      setStatus("error");
-      setError(err instanceof Error ? err.message : "โหลดข้อมูลไม่สำเร็จ");
-    }
-  }, [propertySlug]);
+      try {
+        const response = await fetch(
+          `/api/billing?property_slug=${encodeURIComponent(propertySlug)}`,
+        );
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          error?: string;
+          billingMonth?: string;
+          rows?: MonthlyBillingRow[];
+          settings?: PropertyBillingSettings;
+        };
+
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error ?? "โหลดข้อมูลไม่สำเร็จ");
+        }
+
+        setBillingMonth(payload.billingMonth ?? "");
+        setRows(payload.rows ?? []);
+        setSettings(payload.settings ?? defaultSettings);
+        if (!silent) setStatus("idle");
+      } catch (err) {
+        if (!silent) setStatus("error");
+        setError(err instanceof Error ? err.message : "โหลดข้อมูลไม่สำเร็จ");
+      } finally {
+        if (silent) setIsRefreshing(false);
+        else setStatus((prev) => (prev === "saving" ? prev : "idle"));
+      }
+    },
+    [propertySlug],
+  );
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [propertySlug]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!propertySlug || !hasScanningRows) return;
+
+    const intervalId = window.setInterval(() => {
+      void load({ silent: true });
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [propertySlug, hasScanningRows, load]);
+
+  useEffect(() => {
+    if (!propertySlug) return;
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void load({ silent: rows.length > 0 });
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [propertySlug, load, rows.length]);
 
   const generate = useCallback(
-    async (entries: BillingEntry[]) => {
+    async (
+      entries: BillingEntry[],
+      options?: { deferLineNotify?: boolean },
+    ): Promise<boolean> => {
       setStatus("saving");
       setError(null);
       setResult(null);
@@ -85,6 +128,7 @@ export function useMonthlyBilling(propertySlug: string) {
           body: JSON.stringify({
             property_slug: propertySlug,
             entries,
+            defer_line_notify: options?.deferLineNotify === true,
           }),
         });
 
@@ -105,9 +149,11 @@ export function useMonthlyBilling(propertySlug: string) {
         setResult(payload.result);
         await load();
         setStatus("idle");
+        return true;
       } catch (err) {
         setStatus("error");
         setError(err instanceof Error ? err.message : "ออกบิลไม่สำเร็จ");
+        return false;
       }
     },
     [propertySlug, load],
@@ -118,6 +164,8 @@ export function useMonthlyBilling(propertySlug: string) {
     billingMonth,
     settings,
     status,
+    isRefreshing,
+    hasScanningRows,
     error,
     result,
     reload: load,

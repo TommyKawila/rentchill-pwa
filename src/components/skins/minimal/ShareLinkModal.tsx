@@ -76,12 +76,12 @@ export function ShareLinkModal({
                 href={linkUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="break-all text-sm text-green-700 underline"
+                className="break-all text-sm text-rc-green-ink underline"
               >
                 {linkUrl}
               </a>
               {isPermanent ? (
-                <p className="text-sm text-green-700">{t("owner.share.permanent")}</p>
+                <p className="text-sm text-rc-green-ink">{t("owner.share.permanent")}</p>
               ) : expiresAt ? (
                 <p className="text-sm text-amber-700">
                   {t("owner.share.expires", {
@@ -94,7 +94,7 @@ export function ShareLinkModal({
                   type="button"
                   disabled={disabled}
                   onClick={onCopy}
-                  className="flex min-h-12 flex-1 items-center justify-center rounded-lg border border-green-300 bg-green-50 text-base font-medium text-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-12 flex-1 items-center justify-center rounded-lg border border-rc-green/40 bg-rc-green-soft text-base font-medium text-rc-green-ink disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {copied ? t("owner.share.copied") : t("owner.share.copy")}
                 </button>
@@ -113,7 +113,7 @@ export function ShareLinkModal({
               type="button"
               disabled={disabled}
               onClick={onCreate}
-              className="flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[52px] w-full items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {disabled ? t("common.saving") : t("owner.share.create")}
             </button>

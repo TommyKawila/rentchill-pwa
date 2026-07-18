@@ -31,6 +31,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       property_slug?: string;
       entries?: BillingEntry[];
+      defer_line_notify?: boolean;
     };
 
     if (!body.property_slug) {
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
 
     const result = await generateMonthlyInvoices(body.property_slug, body.entries, {
       ownerId: auth.ownerId,
+      deferLineNotify: body.defer_line_notify === true,
     });
     return NextResponse.json({ ok: true, result });
   } catch (error) {

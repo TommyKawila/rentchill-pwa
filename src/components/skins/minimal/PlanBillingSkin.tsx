@@ -27,8 +27,6 @@ interface PlanBillingSkinProps {
   onSubmitSlip: (tier: UpgradeTier, file: File) => void;
 }
 
-const UPGRADE_OPTIONS: UpgradeTier[] = ["micro", "growth", "pro"];
-
 export function PlanBillingSkin({
   subscription,
   account,
@@ -39,8 +37,10 @@ export function PlanBillingSkin({
 }: PlanBillingSkinProps) {
   const { t } = useLocale();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [selectedTier, setSelectedTier] = useState<UpgradeTier | null>(null);
-  const currentLimit = TIER_ROOM_LIMITS[subscription.plan_tier];
+  const [selectedTier, setSelectedTier] = useState<UpgradeTier | null>(
+    subscription.plan_tier === "free" ? "premium" : null,
+  );
+  const isPremium = subscription.plan_tier === "premium";
 
   const expiresLabel = subscription.expires_at
     ? new Date(subscription.expires_at).toLocaleDateString("th-TH")
@@ -52,10 +52,16 @@ export function PlanBillingSkin({
         <h2 className="text-base font-semibold tracking-tight text-zinc-900">
           {t("owner.planBilling.planTitle")}
         </h2>
-        <p className="mt-2 text-base font-medium text-zinc-900">
-          {t(`owner.plan.tier.${subscription.plan_tier}`)}
+        <p className="mt-2 inline-flex items-center gap-2 text-base font-medium text-zinc-900">
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${
+              isPremium ? "bg-zinc-950 text-white" : "bg-zinc-100 text-zinc-500"
+            }`}
+          >
+            {t(`owner.plan.tier.${subscription.plan_tier}`)}
+          </span>
           {expiresLabel && (
-            <span className="ml-2 font-normal text-zinc-500">
+            <span className="font-normal text-zinc-500">
               · {t("owner.planBilling.expires", { date: expiresLabel })}
             </span>
           )}
@@ -87,7 +93,7 @@ export function PlanBillingSkin({
           </div>
         )}
         {submitted && (
-          <p className="mt-3 rounded-xl border border-green-200 bg-green-50 p-4 text-base text-green-800">
+          <p className="mt-3 rounded-xl border border-rc-green/30 bg-rc-green-soft p-4 text-base text-rc-green-ink">
             {t("owner.planBilling.slipSubmitted")}
           </p>
         )}
@@ -98,83 +104,66 @@ export function PlanBillingSkin({
         )}
       </div>
 
-      <div>
-        <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-          {t("owner.upgrade.title")}
-        </h2>
-        <p className="mt-1 text-sm text-zinc-500">{t("owner.planBilling.upgradeDesc")}</p>
+      {!isPremium && (
+        <div>
+          <h2 className="text-base font-semibold tracking-tight text-zinc-900">
+            {t("owner.upgrade.title")}
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500">{t("owner.planBilling.upgradeDesc")}</p>
 
-        <div className="mt-4 space-y-3">
-          {UPGRADE_OPTIONS.map((tier) => {
-            const isCurrent = subscription.plan_tier === tier;
-            const canUpgrade = TIER_ROOM_LIMITS[tier] > currentLimit;
-            const isSelected = selectedTier === tier;
-
-            return (
-              <div
-                key={tier}
-                className={`rounded-xl border p-6 ${
-                  isSelected
-                    ? "border-rc-green bg-rc-green-soft"
-                    : "border-zinc-100 bg-white"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold text-zinc-900">
-                      {t(`owner.plan.tier.${tier}`)}
-                    </p>
-                    <p className="mt-1 text-sm text-zinc-500">{t(PLAN_TAGLINES[tier])}</p>
-                  </div>
-                  <p className="shrink-0 text-2xl font-bold tabular-nums text-zinc-900">
-                    {t("owner.planBilling.perMonth", {
-                      price: TIER_PRICES_THB[tier],
-                    })}
-                  </p>
-                </div>
-
-                <p className="mt-3 text-base font-medium text-zinc-900">
-                  {t("owner.upgrade.rooms", { count: TIER_ROOM_LIMITS[tier] })}
-                  {" · "}
-                  {t("owner.upgrade.projects", {
-                    count: TIER_PROJECT_LIMITS[tier],
-                  })}
+          <div
+            className={`mt-4 rounded-xl border p-6 ${
+              selectedTier === "premium"
+                ? "border-rc-green bg-rc-green-soft"
+                : "border-zinc-100 bg-white"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-base font-semibold text-zinc-900">
+                  {t("owner.plan.tier.premium")}
                 </p>
-
-                <ul className="mt-3 space-y-2 text-base text-zinc-700">
-                  {PLAN_UPGRADE_FEATURES[tier].map((key) => (
-                    <li key={key} className="flex gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
-                      <span>{t(key)}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-4">
-                  {isCurrent ? (
-                    <p className="flex min-h-12 items-center justify-center rounded-lg border border-green-200 bg-green-50 px-3 text-base font-medium text-green-800">
-                      {t("owner.upgrade.current")}
-                    </p>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={disabled || !canUpgrade || subscription.pending_payment}
-                      onClick={() => setSelectedTier(tier)}
-                      className="flex min-h-12 w-full items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {isSelected
-                        ? t("owner.planBilling.selected")
-                        : t("owner.upgrade.upgrade")}
-                    </button>
-                  )}
-                </div>
+                <p className="mt-1 text-sm text-zinc-500">{t(PLAN_TAGLINES.premium)}</p>
               </div>
-            );
-          })}
-        </div>
-      </div>
+              <p className="shrink-0 text-2xl font-bold tabular-nums text-zinc-900">
+                {t("owner.planBilling.perMonth", {
+                  price: TIER_PRICES_THB.premium,
+                })}
+              </p>
+            </div>
 
-      {selectedTier && (
+            <p className="mt-3 text-base font-medium text-zinc-900">
+              {t("owner.upgrade.rooms", { count: TIER_ROOM_LIMITS.premium })}
+              {" · "}
+              {t("owner.upgrade.projects", {
+                count: TIER_PROJECT_LIMITS.premium,
+              })}
+            </p>
+
+            <ul className="mt-3 space-y-2 text-base text-zinc-700">
+              {PLAN_UPGRADE_FEATURES.premium.map((key) => (
+                <li key={key} className="flex gap-3">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-400" />
+                  <span>{t(key)}</span>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              type="button"
+              disabled={disabled || subscription.pending_payment}
+              onClick={() => setSelectedTier("premium")}
+              className="mt-4 flex min-h-12 w-full items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {selectedTier === "premium"
+                ? t("owner.planBilling.selected")
+                : t("owner.upgrade.upgrade")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {selectedTier === "premium" && (
         <div className="space-y-4 rounded-xl border border-zinc-100 bg-zinc-50 p-6">
           <h3 className="text-base font-semibold tracking-tight text-zinc-900">
             {t("owner.planBilling.payTo")}
@@ -192,7 +181,7 @@ export function PlanBillingSkin({
             <span className="font-medium text-zinc-900">{account.receiver_name}</span>
           </p>
           <p className="text-2xl font-bold tabular-nums text-zinc-900">
-            {t("owner.planBilling.amount")}: ฿{TIER_PRICES_THB[selectedTier]}
+            {t("owner.planBilling.amount")}: ฿{TIER_PRICES_THB.premium}
           </p>
 
           <input
@@ -202,7 +191,7 @@ export function PlanBillingSkin({
             className="hidden"
             onChange={(event) => {
               const file = event.target.files?.[0];
-              if (file) onSubmitSlip(selectedTier, file);
+              if (file) onSubmitSlip("premium", file);
               event.target.value = "";
             }}
           />
@@ -210,7 +199,7 @@ export function PlanBillingSkin({
             type="button"
             disabled={disabled}
             onClick={() => fileRef.current?.click()}
-            className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {disabled
               ? t("common.saving")

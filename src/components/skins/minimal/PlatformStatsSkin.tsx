@@ -8,7 +8,7 @@ interface PlatformStatsSkinProps {
   stats: PlatformStats;
 }
 
-const PLAN_TIERS: PlanTier[] = ["starter", "micro", "growth", "pro"];
+const PLAN_TIERS: PlanTier[] = ["free", "premium"];
 
 const LINE_TYPE_LABELS: Record<string, string> = {
   bill_issued: "admin.platform.lineType.bill_issued",
@@ -59,7 +59,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
           <p>
             <span className="text-zinc-500">{t("admin.platform.active")}: </span>
-            <span className="font-medium text-green-700">{stats.owners_active}</span>
+            <span className="font-medium text-rc-green-ink">{stats.owners_active}</span>
           </p>
           <p>
             <span className="text-zinc-500">{t("admin.platform.expired")}: </span>
@@ -100,7 +100,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
                     ? "bg-red-500"
                     : stats.line_oa_alert === "warning"
                       ? "bg-amber-500"
-                      : "bg-green-500"
+                      : "bg-rc-green"
                 }`}
                 style={{ width: `${Math.min(100, stats.line_oa_percent ?? 0)}%` }}
               />
@@ -160,7 +160,7 @@ export function PlatformStatsSkin({ stats }: PlatformStatsSkinProps) {
             {stats.line_push_daily.map((day) => (
               <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
                 <div
-                  className="w-full rounded-t bg-green-400"
+                  className="w-full rounded-t bg-rc-green/70"
                   style={{ height: `${(day.total / dailyMax) * 64}px` }}
                   title={`${day.date}: ${day.total}`}
                 />

@@ -1,9 +1,10 @@
 import { getCurrentBillingMonth } from "@/services/invoiceCalculator";
 import { getCsvLimit } from "@/services/planLimits";
 import { getLinePushLimit } from "@/services/linePushQuotaService";
+import { normalizePlanTier, type PlanTier } from "@/services/planTierNormalize";
 import { createAdminClient } from "@/services/supabase/admin";
 
-export type PlanTier = "starter" | "micro" | "growth" | "pro";
+export type { PlanTier };
 
 export type PropertyQuota = {
   plan_tier: PlanTier;
@@ -69,7 +70,7 @@ export async function getPropertyQuota(
   );
 
   const refreshed = await getPropertyQuotaRow(propertySlug);
-  const tier = String(refreshed.plan_tier) as PlanTier;
+  const tier = normalizePlanTier(String(refreshed.plan_tier));
   const linePushUsed = Number(refreshed.line_push_used_this_month);
   const linePushLimit = getLinePushLimit(tier);
   const csvUsed = Number(refreshed.csv_used_this_month);

@@ -114,7 +114,7 @@ function DevOwnerResetPanel({
 
       {message && (
         <p
-          className={`mt-2 text-sm ${status === "done" ? "text-green-700" : "text-red-600"}`}
+          className={`mt-2 text-sm ${status === "done" ? "text-rc-green-ink" : "text-red-600"}`}
         >
           {message}
         </p>
@@ -129,11 +129,16 @@ export default function AdminSignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!acceptedLegal) {
+      setError(t("admin.signup.consentRequired"));
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
@@ -141,7 +146,12 @@ export default function AdminSignupPage() {
       const response = await fetch("/api/admin/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          accepted_legal: acceptedLegal,
+        }),
       });
 
       const payload = (await response.json()) as { error?: string };
@@ -158,7 +168,7 @@ export default function AdminSignupPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-rc-bg px-4">
       <form
         onSubmit={(event) => void onSubmit(event)}
         className="w-full max-w-sm rounded-xl border border-zinc-100 bg-white p-6"
@@ -166,7 +176,7 @@ export default function AdminSignupPage() {
         <div className="mb-4 flex justify-end">
           <LocaleToggleSkin />
         </div>
-        <p className="text-sm font-medium uppercase tracking-wide text-green-600">
+        <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
           RentChill
         </p>
         <h1 className="mt-2 text-xl font-bold">{t("admin.signup.title")}</h1>
@@ -206,12 +216,31 @@ export default function AdminSignupPage() {
           />
         </label>
 
+        <label className="mt-4 flex min-h-12 items-start gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-4 text-sm text-zinc-700">
+          <input
+            type="checkbox"
+            checked={acceptedLegal}
+            onChange={(event) => setAcceptedLegal(event.target.checked)}
+            className="mt-0.5 h-5 w-5 shrink-0"
+          />
+          <span>
+            {t("admin.signup.consent")}{" "}
+            <Link href="/privacy" className="font-medium text-rc-green-ink underline">
+              {t("admin.signup.consentPrivacy")}
+            </Link>{" "}
+            ·{" "}
+            <Link href="/terms" className="font-medium text-rc-green-ink underline">
+              {t("admin.signup.consentTerms")}
+            </Link>
+          </span>
+        </label>
+
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
         <button
           type="submit"
-          disabled={isLoading}
-          className="mt-4 w-full rounded-lg bg-green-600 py-3 text-base font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={isLoading || !acceptedLegal}
+          className="mt-4 w-full rounded-lg bg-rc-green py-3 text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? t("admin.signup.loading") : t("admin.signup.submit")}
         </button>

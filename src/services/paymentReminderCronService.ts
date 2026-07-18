@@ -19,7 +19,7 @@ export async function listPropertiesForPaymentReminderCron(): Promise<string[]> 
 
   const { data, error } = await supabase
     .from("invoices")
-    .select("properties!inner(slug), tenants!inner(line_user_id)")
+    .select("properties!inner(slug, plan_tier), tenants!inner(line_user_id)")
     .eq("billing_month", billingMonth)
     .eq("status", "pending")
     .not("tenants.line_user_id", "is", null);
@@ -28,9 +28,12 @@ export async function listPropertiesForPaymentReminderCron(): Promise<string[]> 
 
   const slugs = new Set<string>();
   for (const row of data ?? []) {
-    const propertyRaw = row.properties as { slug: string } | { slug: string }[];
+    const propertyRaw = row.properties as
+      | { slug: string; plan_tier: string }
+      | { slug: string; plan_tier: string }[];
     const property = Array.isArray(propertyRaw) ? propertyRaw[0] : propertyRaw;
-    if (property?.slug) slugs.add(String(property.slug));
+    if (!property?.slug) continue;
+    slugs.add(String(property.slug));
   }
 
   return [...slugs].sort();

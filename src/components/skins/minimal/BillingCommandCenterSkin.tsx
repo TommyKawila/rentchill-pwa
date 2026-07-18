@@ -82,7 +82,7 @@ export function BillingCommandCenterSkin({
               type="button"
               disabled={disabled}
               onClick={handleStartMeter}
-              className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t("owner.meterEntry.start")}
             </button>
@@ -105,7 +105,7 @@ export function BillingCommandCenterSkin({
                 type="button"
                 disabled={disabled || readyCount === 0 || saving}
                 onClick={onBulkIssue}
-                className="flex min-h-14 w-full items-center justify-center gap-x-2 rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[52px] w-full items-center justify-center gap-x-2 rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <EasyModeCtaIcon name="bill" />
                 {saving
@@ -116,7 +116,7 @@ export function BillingCommandCenterSkin({
                 <p className="text-sm text-zinc-500">{t("owner.billing.meterRequired")}</p>
               )}
               {result && (
-                <p className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-base text-green-800">
+                <p className="rounded-lg border border-rc-green/30 bg-rc-green-soft px-4 py-3 text-base text-rc-green-ink">
                   {t("owner.billing.result", {
                     created: result.created,
                     updated: result.updated,

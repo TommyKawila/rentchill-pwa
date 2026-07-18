@@ -1,16 +1,73 @@
 @import "tailwindcss";
 
 @theme {
-  --color-rc-green: #32b04d;
-  --color-rc-green-dark: #28943f;
-  --color-rc-green-soft: #eef8f0;
-  --color-rc-green-ink: #1f7a35;
+  /* Brand = teal (sale page). rc-primary* is legacy alias — prefer rc-green in new code. */
+  --color-rc-primary: #0d9488;
+  --color-rc-primary-dark: #0f766e;
+  --color-rc-primary-soft: #f0fdfa;
+  /* Secondary Teal — class names stay rc-green* as alias until rename pass */
+  --color-rc-secondary: #0d9488;
+  --color-rc-green: #0d9488;
+  --color-rc-green-dark: #0f766e;
+  --color-rc-green-soft: #f0fdfa;
+  --color-rc-green-ink: #134e4a;
   --color-rc-charcoal: #4a4a4f;
+  /* Semantic status — paid / revenue / net (not brand teal) */
+  --color-rc-success: #22c55e;
+  --color-rc-success-soft: #f0fdf4;
+  --color-rc-success-ink: #166534;
+  --color-rc-warning: #f59e0b;
+  --color-rc-danger: #ef4444;
+  /* Surfaces — light slate so white cards pop */
+  --color-rc-bg: #f8fafc;
+  --color-rc-text: #0f172a;
 }
 
 @layer base {
   body {
-    @apply bg-zinc-50 text-zinc-900;
+    @apply bg-rc-bg text-rc-text;
+    font-family: var(--font-thai), var(--font-inter), system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-h1 {
+    @apply text-[32px] font-bold tracking-tight;
+  }
+  .text-h2 {
+    @apply text-xl font-bold tracking-tight;
+  }
+  .text-body-lg {
+    @apply text-base font-medium;
+  }
+  .text-caption {
+    @apply text-xs;
+  }
+}
+
+@keyframes rc-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rc-animate-fade-up {
+  animation: rc-fade-up 0.5s ease-out both;
+}
+
+.rc-animate-fade-up-delay {
+  animation: rc-fade-up 0.5s ease-out 0.12s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rc-animate-fade-up,
+  .rc-animate-fade-up-delay {
+    animation: none;
   }
 }
 

@@ -1,8 +1,8 @@
-import type { PlanTier } from "@/services/propertyQuotaService";
+import { normalizePlanTier, type PlanTier } from "@/services/planTierNormalize";
 import { getCurrentBillingMonth } from "@/services/invoiceCalculator";
 import { createAdminClient } from "@/services/supabase/admin";
 
-const VALID_TIERS: PlanTier[] = ["starter", "micro", "growth", "pro"];
+const VALID_TIERS: PlanTier[] = ["free", "premium"];
 
 export async function overrideOwnerPlan(input: {
   owner_email: string;
@@ -107,7 +107,7 @@ export async function getOwnerQaSnapshot(email: string) {
   return {
     owner_id: ownerId,
     email: String(owner.email),
-    plan_tier: String(owner.plan_tier),
+    plan_tier: normalizePlanTier(String(owner.plan_tier)),
     status: String(owner.status),
     expires_at: owner.expires_at ? String(owner.expires_at) : null,
     room_count: roomCount,

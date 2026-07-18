@@ -4,3 +4,4 @@
 - Strategy: Focus on the "Zero-Friction Ad Funnel" (Facebook Ad -> LINE OA -> Interactive Demo).
 ## Output Rules:
 - Structure advice with: Objective, Target Audience, Creative Direction, and Budget Plan.
+- Ad hooks and body copy: `marketing-blueprint.md` §8.4

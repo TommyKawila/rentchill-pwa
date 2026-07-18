@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { TenantDocumentRow } from "@/services/documentVaultService";
 import type { DocumentType } from "@/services/planLimits";
 import type { PlanTier } from "@/services/propertyQuotaService";
-import { canUseDocumentVault } from "@/services/planLimits";
+import { canAccessDocuments } from "@/services/planLimits";
 
 type DocStatus = "idle" | "loading" | "uploading" | "deleting" | "error";
 
@@ -19,7 +19,7 @@ export function useTenantDocuments(
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!propertySlug || !roomId || !tenantId || !canUseDocumentVault(planTier)) {
+    if (!propertySlug || !roomId || !tenantId || !canAccessDocuments(planTier)) {
       setDocuments([]);
       return;
     }

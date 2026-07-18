@@ -1,5 +1,9 @@
 import { createAdminClient } from "@/services/supabase/admin";
-import { safeNotifyMaintenanceReported } from "@/services/notificationService";
+import {
+  safeNotifyMaintenanceReported,
+  safeNotifyTenantMaintenanceStatus,
+  safeNotifyTenantMaintenanceSubmitted,
+} from "@/services/notificationService";
 import type {
   MaintenanceTicketCategory,
   MaintenanceTicketRow,
@@ -7,12 +11,14 @@ import type {
 } from "@/services/types";
 
 const MAINTENANCE_BUCKET = "maintenance";
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 20 * 1024 * 1024;
 
 const VALID_CATEGORIES = new Set<MaintenanceTicketCategory>([
   "ac",
   "plumbing",
   "electrical",
+  "furniture",
   "other",
 ]);
 
@@ -36,7 +42,12 @@ function mapRow(row: Record<string, unknown>): MaintenanceTicketRow {
     category: row.category as MaintenanceTicketCategory,
     description: String(row.description),
     photo_url: row.photo_url ? String(row.photo_url) : null,
+    video_url: row.video_url ? String(row.video_url) : null,
     status: row.status as MaintenanceTicketStatus,
+    technician_name: row.technician_name ? String(row.technician_name) : null,
+    technician_phone: row.technician_phone ? String(row.technician_phone) : null,
+    expense_amount:
+      row.expense_amount != null ? Number(row.expense_amount) : null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
     room_number: String(room?.room_number ?? ""),
@@ -57,6 +68,45 @@ async function getPropertyId(propertySlug: string) {
   return String(data.id);
 }
 
+async function uploadMaintenanceMedia(
+  propertySlug: string,
+  roomId: string,
+  file: File,
+) {
+  const supabase = createAdminClient();
+  const isVideo = file.type.startsWith("video/");
+
+  if (!isVideo && !file.type.startsWith("image/")) {
+    throw new Error("รองรับเฉพาะรูปภาพหรือวิดีโอ");
+  }
+  if (isVideo && file.size > MAX_VIDEO_SIZE) {
+    throw new Error("วิดีโอใหญ่เกิน 20MB");
+  }
+  if (!isVideo && file.size > MAX_PHOTO_SIZE) {
+    throw new Error("รูปใหญ่เกิน 5MB");
+  }
+
+  const extension = file.name.split(".").pop() ?? (isVideo ? "mp4" : "jpg");
+  const path = `${propertySlug}/${roomId}/${Date.now()}.${extension}`;
+  const { error: uploadError } = await supabase.storage
+    .from(MAINTENANCE_BUCKET)
+    .upload(path, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadError) throw new Error("อัปโหลดไฟล์ไม่สำเร็จ");
+
+  const { data: publicUrl } = supabase.storage
+    .from(MAINTENANCE_BUCKET)
+    .getPublicUrl(path);
+
+  return {
+    photoUrl: isVideo ? null : publicUrl.publicUrl,
+    videoUrl: isVideo ? publicUrl.publicUrl : null,
+  };
+}
+
 export async function listPropertyMaintenanceTickets(
   propertySlug: string,
 ): Promise<MaintenanceTicketRow[]> {
@@ -65,9 +115,7 @@ export async function listPropertyMaintenanceTickets(
 
   const { data, error } = await supabase
     .from("maintenance_tickets")
-    .select(
-      "*, rooms(room_number), tenants(name)",
-    )
+    .select("*, rooms(room_number), tenants(name)")
     .eq("property_id", propertyId)
     .order("created_at", { ascending: false });
 
@@ -106,42 +154,94 @@ export async function countWaitingMaintenanceTickets(
   return count ?? 0;
 }
 
-export async function updateMaintenanceTicketStatus(input: {
+export type UpdateMaintenanceTicketInput = {
   propertySlug: string;
   ticketId: string;
-  status: MaintenanceTicketStatus;
-}) {
-  if (!VALID_STATUSES.has(input.status)) {
+  status?: MaintenanceTicketStatus;
+  technician_name?: string | null;
+  technician_phone?: string | null;
+  expense_amount?: number | null;
+};
+
+export async function updateMaintenanceTicket(input: UpdateMaintenanceTicketInput) {
+  if (input.status && !VALID_STATUSES.has(input.status)) {
     throw new Error("สถานะไม่ถูกต้อง");
   }
+
+  const hasUpdate =
+    input.status !== undefined ||
+    input.technician_name !== undefined ||
+    input.technician_phone !== undefined ||
+    input.expense_amount !== undefined;
+
+  if (!hasUpdate) throw new Error("ข้อมูลไม่ครบ");
 
   const propertyId = await getPropertyId(input.propertySlug);
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
+  const { data: existing, error: readError } = await supabase
     .from("maintenance_tickets")
-    .update({
-      status: input.status,
-      updated_at: new Date().toISOString(),
-    })
+    .select("status")
     .eq("id", input.ticketId)
     .eq("property_id", propertyId)
-    .select(
-      "*, rooms(room_number), tenants(name)",
-    )
+    .maybeSingle();
+
+  if (readError) throw readError;
+  if (!existing) throw new Error("ไม่พบรายการแจ้งซ่อม");
+
+  const previousStatus = existing.status as MaintenanceTicketStatus;
+  const update: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (input.status !== undefined) update.status = input.status;
+  if (input.technician_name !== undefined) {
+    update.technician_name = input.technician_name?.trim() || null;
+  }
+  if (input.technician_phone !== undefined) {
+    update.technician_phone = input.technician_phone?.trim() || null;
+  }
+  if (input.expense_amount !== undefined) {
+    update.expense_amount =
+      input.expense_amount != null && Number.isFinite(input.expense_amount)
+        ? input.expense_amount
+        : null;
+  }
+
+  const { data, error } = await supabase
+    .from("maintenance_tickets")
+    .update(update)
+    .eq("id", input.ticketId)
+    .eq("property_id", propertyId)
+    .select("*, rooms(room_number), tenants(name)")
     .maybeSingle();
 
   if (error) throw error;
   if (!data) throw new Error("ไม่พบรายการแจ้งซ่อม");
 
-  return mapRow(data as Record<string, unknown>);
+  const ticket = mapRow(data as Record<string, unknown>);
+
+  if (input.status && input.status !== previousStatus) {
+    void safeNotifyTenantMaintenanceStatus(ticket.id);
+  }
+
+  return ticket;
+}
+
+/** @deprecated use updateMaintenanceTicket */
+export async function updateMaintenanceTicketStatus(input: {
+  propertySlug: string;
+  ticketId: string;
+  status: MaintenanceTicketStatus;
+}) {
+  return updateMaintenanceTicket(input);
 }
 
 export async function submitMaintenanceTicket(input: {
   tenantId: string;
   category: MaintenanceTicketCategory;
   description: string;
-  photo?: File | null;
+  media?: File | null;
 }) {
   if (!VALID_CATEGORIES.has(input.category)) {
     throw new Error("กรุณาเลือกหมวดปัญหา");
@@ -176,32 +276,15 @@ export async function submitMaintenanceTicket(input: {
   const propsRaw = roomRow.properties as { slug: string } | { slug: string }[] | null;
   const props = Array.isArray(propsRaw) ? propsRaw[0] : propsRaw;
   const propertySlug = String(props?.slug ?? "");
+  if (!propertySlug) throw new Error("ไม่พบหอพัก");
 
   let photoUrl: string | null = null;
+  let videoUrl: string | null = null;
 
-  if (input.photo) {
-    if (!input.photo.type.startsWith("image/")) {
-      throw new Error("รองรับเฉพาะรูปภาพ");
-    }
-    if (input.photo.size > MAX_FILE_SIZE) {
-      throw new Error("รูปใหญ่เกิน 5MB");
-    }
-
-    const extension = input.photo.name.split(".").pop() ?? "jpg";
-    const path = `${propertySlug}/${roomId}/${Date.now()}.${extension}`;
-    const { error: uploadError } = await supabase.storage
-      .from(MAINTENANCE_BUCKET)
-      .upload(path, input.photo, {
-        contentType: input.photo.type,
-        upsert: false,
-      });
-
-    if (uploadError) throw new Error("อัปโหลดรูปไม่สำเร็จ");
-
-    const { data: publicUrl } = supabase.storage
-      .from(MAINTENANCE_BUCKET)
-      .getPublicUrl(path);
-    photoUrl = publicUrl.publicUrl;
+  if (input.media) {
+    const uploaded = await uploadMaintenanceMedia(propertySlug, roomId, input.media);
+    photoUrl = uploaded.photoUrl;
+    videoUrl = uploaded.videoUrl;
   }
 
   const { data, error } = await supabase
@@ -213,15 +296,15 @@ export async function submitMaintenanceTicket(input: {
       category: input.category,
       description,
       photo_url: photoUrl,
+      video_url: videoUrl,
       status: "waiting",
     })
-    .select(
-      "*, rooms(room_number), tenants(name)",
-    )
+    .select("*, rooms(room_number), tenants(name)")
     .single();
 
   if (error) throw error;
   const ticket = mapRow(data as Record<string, unknown>);
   void safeNotifyMaintenanceReported(ticket.id);
+  void safeNotifyTenantMaintenanceSubmitted(ticket.id);
   return ticket;
 }

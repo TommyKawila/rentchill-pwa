@@ -39,7 +39,7 @@ export function useAdminQaLab() {
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [snapshotError, setSnapshotError] = useState<string | null>(null);
 
-  const [planTier, setPlanTier] = useState<PlanTier>("pro");
+  const [planTier, setPlanTier] = useState<PlanTier>("premium");
   const [planLoading, setPlanLoading] = useState(false);
   const [planMessage, setPlanMessage] = useState<string | null>(null);
 

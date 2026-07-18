@@ -10,9 +10,9 @@ export const SEGMENT_COLORS: Record<
     stroke: "#a1a1aa",
   },
   paid: {
-    bar: "bg-green-500",
-    dot: "bg-green-500",
-    stroke: "#16a34a",
+    bar: "bg-rc-success",
+    dot: "bg-rc-success",
+    stroke: "#22c55e",
   },
   unpaid: {
     bar: "bg-orange-500",

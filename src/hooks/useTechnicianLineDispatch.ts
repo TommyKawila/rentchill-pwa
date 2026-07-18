@@ -1,30 +1,28 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { shareMaintenanceDispatch } from "@/services/maintenanceDispatchClientService";
 
-type DispatchStatus = "idle" | "copied" | "fallback";
+type DispatchStatus = "idle" | "shared" | "copied" | "fallback";
 
 export function useTechnicianLineDispatch() {
   const [status, setStatus] = useState<DispatchStatus>("idle");
   const [fallbackMessage, setFallbackMessage] = useState<string | null>(null);
 
-  const dispatch = useCallback(async (lineUrl: string, message: string) => {
+  const dispatch = useCallback(async (lineUrl: string | null, message: string) => {
     setFallbackMessage(null);
     try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(message);
-        setStatus("copied");
-      } else {
+      const outcome = await shareMaintenanceDispatch({ message, lineUrl });
+      setStatus(outcome);
+      if (outcome === "fallback") {
         setFallbackMessage(message);
-        setStatus("fallback");
       }
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error("[useTechnicianLineDispatch]", { lineUrl }, err);
       setFallbackMessage(message);
       setStatus("fallback");
     }
-
-    window.open(lineUrl, "_blank", "noopener,noreferrer");
   }, []);
 
   const clearStatus = useCallback(() => {

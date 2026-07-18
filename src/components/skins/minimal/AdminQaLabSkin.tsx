@@ -6,7 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { useAdminQaLab } from "@/hooks/useAdminQaLab";
 import type { PlanTier } from "@/services/propertyQuotaService";
 
-const PLAN_TIERS: PlanTier[] = ["starter", "micro", "growth", "pro"];
+const PLAN_TIERS: PlanTier[] = ["free", "premium"];
 
 const LINE_TYPE_LABELS: Record<string, string> = {
   bill_issued: "admin.platform.lineType.bill_issued",
@@ -166,7 +166,7 @@ export function AdminQaLabSkin() {
         </button>
         {qa.planMessage && (
           <p
-            className={`text-sm ${qa.planMessage === "OK" ? "text-green-700" : "text-red-600"}`}
+            className={`text-sm ${qa.planMessage === "OK" ? "text-rc-green-ink" : "text-red-600"}`}
           >
             {qa.planMessage === "OK"
               ? t("admin.qa.plan.success")
@@ -258,7 +258,7 @@ export function AdminQaLabSkin() {
           {qa.seedLoading ? t("common.loading") : t("admin.qa.seed.run")}
         </button>
         {seedSuccess && (
-          <p className="text-sm text-green-700">
+          <p className="text-sm text-rc-green-ink">
             {t("admin.qa.seed.success", {
               rooms: String(seedSuccess[0]),
               line: String(seedSuccess[1]),
@@ -336,7 +336,7 @@ export function AdminQaLabSkin() {
 
             {qa.testPushMessage && (
               <p
-                className={`text-sm ${qa.testPushMessage === "OK" ? "text-green-700" : "text-red-600"}`}
+                className={`text-sm ${qa.testPushMessage === "OK" ? "text-rc-green-ink" : "text-red-600"}`}
               >
                 {qa.testPushMessage === "OK"
                   ? t("admin.qa.line.sent")

@@ -4,9 +4,10 @@ import {
 } from "@/services/line/linePushMode";
 import {
   pushLineMessages,
-  type LineTextMessage,
+  type LinePushMessage,
 } from "@/services/line/pushMessageService";
-import type { PlanTier } from "@/services/propertyQuotaService";
+import type { PlanTier } from "@/services/planTierNormalize";
+import { normalizePlanTier } from "@/services/planTierNormalize";
 import { createAdminClient } from "@/services/supabase/admin";
 import { isTrialProperty } from "@/services/trialSandboxService";
 
@@ -17,17 +18,18 @@ export type LinePushType =
   | "slip_rejected"
   | "owner_slip_submitted"
   | "maintenance_reported"
+  | "maintenance_submitted"
+  | "maintenance_status"
   | "payment_confirmed"
+  | "tenant_slip_received"
   | "subscription_grace"
   | "webhook_fallback";
 
 export type LineLogType = LinePushType;
 
 export const LINE_PUSH_LIMITS: Record<PlanTier, number> = {
-  starter: 12,
-  micro: 80,
-  growth: 200,
-  pro: 400,
+  free: 50,
+  premium: 200,
 };
 
 const OWNER_GRACE_LIMIT = 7;
@@ -135,7 +137,7 @@ async function assertPropertyPushQuota(propertySlug: string) {
   );
 
   const refreshed = await getPropertyRow(propertySlug);
-  const tier = String(refreshed.plan_tier) as PlanTier;
+  const tier = normalizePlanTier(String(refreshed.plan_tier));
   const limit = getLinePushLimit(tier);
   const used = Number(refreshed.line_push_used_this_month);
 
@@ -179,7 +181,7 @@ async function assertOwnerGraceQuota(ownerId: string) {
 export async function pushWithQuota(input: {
   type: LinePushType;
   lineUserId: string;
-  messages: LineTextMessage[];
+  messages: LinePushMessage[];
   propertySlug?: string;
   propertyId?: string;
   ownerId?: string;
@@ -260,7 +262,7 @@ async function countWebhookFallbackPushes() {
 
 export async function pushPlatformFallback(input: {
   lineUserId: string;
-  messages: LineTextMessage[];
+  messages: LinePushMessage[];
 }) {
   if (!input.lineUserId) {
     return { sent: false as const, reason: "no_recipient" as const };

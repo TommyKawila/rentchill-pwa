@@ -33,7 +33,7 @@ export function InviteCodeSkin({
         <LocaleToggleSkin />
       </div>
       <header>
-        <p className="text-sm font-medium uppercase tracking-wide text-green-600">
+        <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
           {t("tenant.invite.tag")}
         </p>
         <h1 className="mt-2 text-xl font-bold tracking-tight">{t("tenant.invite.title")}</h1>
@@ -57,7 +57,7 @@ export function InviteCodeSkin({
         type="button"
         disabled={disabled || !code.trim()}
         onClick={() => onSubmit(code.trim())}
-        className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
       >
         {disabled ? t("tenant.invite.linking") : t("tenant.invite.submit")}
       </button>

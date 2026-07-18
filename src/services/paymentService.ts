@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/services/supabase/admin";
 import { auditInvoiceReject } from "@/services/auditLogService";
 import { INVOICE_SELECT, mapInvoiceRow } from "@/services/invoiceFields";
-import { safeNotifyOwnerSlipSubmitted } from "@/services/notificationService";
+import { safeNotifyOwnerSlipSubmitted, safeNotifyTenantSlipReceived } from "@/services/notificationService";
 import { markInvoiceSlipRejected } from "@/services/invoiceRejectService";
 import { verifyInvoiceSlip } from "@/services/slipVerificationApplyService";
 import { canAutoVerifySlip } from "@/services/planLimits";
@@ -59,6 +59,7 @@ export async function submitPaymentSlip(
       status: "scanning",
       slip_image_url: publicUrl.publicUrl,
       slip_rejection_note: null,
+      slip_submitted_at: new Date().toISOString(),
     })
     .eq("id", invoiceId)
     .select(INVOICE_SELECT)
@@ -68,6 +69,7 @@ export async function submitPaymentSlip(
   const invoice = mapInvoice(data);
 
   void safeNotifyOwnerSlipSubmitted(invoice.id);
+  void safeNotifyTenantSlipReceived(invoice.id);
 
   const planTier = await getPlanTierForPropertyId(invoice.property_id);
   const autoVerifyEnabled =

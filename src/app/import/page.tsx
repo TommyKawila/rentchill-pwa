@@ -57,11 +57,11 @@ function ImportContent() {
     : "/dashboard";
 
   return (
-    <main className="min-h-screen bg-white px-4 py-6 pb-24 text-zinc-900">
+    <main className="min-h-screen bg-rc-bg px-4 py-4 pb-24 text-rc-text">
       <div className="mx-auto max-w-xl space-y-6">
         <header className="border-b border-zinc-100 pb-6">
           <div className="flex items-start justify-between gap-3">
-            <p className="text-sm font-medium uppercase tracking-wide text-green-600">
+            <p className="text-sm font-medium uppercase tracking-wide text-rc-green">
               {t("import.tag")}
             </p>
             <LocaleToggleSkin />
@@ -86,7 +86,7 @@ function ImportContent() {
             {t("import.downloadTemplate")}
           </button>
 
-          <label className="flex min-h-14 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-8 text-center">
+          <label className="flex min-h-[52px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-8 text-center">
             <span className="text-base font-medium">{t("import.selectFile")}</span>
             <span className="mt-1 text-sm text-zinc-500">
               {file?.name ?? t("import.noFile")}
@@ -114,13 +114,13 @@ function ImportContent() {
             type="button"
             disabled={!file || busy}
             onClick={() => file && void importFile(file)}
-            className="flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             {status === "importing" ? t("import.importing") : t("import.submit")}
           </button>
 
           {status === "success" && (
-            <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-base text-green-800">
+            <div className="rounded-xl border border-rc-green/30 bg-rc-green-soft p-6 text-base text-rc-green-ink">
               <p className="font-medium">{t("import.success")}</p>
               {resultSlugs.map((slug) => (
                 <a

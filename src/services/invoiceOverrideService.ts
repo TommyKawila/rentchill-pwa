@@ -1,5 +1,9 @@
 import { createAdminClient } from "@/services/supabase/admin";
-import { INVOICE_SELECT, mapInvoiceRow } from "@/services/invoiceFields";
+import {
+  INVOICE_SELECT,
+  mapInvoiceRow,
+  queryWithInvoiceSelectFallback,
+} from "@/services/invoiceFields";
 import { markInvoiceSlipRejected } from "@/services/invoiceRejectService";
 import { safeNotifyPaymentConfirmed } from "@/services/notificationService";
 import { calculateInvoiceAmounts } from "@/services/invoiceCalculator";
@@ -28,16 +32,18 @@ export async function getOverrideInvoices(
   if (propertyError) throw propertyError;
   if (!property) throw new Error("ไม่พบหอพัก");
 
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(`${INVOICE_SELECT}, tenants(name), rooms(room_number)`)
-    .eq("property_id", property.id)
-    .in("status", ["pending", "scanning"])
-    .order("billing_month", { ascending: false });
+  const { data, error } = await queryWithInvoiceSelectFallback((select) =>
+    supabase
+      .from("invoices")
+      .select(`${select}, tenants(name), rooms(room_number)`)
+      .eq("property_id", property.id)
+      .in("status", ["pending", "scanning"])
+      .order("billing_month", { ascending: false }),
+  );
 
   if (error) throw error;
 
-  return mapOverrideRows(data ?? []);
+  return mapOverrideRows((data ?? []) as unknown as Record<string, unknown>[]);
 }
 
 function mapOverrideRows(data: Record<string, unknown>[]) {
@@ -76,16 +82,18 @@ export async function getPaidInvoicesWithSlips(
   const propertyId = await getPropertyId(propertySlug);
   const supabase = createAdminClient();
 
-  const { data, error } = await supabase
-    .from("invoices")
-    .select(`${INVOICE_SELECT}, tenants(name), rooms(room_number)`)
-    .eq("property_id", propertyId)
-    .eq("status", "paid")
-    .order("billing_month", { ascending: false })
-    .limit(limit);
+  const { data, error } = await queryWithInvoiceSelectFallback((select) =>
+    supabase
+      .from("invoices")
+      .select(`${select}, tenants(name), rooms(room_number)`)
+      .eq("property_id", propertyId)
+      .eq("status", "paid")
+      .order("billing_month", { ascending: false })
+      .limit(limit),
+  );
 
   if (error) throw error;
-  return mapOverrideRows(data ?? []);
+  return mapOverrideRows((data ?? []) as unknown as Record<string, unknown>[]);
 }
 
 export async function updateInvoiceMeters(

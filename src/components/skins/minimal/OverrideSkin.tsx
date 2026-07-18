@@ -154,7 +154,7 @@ export function OverrideSkin({
                 type="button"
                 disabled={busy}
                 onClick={onAutoVerify}
-                className={`${BTN_SECONDARY} border-green-600 bg-green-50 text-green-800`}
+                className={`${BTN_SECONDARY} border-rc-green bg-rc-green-soft text-rc-green-ink`}
               >
                 {savingAction === "verify"
                   ? t("common.saving")
@@ -179,7 +179,7 @@ export function OverrideSkin({
           type="button"
           disabled={busy}
           onClick={() => onApprove({ slipUrl: slipUrl || undefined })}
-          className="min-h-14 rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-[52px] rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           <EasyModeCtaIcon name="approve" />
           {savingAction === "approve"

@@ -19,11 +19,11 @@ function BillingContent() {
   const isBusy = billing.status === "loading" || billing.status === "uploading";
 
   return (
-    <main className="min-h-screen bg-white px-4 py-6 pb-24 text-zinc-900">
+    <main className="min-h-screen bg-rc-bg px-4 py-4 pb-24 text-rc-text">
       <div className="mx-auto max-w-xl space-y-6">
         <header className="space-y-4 border-b border-zinc-100 pb-6">
           <div className="flex items-start justify-between gap-3">
-            <p className="font-medium tracking-tight text-green-600">
+            <p className="font-medium tracking-tight text-rc-green">
               {t("owner.planBilling.tag")}
             </p>
             <div className="flex flex-wrap items-center justify-end gap-3">
@@ -70,7 +70,7 @@ function BillingContent() {
         </section>
       </div>
 
-      <OwnerBottomNavSkin activeTab="home" propertySlug={propertySlug} />
+      <OwnerBottomNavSkin activeTab="accounting" propertySlug={propertySlug} />
       <OwnerPushNotificationPrompts />
     </main>
   );

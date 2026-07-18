@@ -15,12 +15,14 @@ const CATEGORY_LABEL: Record<
     ac: "แอร์เสีย",
     plumbing: "ท่อน้ำ/น้ำรั่ว",
     electrical: "ไฟ/ไฟฟ้า",
+    furniture: "เฟอร์นิเจอร์",
     other: "อื่นๆ",
   },
   en: {
     ac: "Air conditioning",
     plumbing: "Plumbing / leak",
     electrical: "Electrical / power",
+    furniture: "Furniture",
     other: "Other",
   },
 };
@@ -87,26 +89,50 @@ export function resolveTechnicianPhone(
   return resolveTechnicianContact(category, contacts, contactPhone).phone;
 }
 
+export function buildMaintenanceTicketShareUrl(
+  ticketId: string,
+  propertySlug?: string | null,
+): string {
+  const base =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const params = new URLSearchParams();
+  if (propertySlug) params.set("property", propertySlug);
+  params.set("ticket", ticketId);
+  return `${base}/maintenance?${params.toString()}`;
+}
+
 export function buildMaintenanceDispatchMessage(
   ticket: MaintenanceTicketRow,
   locale: Locale = "th",
+  options?: { propertySlug?: string | null },
 ): string {
   const categoryLabel = CATEGORY_LABEL[locale][ticket.category];
+  const shareUrl = buildMaintenanceTicketShareUrl(
+    ticket.id,
+    options?.propertySlug,
+  );
   const lines =
     locale === "en"
       ? [
           `Maintenance — Room ${ticket.room_number} (${ticket.tenant_name})`,
           `Category: ${categoryLabel}`,
           `Details: ${ticket.description}`,
+          `View ticket: ${shareUrl}`,
         ]
       : [
           `แจ้งซ่อม ห้อง ${ticket.room_number} (${ticket.tenant_name})`,
           `หมวด: ${categoryLabel}`,
           `รายละเอียด: ${ticket.description}`,
+          `ดูรายการ: ${shareUrl}`,
         ];
 
   if (ticket.photo_url?.trim()) {
     lines.push(ticket.photo_url.trim());
+  }
+  if (ticket.video_url?.trim()) {
+    lines.push(ticket.video_url.trim());
   }
 
   return lines.join("\n");

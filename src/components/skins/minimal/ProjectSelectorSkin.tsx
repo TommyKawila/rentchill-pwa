@@ -11,8 +11,8 @@ interface ProjectSelectorSkinProps {
   onChange: (slug: string) => void;
   onAddClick?: () => void;
   addDisabled?: boolean;
-  /** stack = full-width under title (settings); inline = compact beside title (dashboard) */
-  layout?: "stack" | "inline";
+  /** stack = full-width under title (settings); inline = compact beside title; chip = pill on dashboard */
+  layout?: "stack" | "inline" | "chip";
 }
 
 export function ProjectSelectorSkin({
@@ -27,6 +27,7 @@ export function ProjectSelectorSkin({
   const { t } = useLocale();
   const isEmpty = !loading && properties.length === 0;
   const isInline = layout === "inline";
+  const isChip = layout === "chip";
 
   if (isEmpty && onAddClick) {
     return (
@@ -37,7 +38,7 @@ export function ProjectSelectorSkin({
           type="button"
           disabled={addDisabled}
           onClick={onAddClick}
-          className="mt-3 flex min-h-14 w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-3 flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t("owner.addProject")}
         </button>
@@ -46,8 +47,25 @@ export function ProjectSelectorSkin({
   }
 
   return (
-    <div className={isInline ? "w-full" : "mt-3"}>
-      {isInline ? (
+    <div className={isInline || isChip ? "w-full" : "mt-3"}>
+      {isChip ? (
+        <label className="inline-flex max-w-full items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5">
+          <Building2 className="h-4 w-4 shrink-0 text-zinc-400" strokeWidth={1.5} aria-hidden />
+          <select
+            value={value}
+            disabled={loading || properties.length === 0}
+            onChange={(event) => onChange(event.target.value)}
+            aria-label={t("owner.selectProject")}
+            className="max-w-[220px] truncate border-0 bg-transparent py-1 text-sm font-medium text-zinc-900 outline-none disabled:text-zinc-400"
+          >
+            {properties.map((property) => (
+              <option key={property.id} value={property.slug}>
+                {property.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : isInline ? (
         <label className="flex min-h-12 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3">
           <Building2
             className="h-4 w-4 shrink-0 text-zinc-400"

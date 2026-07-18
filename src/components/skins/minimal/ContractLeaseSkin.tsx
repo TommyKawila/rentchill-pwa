@@ -51,12 +51,12 @@ export function ContractLeaseSkin({
               type="button"
               disabled={disabled || loading}
               onClick={onGenerate}
-              className="flex min-h-14 w-full items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-[52px] w-full items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-base font-medium text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? t("common.saving") : t("owner.contract.generate")}
             </button>
             {canUseESign(planTier) && (
-              <p className="text-sm text-green-600">{t("owner.contract.esignHint")}</p>
+              <p className="text-sm text-rc-green">{t("owner.contract.esignHint")}</p>
             )}
             {error && <p className="text-sm text-red-600">{error}</p>}
           </div>

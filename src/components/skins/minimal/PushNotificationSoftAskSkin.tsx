@@ -44,7 +44,7 @@ export function PushNotificationSoftAskSkin({
             type="button"
             disabled={requesting}
             onClick={onEnable}
-            className="inline-flex min-h-14 w-full items-center justify-center gap-x-2 rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-[52px] w-full items-center justify-center gap-x-2 rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Bell className="h-5 w-5" strokeWidth={1.5} />
             {requesting ? t("common.loading") : t("push.softAsk.primary")}

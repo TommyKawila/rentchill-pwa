@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>RentChill — สรุปฟีเจอร์</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    @page { size: A4; margin: 18mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "IBM Plex Sans Thai", "Inter", sans-serif;
+      font-size: 11pt;
+      line-height: 1.55;
+      color: #0f172a;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    h1 { font-size: 22pt; color: #0d9488; margin: 0 0 4px; }
+    .tagline { font-size: 12pt; color: #475569; margin-bottom: 16px; }
+    .hero {
+      background: #f0fdfa;
+      border: 1px solid #99f6e4;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+    .hero strong { color: #0d9488; }
+    h2 {
+      font-size: 13pt;
+      color: #0d9488;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 4px;
+      margin: 20px 0 10px;
+      page-break-after: avoid;
+    }
+    h3 { font-size: 11pt; margin: 14px 0 6px; color: #134e4a; page-break-after: avoid; }
+    ul { margin: 0 0 10px; padding-left: 18px; }
+    li { margin-bottom: 3px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5pt;
+      margin: 8px 0 14px;
+    }
+    th, td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f0fdfa; color: #134e4a; font-weight: 600; }
+    .pitch {
+      background: #fafafa;
+      border-left: 4px solid #0d9488;
+      padding: 12px 14px;
+      margin-top: 16px;
+      font-style: italic;
+    }
+    .footer { margin-top: 20px; font-size: 9pt; color: #64748b; text-align: center; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media print {
+      h2 { break-before: auto; }
+      .page-break { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+  <h1>RentChill</h1>
+  <p class="tagline">บริหารคอนโดปล่อยเช่าให้เป็นเรื่องชิล — PWA + LINE · ไม่ต้องโหลดแอป</p>
+
+  <div class="hero">
+    <strong>ตัวตน (Brand):</strong> RentChill คือ <strong>โlo่ปกป้อง (The Shield)</strong> — ระบบที่ยืนระหว่างเจ้าของกับความวุ่นวาย: ทวงบิล แจ้งค่าน้ำไฟ เก็บสลิป จัดการเอกสาร<br/>
+    <strong>Positioning:</strong> Universal Monthly Billing ผ่าน LINE — เจ้าของชิล ลูกบ้านก็ชอบ<br/>
+    <strong>กลุ่มเป้าหมาย:</strong> นักลงทุนคอนโด / เจ้าของหอ 2–100 ห้อง (side-job professional 27–45 ปี)<br/>
+    <strong>One-liner:</strong> ส่งบิล · ทวงเงิน · ตรวจสลิป · เก็บเอกสาร · ดูรายได้ — จบในแอปเดียวผ่าน LINE
+  </div>
+
+  <h2>0. ปรัชญา &amp; จุดยืน</h2>
+  <ul>
+    <li><strong>Less is More</strong> — UI การ์ด มือถือก่อน เรียนรู้ ~1 นาที ไม่ใช่ ERP หนัก</li>
+    <li><strong>Zero Friction</strong> — ลูกบ้านจบใน LINE LIFF ไม่ต้องดาวน์โหลดแอป</li>
+    <li><strong>Shield</strong> — ระบบทวง/แจ้งแทนเจ้าของ รักษาความสัมพันธ์กับผู้เช่า</li>
+    <li>เทียบ ERP เก่า: โฟกัสบิล + สลิป + ทวง + export ภาษี — ไม่แข่ง feature bloat</li>
+  </ul>
+
+  <h2>1. สำหรับเจ้าของหอ (Owner)</h2>
+
+  <h3>แดชบอร์ด &amp; ภาพรวม</h3>
+  <ul>
+    <li>หน้าจอเดียวดูทุกห้อง — จ่ายแล้ว / ค้าง / รอตรวจสลิป / ว่าง</li>
+    <li>สรุปรายเดือน — รายได้, อัตราเข้าพัก, งานซ่อมค้าง</li>
+    <li>ค้นหา + ฟิลเตอร์ด่วน (ค้างชำระ, รอตรวจสลิป, ห้องว่าง)</li>
+    <li>รองรับหลายโครงการในบัญชีเดียว</li>
+    <li>เพิ่มห้อง + ผู้เช่า + รหัสเชิญ LINE</li>
+  </ul>
+
+  <h3>ออกบิลรายเดือน</h3>
+  <ul>
+    <li>กรอกค่าเช่า, น้ำ (flat), ไฟ (เลขเก่า/ใหม่), รายการเพิ่ม</li>
+    <li>ออกบิลทีละห้อง หรือ Bulk ทุกห้องพร้อมกัน</li>
+    <li>Starter: คัดลอกลิงก์บิลแชร์เอง · Micro+: ส่งบิล LINE OA อัตโนมัติ (Flex)</li>
+    <li>PromptPay QR บนบิล · คัดลอกบิลเป็นข้อความ</li>
+    <li>ประวัติบิลย้อนหลังต่อห้อง</li>
+  </ul>
+
+  <h3>ตรวจสลิป &amp; รับเงิน</h3>
+  <ul>
+    <li>ลูกบ้านแนบสลิปผ่าน LINE (ไม่ปนแชทส่วนตัว)</li>
+    <li>ตรวจสลิปอัตโนมัติ (Micro+) หรืออนุมัติด้วยมือ (Starter)</li>
+    <li>ซูมดูสลิป · ตรวจยอด/บัญชี · อนุมัติ/ปฏิเสธพร้อมเหตุผล</li>
+    <li>ส่งใบเสร็จยืนยันให้ลูกบ้านอัตโนมัติหลังชำระ</li>
+  </ul>
+
+  <h3>ทวงเงินอัตโนมัติ (Micro+)</h3>
+  <ul>
+    <li>3 ระดับผ่าน LINE OA: T−1 ก่อนครบ · +3 เกินกำหนด · +7 ด่วน</li>
+    <li>ปรับข้อความ template ได้ · ทวงรายห้องหรือ Bulk</li>
+    <li>Cron ส่ง reminder อัตโนมัติ · Starter ไม่มี (zero LINE cost)</li>
+  </ul>
+
+  <h3>แจ้งซ่อม (Growth+)</h3>
+  <ul>
+    <li>Inbox แยกสถานะ: รอ / กำลังซ่อม / เสร็จ</li>
+    <li>ดูรูป-วิดีโอจากลูกบ้าน · บันทึกช่าง + ค่าใช้จ่าย</li>
+    <li>ส่ง LINE หาช่าง · แจ้งลูกบ้านเมื่อเสร็จ · Push แจ้งเจ้าของ</li>
+  </ul>
+
+  <div class="page-break"></div>
+
+  <h3>เอกสาร &amp; สัญญา</h3>
+  <ul>
+    <li>Starter: อัปโหลด manual สูงสุด 3 ไฟล์ (บัตร/สัญญา)</li>
+    <li>Growth+: คลังเอกสารเต็ม — บัตร, พาสปอร์ต, สัญญา, รูปเข้า-ออก, มัดจำ</li>
+    <li>สร้างสัญญา PDF (Growth+) · E-Sign ใน LINE (Pro)</li>
+    <li>ถ่ายรูปมิเตอร์ (Micro+) · ประวัติ 12 เดือน (Growth) / ไม่จำกัด (Pro)</li>
+    <li>เช็คลิสต์เข้า-ออก · ติดตามเงินมัดจำ (Pro)</li>
+  </ul>
+
+  <h3>รายงาน &amp; ภาษี (Analytics)</h3>
+  <ul>
+    <li>รายรับ · รายจ่าย · กำไรสุทธิ · อัตราเข้าพัก — ดูได้ทุกแผน</li>
+    <li>กราฟรายเดือน · Top ห้อง · แยกค่าซ่อมตามหมวด</li>
+    <li>Export Excel / Print PDF ยื่นภาษี (Growth+ เท่านั้น)</li>
+  </ul>
+
+  <h3>ตั้งค่า &amp; อื่นๆ</h3>
+  <ul>
+    <li>บัญชี PromptPay/ธนาคาร · วันออกบิล · อัตราค่าน้ำ-ไฟ</li>
+    <li>หน้าโปรไฟล์หอสาธารณะ (gallery, ห้องว่าง, ราคา)</li>
+    <li>เชื่อม LINE เจ้าของ · Web Push · Easy Read Mode · TH/EN</li>
+    <li>Import Excel (สร้างหอ+ห้องจำนวนมาก) · Export CSV · Magic Share Link</li>
+  </ul>
+
+  <h2>2. สำหรับผู้เช่า (Tenant) — LINE LIFF</h2>
+  <table>
+    <tr><th>แท็บ</th><th>ฟีเจอร์</th></tr>
+    <tr><td><strong>บิล</strong></td><td>ดูบิล, QR PromptPay, บันทึก QR, แนบสลิป, ประวัติบิล</td></tr>
+    <tr><td><strong>แจ้งซ่อม</strong></td><td>เลือกหมวด, อธิบาย + แนบรูป/วิดีโอ, ดูสถานะ</td></tr>
+    <tr><td><strong>ติดต่อ</strong></td><td>LINE / โทรเจ้าของ</td></tr>
+    <tr><td><strong>เอกสาร</strong></td><td>ดูเอกสาร, อัปโหลดบัตร (Pro), เซ็นสัญญา (Pro)</td></tr>
+  </table>
+  <p style="font-size:10pt;color:#475569;">Onboarding: Login LINE → รหัสเชิญ → PDPA · ไม่ต้องโหลดแอป</p>
+
+  <h2>3. แพ็กเกจ &amp; ราคา</h2>
+  <table>
+    <tr><th>แพ็ก</th><th>ห้อง</th><th>ราคา</th><th>ไฮไลท์</th></tr>
+    <tr><td>Starter</td><td>3</td><td>ฟรี</td><td>ออกบิล, คัดลอกลิงก์, สลิป manual, เอกสาร 3 ไฟล์, Analytics ดูอย่างเดียว</td></tr>
+    <tr><td>Micro</td><td>10</td><td>฿290/เดือน</td><td>LINE OA ส่งบิล, ทวง 3 ระดับ, ตรวจสลิป AI</td></tr>
+    <tr><td>Growth</td><td>30</td><td>฿590/เดือน</td><td>Export Excel/PDF, คลังเอกสาร, แจ้งซ่อม, สัญญา PDF</td></tr>
+    <tr><td>Pro</td><td>100</td><td>฿990/เดือน</td><td>E-Sign, Bulk meter, มัดจำ, Audit log</td></tr>
+  </table>
+
+  <h3>ตารางเปรียบเทียบฟีเจอร์</h3>
+  <table style="font-size:8.5pt;">
+    <tr><th>ฟีเจอร์</th><th>Starter</th><th>Micro</th><th>Growth</th><th>Pro</th></tr>
+    <tr><td>ออกบิล + แดชบอร์ด</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>ส่งบิล LINE OA</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>ทวงอัตโนมัติ 3 ระดับ</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>ตรวจสลิป AI</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Analytics export</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
+    <tr><td>คลังเอกสาร</td><td>3 ไฟล์</td><td>—</td><td>✓</td><td>✓</td></tr>
+    <tr><td>แจ้งซ่อม</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
+    <tr><td>สัญญา PDF</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
+    <tr><td>E-Sign ใน LINE</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
+    <tr><td>Bulk จดมิเตอร์</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
+    <tr><td>มัดจำ + Checklist</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
+  </table>
+  <p style="font-size:9pt;color:#64748b;">เกินจำนวนห้องของแผน → บล็อกฟีเจอร์ gated จนอัปเกรดหรือลดห้อง</p>
+
+  <h2>4. จุดเด่นเทียบ ERP / Excel / LINE ส่วนตัว</h2>
+  <table>
+    <tr><th>ปัญหาเดิม</th><th>RentChill</th></tr>
+    <tr><td>ทวงบิลใน LINE ส่วนตัว</td><td>ทวก 3 ระดับ อัตโนมัติ สุภาพ</td></tr>
+    <tr><td>สลิปปนแชท</td><td>สลิปในระบบ ตรวจ/อนุมัติที่เดียว</td></tr>
+    <tr><td>เอกสารกระจัด</td><td>คลังเอกสาร thumbnail ในแอป</td></tr>
+    <tr><td>ต้นปียื่นภาษีวุ่น</td><td>Analytics + Export Excel</td></tr>
+    <tr><td>ERP ซับซ้อน</td><td>PWA มือถือ เรียนรู้ ~1 นาที</td></tr>
+    <tr><td>ลูกบ้านไม่อยากโหลดแอป</td><td>จบใน LINE ไม่ต้องดาวน์โหลด</td></tr>
+  </table>
+
+  <div class="pitch">
+    <strong>Pitch 30 วินาที:</strong> RentChill ช่วยเจ้าของคอนโดปล่อยเช่าออกบิล ส่ง LINE ทวงอัตโนมัติ ตรวจสลิป เก็บเอกสาร ดูกำไร — ลูกบ้านเปิดบิลและจ่ายผ่าน LINE ไม่ต้องโหลดแอป เริ่มฟรี 3 ห้อง
+  </div>
+
+  <p class="footer">rentchill.app · ทดลองใช้ฟรีที่ /try · สมัครที่ /admin/signup</p>
+</body>
+</html>
