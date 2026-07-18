@@ -36,5 +36,5 @@ export const SEGMENT_LABEL_KEYS = {
 export const CHILL_COLORS = {
   bar: "bg-[var(--color-rc-green)]",
   dot: "bg-[var(--color-rc-green)]",
-  stroke: "#32b04d",
+  stroke: "var(--color-rc-green)",
 } as const;

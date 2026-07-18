@@ -50,20 +50,21 @@ export function IssuedInvoiceSkin({
 
   return (
     <article className="space-y-4">
-      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base font-medium text-amber-900">
+      <div className="rounded-xl border border-rc-warning/30 bg-amber-50/80 px-4 py-3 text-base font-medium text-amber-950">
         {variant === "scanningAnomaly"
           ? t("owner.invoice.scanningNoSlip")
           : t("owner.invoice.issuedPending")}
       </div>
 
-      <div className="rounded-xl border border-zinc-100 bg-white p-6">
+      <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 p-4">
+        <div className="rounded-lg border border-zinc-100 bg-white p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-zinc-500">{t("owner.invoice.metersLocked")}</p>
           <button
             type="button"
             disabled={busy}
             onClick={() => setPreviewOpen(true)}
-            className="min-h-12 shrink-0 rounded-lg border border-zinc-200 px-4 text-base font-medium text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-12 shrink-0 rounded-lg border border-rc-green/30 bg-rc-green-soft px-4 text-sm font-medium text-rc-green-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t("owner.invoice.viewBill")}
           </button>
@@ -105,7 +106,7 @@ export function IssuedInvoiceSkin({
           />
         </section>
 
-        <p className="mt-4 border-t border-zinc-100 pt-3 text-base font-bold text-zinc-900">
+        <p className="mt-4 border-t border-zinc-100 pt-3 text-base font-bold text-rc-text">
           {t("common.total")} ฿{formatAmount(invoice.total_amount)}
         </p>
 
@@ -114,6 +115,7 @@ export function IssuedInvoiceSkin({
             {invoice.slip_rejection_note}
           </div>
         )}
+        </div>
       </div>
 
       <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 space-y-3">

@@ -10,11 +10,19 @@ import type { PlanTier } from "@/services/propertyQuotaService";
 import type { InvoiceExtraItem } from "@/services/types";
 import type { MeterPhotoRow } from "@/services/meterPhotoService";
 import type { MeterDialSnapshot } from "@/services/meterReadingService";
+import type { WaterBillingMode } from "@/services/propertyBillingSettingsService";
+import { isFlatWaterBilling } from "@/services/propertyBillingSettingsService";
 
 interface InvoiceExpenseFieldsSkinProps {
   baseRent: number;
   includeUtilities: boolean;
+  waterBillingMode: WaterBillingMode;
   waterFlatBaht: string;
+  waterPrev: MeterDialSnapshot | null;
+  waterValue: string;
+  waterRate: number;
+  waterUnits: number | null;
+  waterAmount: number;
   electricPrev: MeterDialSnapshot | null;
   electricValue: string;
   electricRate: number;
@@ -22,6 +30,7 @@ interface InvoiceExpenseFieldsSkinProps {
   electricAmount: number;
   disabled?: boolean;
   onWaterFlatChange: (value: string) => void;
+  onWaterChange: (value: string) => void;
   onElectricChange: (value: string) => void;
   extraItems: InvoiceExtraItem[];
   onExtraChange: (index: number, patch: Partial<InvoiceExtraItem>) => void;
@@ -81,7 +90,13 @@ function AmountField({
 export function InvoiceExpenseFieldsSkin({
   baseRent,
   includeUtilities,
+  waterBillingMode,
   waterFlatBaht,
+  waterPrev,
+  waterValue,
+  waterRate,
+  waterUnits,
+  waterAmount,
   electricPrev,
   electricValue,
   electricRate,
@@ -89,6 +104,7 @@ export function InvoiceExpenseFieldsSkin({
   electricAmount,
   disabled,
   onWaterFlatChange,
+  onWaterChange,
   onElectricChange,
   extraItems,
   onExtraChange,
@@ -127,13 +143,51 @@ export function InvoiceExpenseFieldsSkin({
             />
           )}
 
-          <AmountField
-            label={t("owner.invoiceGen.waterLabel")}
-            value={waterFlatBaht}
-            disabled={disabled || meterLocked}
-            onChange={onWaterFlatChange}
-            suffix={t("owner.invoiceGen.unitBaht")}
-          />
+          {isFlatWaterBilling(waterBillingMode) ? (
+            <AmountField
+              label={t("owner.invoiceGen.waterLabel")}
+              value={waterFlatBaht}
+              disabled={disabled || meterLocked}
+              onChange={onWaterFlatChange}
+              suffix={t("owner.invoiceGen.unitBaht")}
+            />
+          ) : (
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <p className="text-sm font-bold text-rc-text">
+                    {t("owner.invoiceGen.waterPrev")}
+                  </p>
+                  <div className="flex h-11 items-center justify-end rounded-lg border border-zinc-200 bg-zinc-100 px-3 text-base tabular-nums text-zinc-600">
+                    {waterPrev ? formatMeterNumber(waterPrev.value) : "—"}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-bold text-rc-text">
+                    {t("owner.invoiceGen.waterCurr")}
+                  </p>
+                  <input
+                    type="number"
+                    min={0}
+                    inputMode="decimal"
+                    disabled={disabled || meterLocked || !waterPrev}
+                    value={waterValue}
+                    onChange={(e) => onWaterChange(e.target.value)}
+                    className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-right text-base tabular-nums text-rc-text disabled:bg-zinc-100"
+                  />
+                </div>
+              </div>
+              {waterUnits !== null && (
+                <p className="text-xs text-zinc-500">
+                  {t("owner.invoiceGen.formulaAuto", {
+                    units: formatMeterNumber(waterUnits),
+                    rate: waterRate.toLocaleString("th-TH"),
+                    amount: waterAmount.toLocaleString("th-TH"),
+                  })}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-3">
@@ -190,13 +244,15 @@ export function InvoiceExpenseFieldsSkin({
                 <div className="space-y-3 border-t border-zinc-100 px-3 py-3">
                   <MeterPhotoVaultSkin
                     planTier={planTier}
-                    photos={(meterPhotos ?? []).filter((p) => p.utility_type === "electric")}
-                    utilityOnly="electric"
+                    photos={meterPhotos ?? []}
+                    utilityOnly={
+                      isFlatWaterBilling(waterBillingMode) ? "electric" : undefined
+                    }
                     compact
                     disabled={disabled || meterLocked}
                     uploading={meterPhotosUploading}
                     error={meterPhotosError}
-                    onUpload={(_, file) => onMeterPhotoUpload("electric", file)}
+                    onUpload={(kind, file) => onMeterPhotoUpload?.(kind, file)}
                   />
                 </div>
               )}

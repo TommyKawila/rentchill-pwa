@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { InvoiceExpenseFieldsSkin } from "@/components/skins/minimal/InvoiceExpenseFieldsSkin";
 import { InvoiceIssueFooterSkin } from "@/components/skins/minimal/InvoiceIssueFooterSkin";
@@ -10,10 +10,15 @@ import { InvoiceSummaryCardSkin } from "@/components/skins/minimal/InvoiceSummar
 import { useBillingMonthDisplayFormat } from "@/hooks/useBillingMonthDisplayFormat";
 import {
   computeIssueAmounts,
+  calculateFromDialReadings,
   getCurrentBillingMonth,
   totalWithExtras,
 } from "@/services/invoiceCalculator";
-import { isRowReadyToBill } from "@/services/propertyBillingSettingsService";
+import {
+  isFlatWaterBilling,
+  isRowReadyToBill,
+  type WaterBillingMode,
+} from "@/services/propertyBillingSettingsService";
 import { canSendBillViaLineOa } from "@/services/planLimits";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
@@ -34,6 +39,8 @@ interface InvoiceGeneratorSkinProps {
   coverUrl?: string | null;
   billingMonth: string;
   includeUtilities: boolean;
+  waterBillingMode: WaterBillingMode;
+  defaultWaterFlatBaht: number;
   waterRate: number;
   electricRate: number;
   meters: { water: string; electric: string };
@@ -77,6 +84,9 @@ export function InvoiceGeneratorSkin({
   coverUrl,
   billingMonth,
   includeUtilities,
+  waterBillingMode,
+  defaultWaterFlatBaht,
+  waterRate,
   electricRate,
   meters,
   onMeterChange,
@@ -103,9 +113,13 @@ export function InvoiceGeneratorSkin({
   const { t } = useLocale();
   const { formatMonth } = useBillingMonthDisplayFormat();
   const [selectedMonth, setSelectedMonth] = useState(billingMonth);
-  const [waterFlatBaht, setWaterFlatBaht] = useState("0");
+  const [waterFlatBaht, setWaterFlatBaht] = useState(String(defaultWaterFlatBaht));
   const [extraItems, setExtraItems] = useState<InvoiceExtraItem[]>([]);
   const [includePromptPayQr, setIncludePromptPayQr] = useState(true);
+
+  useEffect(() => {
+    setWaterFlatBaht(String(defaultWaterFlatBaht));
+  }, [defaultWaterFlatBaht, row.tenant_id]);
 
   const monthOptions = useMemo(() => {
     return billingMonthOptions(billingMonth).map((month) => ({
@@ -127,34 +141,66 @@ export function InvoiceGeneratorSkin({
 
   let electricAmount = 0;
   let electricUnits: number | null = null;
+  let waterAmount = 0;
+  let waterUnits: number | null = null;
 
-  if (
+  if (includeUtilities && isFlatWaterBilling(waterBillingMode)) {
+    waterAmount = waterFlatNum;
+    if (row.electric_prev && meters.electric.trim() !== "") {
+      try {
+        const computed = computeIssueAmounts({
+          baseRent: row.base_rent_price,
+          waterFlatBaht: waterFlatNum,
+          electricPrev: row.electric_prev.value,
+          electricCurr: Number(meters.electric),
+          electricRate,
+        });
+        electricAmount = computed.electric_amount;
+        electricUnits = computed.electric_unit;
+      } catch {
+        /* invalid electric reading */
+      }
+    }
+  } else if (
     includeUtilities &&
+    row.water_prev &&
     row.electric_prev &&
+    meters.water.trim() !== "" &&
     meters.electric.trim() !== ""
   ) {
     try {
-      const computed = computeIssueAmounts({
-        baseRent: row.base_rent_price,
-        waterFlatBaht: waterFlatNum,
-        electricPrev: row.electric_prev.value,
-        electricCurr: Number(meters.electric),
+      const computed = calculateFromDialReadings(
+        row.base_rent_price,
+        row.water_prev.value,
+        Number(meters.water),
+        row.electric_prev.value,
+        Number(meters.electric),
+        waterRate,
         electricRate,
-      });
+      );
+      waterAmount = computed.water_amount;
       electricAmount = computed.electric_amount;
+      waterUnits = computed.water_unit;
       electricUnits = computed.electric_unit;
     } catch {
-      /* invalid electric reading */
+      /* invalid meter reading */
     }
   }
 
-  const waterAmount = includeUtilities ? waterFlatNum : 0;
   const baseTotal = row.base_rent_price + waterAmount + electricAmount;
   const grandTotal = totalWithExtras(baseTotal, issueInput.extraItems);
   const busy = savingAction !== null;
-  const canAct = isRowReadyToBill(row, meters, includeUtilities, {
-    waterFlatBaht: waterFlatNum,
-  }) && !disabled && !busy;
+  const readinessOptions = isFlatWaterBilling(waterBillingMode)
+    ? {
+        water_billing_mode: waterBillingMode,
+        water_flat_baht: defaultWaterFlatBaht,
+        waterFlatBaht: waterFlatNum,
+      }
+    : { water_billing_mode: waterBillingMode };
+  const canAct =
+    isRowReadyToBill(row, meters, includeUtilities, readinessOptions) &&
+    !disabled &&
+    !busy;
   const promptPay = paymentAccount?.prompt_pay ?? null;
 
   const addExtraRow = () => {
@@ -192,7 +238,13 @@ export function InvoiceGeneratorSkin({
         <InvoiceExpenseFieldsSkin
           baseRent={row.base_rent_price}
           includeUtilities={includeUtilities}
+          waterBillingMode={waterBillingMode}
           waterFlatBaht={waterFlatBaht}
+          waterPrev={row.water_prev}
+          waterValue={meters.water}
+          waterRate={waterRate}
+          waterUnits={waterUnits}
+          waterAmount={waterAmount}
           electricPrev={row.electric_prev}
           electricValue={meters.electric}
           electricRate={electricRate}
@@ -200,6 +252,7 @@ export function InvoiceGeneratorSkin({
           electricAmount={electricAmount}
           disabled={disabled || busy}
           onWaterFlatChange={setWaterFlatBaht}
+          onWaterChange={(value) => onMeterChange(value, meters.electric)}
           onElectricChange={(value) => onMeterChange(meters.water, value)}
           extraItems={extraItems}
           onExtraChange={updateExtra}
@@ -277,15 +330,17 @@ export function buildGeneratorBillPayload(
   input: InvoiceGeneratorIssueInput,
   meters: { water: string; electric: string },
   includeUtilities: boolean,
+  waterBillingMode: WaterBillingMode,
   waterRate: number,
   electricRate: number,
 ) {
-  let baseRentAmount = row.base_rent_price;
+  const baseRentAmount = row.base_rent_price;
   let waterAmount = input.waterFlatBaht;
   let electricAmount = 0;
 
   if (
     includeUtilities &&
+    isFlatWaterBilling(waterBillingMode) &&
     row.electric_prev &&
     meters.electric.trim() !== ""
   ) {
@@ -297,6 +352,28 @@ export function buildGeneratorBillPayload(
         electricCurr: Number(meters.electric),
         electricRate,
       });
+      waterAmount = computed.water_amount;
+      electricAmount = computed.electric_amount;
+    } catch {
+      /* keep defaults */
+    }
+  } else if (
+    includeUtilities &&
+    row.water_prev &&
+    row.electric_prev &&
+    meters.water.trim() !== "" &&
+    meters.electric.trim() !== ""
+  ) {
+    try {
+      const computed = calculateFromDialReadings(
+        row.base_rent_price,
+        row.water_prev.value,
+        Number(meters.water),
+        row.electric_prev.value,
+        Number(meters.electric),
+        waterRate,
+        electricRate,
+      );
       waterAmount = computed.water_amount;
       electricAmount = computed.electric_amount;
     } catch {

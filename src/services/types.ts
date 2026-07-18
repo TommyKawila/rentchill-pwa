@@ -17,11 +17,20 @@ export type TechnicianContacts = Partial<
   Record<TechnicianDept, TechnicianDeptContact>
 >;
 
+export interface PropertyBankAccount {
+  id: string;
+  bank_account: string;
+  receiver_name: string;
+  label?: string | null;
+}
+
 export interface PropertyPaymentAccount {
   property_id: string;
   property_name: string;
   property_slug: string;
   prompt_pay: string | null;
+  bank_accounts: PropertyBankAccount[];
+  active_bank_account_id: string | null;
   bank_account: string | null;
   receiver_name: string | null;
   contact_line_url: string | null;
@@ -40,12 +49,16 @@ export interface PropertyPaymentAccount {
   reminder_template_firm: string | null;
   reminder_template_final: string | null;
   include_utilities: boolean;
+  water_billing_mode: "flat" | "meter";
+  water_flat_baht: number;
   water_rate_per_unit: number;
   electric_rate_per_unit: number;
 }
 
 export type PropertyPaymentInput = {
   prompt_pay?: string | null;
+  bank_accounts?: PropertyBankAccount[];
+  active_bank_account_id?: string | null;
   bank_account?: string | null;
   receiver_name?: string | null;
   contact_line_url?: string | null;
@@ -64,6 +77,8 @@ export type PropertyPaymentInput = {
   reminder_template_firm?: string | null;
   reminder_template_final?: string | null;
   include_utilities?: boolean;
+  water_billing_mode?: "flat" | "meter";
+  water_flat_baht?: number;
   water_rate_per_unit?: number;
   electric_rate_per_unit?: number;
 };

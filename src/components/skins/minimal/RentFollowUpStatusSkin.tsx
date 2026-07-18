@@ -1,29 +1,29 @@
 "use client";
 
 import Link from "next/link";
+import { AlertTriangle, Bell, TriangleAlert } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
 import type { ReminderTier } from "@/services/paymentReminderTier";
 import type { UnpaidReminderSummary } from "@/services/unpaidReminderSummaryService";
+import { REMINDER_TIER_BUTTON_CLASS } from "@/services/reminderUi";
 
 interface RentFollowUpStatusSkinProps {
   summary: UnpaidReminderSummary;
   propertySlug: string;
 }
 
-function StatRow({ count, label }: { count: number; label: string }) {
-  return (
-    <div className="flex items-baseline gap-2">
-      <span className="text-2xl font-bold tabular-nums text-zinc-900">{count}</span>
-      <span className="text-base text-zinc-700">{label}</span>
-    </div>
-  );
-}
-
-const TIER_CHIP: Record<ReminderTier, string> = {
-  soft: "border-rc-green/30 bg-rc-green-soft text-zinc-900",
-  firm: "border-amber-200 bg-amber-50 text-amber-900",
-  final: "border-red-200 bg-red-50 text-red-700",
-};
+const TIERS: {
+  tier: ReminderTier;
+  icon: typeof Bell;
+  whenKey:
+    | "owner.reminder.timeline.tierSoft"
+    | "owner.reminder.timeline.tierFirm"
+    | "owner.reminder.timeline.tierFinal";
+}[] = [
+  { tier: "final", icon: TriangleAlert, whenKey: "owner.reminder.timeline.tierFinal" },
+  { tier: "firm", icon: AlertTriangle, whenKey: "owner.reminder.timeline.tierFirm" },
+  { tier: "soft", icon: Bell, whenKey: "owner.reminder.timeline.tierSoft" },
+];
 
 export function RentFollowUpStatusSkin({
   summary,
@@ -33,73 +33,96 @@ export function RentFollowUpStatusSkin({
 
   if (summary.unpaid <= 0) return null;
 
-  const tierLabel = (tier: ReminderTier) => {
-    if (tier === "soft") return t("owner.reminder.tier.soft");
-    if (tier === "firm") return t("owner.reminder.tier.firm");
-    return t("owner.reminder.tier.final");
-  };
-
   const readyTotal =
     summary.readyByTier.soft +
     summary.readyByTier.firm +
     summary.readyByTier.final;
-
-  const waitingTotal = summary.waitingForDays + summary.awaitingNextTier;
+  const pendingTotal = Math.max(0, summary.unpaid - readyTotal);
   const dashboardBase = `/dashboard?property=${encodeURIComponent(propertySlug)}`;
 
   return (
-    <section className="divide-y divide-zinc-100 rounded-xl border border-zinc-100 bg-white">
-      <div className="space-y-1 px-6 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-            {t("owner.followup.title")}
-          </h2>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-rc-green/30 bg-rc-green-soft px-3 py-1 text-sm font-medium text-rc-green-ink">
-            <span className="h-2 w-2 rounded-full bg-rc-green" aria-hidden />
-            {t("owner.followup.autoBadge")}
-          </span>
+    <section className="rounded-xl border border-zinc-100 bg-zinc-50/80 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-rc-text">{t("owner.followup.title")}</h2>
+          <p className="mt-1 text-sm text-zinc-500">{t("owner.followup.autoHint")}</p>
         </div>
-        <p className="text-sm text-zinc-500">{t("owner.followup.autoHint")}</p>
+        <span className="inline-flex shrink-0 items-center rounded-full border border-rc-green/30 bg-rc-green-soft px-3 py-1 text-xs font-medium text-rc-green">
+          {t("owner.followup.autoBadge")}
+        </span>
       </div>
 
-      <div className="space-y-4 px-6 py-4">
-        <StatRow count={summary.unpaid} label={t("owner.command.unpaidStat")} />
+      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-4">
+        <p className="text-3xl font-bold tabular-nums tracking-tight text-amber-950">
+          {summary.unpaid}
+        </p>
+        <p className="mt-1 text-sm font-medium text-amber-900">
+          {t("owner.command.unpaidStat")}
+        </p>
+        <p className="mt-2 text-sm text-amber-800/90">
+          {t("owner.followup.summaryLine", {
+            ready: readyTotal,
+            pending: pendingTotal,
+          })}
+        </p>
+      </div>
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-zinc-500">
-            {t("owner.followup.readyToday")}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {(["soft", "firm", "final"] as ReminderTier[]).map((tier) => (
+      <div className="mt-4 space-y-2">
+        <p className="text-sm font-medium text-zinc-700">{t("owner.followup.readyToday")}</p>
+        {TIERS.map(({ tier, icon: Icon, whenKey }) => {
+          const count = summary.readyByTier[tier];
+          const active = count > 0;
+          return (
+            <div
+              key={tier}
+              className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 ${
+                active
+                  ? REMINDER_TIER_BUTTON_CLASS[tier]
+                  : "border-zinc-100 bg-white text-zinc-400"
+              }`}
+            >
+              <Icon
+                className={`h-4 w-4 shrink-0 ${active ? "" : "opacity-50"}`}
+                strokeWidth={2}
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <p className={`text-sm font-medium ${active ? "" : "text-zinc-500"}`}>
+                  {t(whenKey)}
+                </p>
+                {active ? (
+                  <p className="text-xs opacity-80">{t("owner.followup.tierActionHint")}</p>
+                ) : null}
+              </div>
               <span
-                key={tier}
-                className={`inline-flex items-center rounded-lg border px-3 py-1 text-sm font-medium ${TIER_CHIP[tier]}`}
+                className={`text-xl font-bold tabular-nums ${active ? "" : "text-zinc-400"}`}
               >
-                {t("owner.followup.tierChip", {
-                  tier: tierLabel(tier),
-                  count: summary.readyByTier[tier],
-                })}
+                {count}
               </span>
-            ))}
-          </div>
-        </div>
-
-        {readyTotal === 0 && (
-          <p className="text-sm text-zinc-500">
-            {t("owner.followup.contextWaiting", {
-              waiting: waitingTotal,
-              noLine: summary.noLine,
-            })}
-          </p>
-        )}
-
-        <Link
-          href={`${dashboardBase}#billing-unpaid`}
-          className="inline-block text-sm text-zinc-500 underline-offset-2 hover:text-zinc-900 hover:underline"
-        >
-          {t("owner.followup.viewUnpaid")} →
-        </Link>
+            </div>
+          );
+        })}
       </div>
+
+      {(summary.noLine > 0 || (readyTotal === 0 && pendingTotal > 0)) && (
+        <p className="mt-3 text-sm text-zinc-500">
+          {readyTotal === 0
+            ? t("owner.followup.contextWaiting", {
+                waiting: summary.waitingForDays + summary.awaitingNextTier,
+                noLine: summary.noLine,
+              })
+            : summary.noLine > 0
+              ? t("owner.followup.noLineNote", { count: summary.noLine })
+              : null}
+        </p>
+      )}
+
+      <Link
+        href={`${dashboardBase}#billing-unpaid`}
+        className="mt-4 flex min-h-12 w-full items-center justify-center rounded-lg border border-zinc-200 bg-white text-sm font-medium text-zinc-800 hover:bg-zinc-50"
+      >
+        {t("owner.followup.viewUnpaid")} →
+      </Link>
     </section>
   );
 }

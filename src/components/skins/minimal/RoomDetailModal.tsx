@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
-import { EasyModeCtaIcon } from "@/components/skins/minimal/EasyModeCtaIcon";
 import { MeterHistoryList } from "@/components/skins/minimal/MeterHistoryList";
 import { DocumentVaultSkin } from "@/components/skins/minimal/DocumentVaultSkin";
 import { ContractLeaseSkin } from "@/components/skins/minimal/ContractLeaseSkin";
@@ -42,23 +41,22 @@ import { useLeaseContract } from "@/hooks/useLeaseContract";
 import { useDepositTracker } from "@/hooks/useDepositTracker";
 import type { PlanTier } from "@/services/propertyQuotaService";
 import { canSendBillViaLineOa } from "@/services/planLimits";
+import type { WaterBillingMode } from "@/services/propertyBillingSettingsService";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
 import type { InvoiceOverrideRow } from "@/services/invoiceOverrideService";
 import type { ApproveInvoiceInput, OverrideSavingAction } from "@/hooks/useInvoiceOverride";
 import { useTenantProfile } from "@/hooks/useTenantProfile";
 import { TenantPersonIcon } from "@/components/skins/minimal/TenantPersonIcon";
 import { isMeterEntryLocked } from "@/services/propertyBillingSettingsService";
-import type { ReminderTier } from "@/services/paymentReminderTier";
 import type { PropertyPaymentAccount } from "@/services/types";
 import type { BillLinePayload } from "@/services/line/billFlexMessage";
 import { useTenantInvoiceHistory } from "@/hooks/useTenantInvoiceHistory";
+import { RoomMoveOutDangerSkin } from "@/components/skins/minimal/RoomMoveOutDangerSkin";
+import { RoomRatesSummarySkin } from "@/components/skins/minimal/RoomRatesSummarySkin";
 import { RoomInvoiceHistorySkin } from "@/components/skins/minimal/RoomInvoiceHistorySkin";
+import { RoomBillingReminderPanelSkin } from "@/components/skins/minimal/RoomBillingReminderPanelSkin";
 import type { MessageKey } from "@/services/i18n/messages";
-import {
-  REMINDER_TIER_BUTTON_CLASS,
-  reminderSentTierMessageKey,
-  reminderTierMessageKey,
-} from "@/services/reminderUi";
+import type { ReminderDaySettings, ReminderTier } from "@/services/paymentReminderTier";
 
 interface RoomDetailModalProps {
   row: MonthlyBillingRow;
@@ -67,9 +65,13 @@ interface RoomDetailModalProps {
   coverUrl?: string | null;
   planTier: PlanTier;
   billingMonth: string;
+  billingDay: number;
   includeUtilities: boolean;
+  waterBillingMode: WaterBillingMode;
+  defaultWaterFlatBaht: number;
   waterRate: number;
   electricRate: number;
+  reminderSettings: ReminderDaySettings;
   pendingInvoice?: InvoiceOverrideRow | null;
   scanningAnomalyInvoice?: InvoiceOverrideRow | null;
   scanningInvoice?: InvoiceOverrideRow | null;
@@ -96,6 +98,9 @@ interface RoomDetailModalProps {
   onIssueRoom?: (input: InvoiceGeneratorIssueInput) => Promise<boolean>;
   paymentAccount?: PropertyPaymentAccount | null;
   approveSuccess?: boolean;
+  moveOutSaving?: boolean;
+  moveOutErrorKey?: MessageKey | null;
+  onMoveOut?: () => Promise<void>;
 }
 
 function roomStatusLabel(
@@ -122,9 +127,13 @@ export function RoomDetailModal({
   coverUrl,
   planTier,
   billingMonth,
+  billingDay,
   includeUtilities,
+  waterBillingMode,
+  defaultWaterFlatBaht,
   waterRate,
   electricRate,
+  reminderSettings,
   pendingInvoice,
   scanningAnomalyInvoice,
   scanningInvoice,
@@ -151,6 +160,9 @@ export function RoomDetailModal({
   onIssueRoom,
   paymentAccount = null,
   approveSuccess = false,
+  moveOutSaving = false,
+  moveOutErrorKey = null,
+  onMoveOut,
 }: RoomDetailModalProps) {
   const { t } = useLocale();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -208,6 +220,7 @@ export function RoomDetailModal({
       input,
       meters,
       includeUtilities,
+      waterBillingMode,
       waterRate,
       electricRate,
     );
@@ -229,6 +242,7 @@ export function RoomDetailModal({
       input,
       meters,
       includeUtilities,
+      waterBillingMode,
       waterRate,
       electricRate,
     );
@@ -286,13 +300,8 @@ export function RoomDetailModal({
       setDetailTab(scanningWithSlip ? "billing" : "general");
     }
     tenantProfile.clearError();
-  }, [
-    row.tenant_id,
-    showBillingGenerator,
-    onIssueRoom,
-    scanningInvoice,
-    row.invoice_status,
-  ]);
+    // Reset tab only when opening a different room — not on billing refresh.
+  }, [row.tenant_id]);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setEntered(true));
@@ -345,6 +354,8 @@ export function RoomDetailModal({
               coverUrl={coverUrl}
               billingMonth={billingMonth}
               includeUtilities={includeUtilities}
+              waterBillingMode={waterBillingMode}
+              defaultWaterFlatBaht={defaultWaterFlatBaht}
               waterRate={waterRate}
               electricRate={electricRate}
               meters={meters}
@@ -387,7 +398,7 @@ export function RoomDetailModal({
           </div>
         ) : (
           <>
-        <header className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
+        <header className="relative z-20 shrink-0 flex items-start justify-between gap-3 border-b border-zinc-100 bg-white px-4 py-3">
           <div className="flex min-w-0 items-start gap-x-3">
             <TenantPersonIcon className="mt-0.5 h-5 w-5 shrink-0 text-zinc-400" />
             <div>
@@ -420,7 +431,7 @@ export function RoomDetailModal({
         <div
           role="tablist"
           aria-label={t("owner.roomDetail.tab.general")}
-          className="flex gap-2 overflow-x-auto border-b border-zinc-100 px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="relative z-20 flex min-h-[64px] shrink-0 items-center gap-2 overflow-x-auto border-b border-zinc-100 bg-white px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {DETAIL_TABS.map((tab) => {
             const active = detailTab === tab.id;
@@ -443,8 +454,8 @@ export function RoomDetailModal({
           })}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col">
-        <div className="space-y-4 overflow-y-auto px-4 py-6">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {detailTab === "general" && (
             <>
               {isEditingProfile && (
@@ -471,6 +482,17 @@ export function RoomDetailModal({
                 inviteCode={row.invite_code}
                 inviteUrl={row.invite_url}
                 lineLinked={row.line_linked}
+              />
+              <RoomRatesSummarySkin
+                propertySlug={propertySlug}
+                row={row}
+                includeUtilities={includeUtilities}
+                waterBillingMode={waterBillingMode}
+                defaultWaterFlatBaht={defaultWaterFlatBaht}
+                waterRate={waterRate}
+                electricRate={electricRate}
+                meters={meters}
+                disabled={disabled}
               />
               <div className="space-y-3">
                 <ContractLeaseSkin
@@ -499,42 +521,32 @@ export function RoomDetailModal({
                   onUpload={(docType, file) => void tenantDocs.upload(docType, file)}
                 />
               </div>
+              {onMoveOut ? (
+                <RoomMoveOutDangerSkin
+                  roomNumber={row.room_number}
+                  invoiceStatus={row.invoice_status}
+                  saving={moveOutSaving}
+                  errorKey={moveOutErrorKey}
+                  onMoveOut={onMoveOut}
+                />
+              ) : null}
             </>
           )}
 
           {detailTab === "billing" && (
             <>
               {row.invoice_status === "pending" && row.line_linked && onRemind && (
-                <div className="space-y-2">
-                  {row.reminder_tier_sent && (
-                    <p className="text-sm text-zinc-500">
-                      {t(reminderSentTierMessageKey(row.reminder_tier_sent))}
-                    </p>
-                  )}
-                  {row.reminder_recommended && row.reminder_can_send ? (
-                    <button
-                      type="button"
-                      disabled={disabled || reminderDisabled || !canRemind}
-                      onClick={() =>
-                        onRemind(row.tenant_id, row.reminder_recommended!)
-                      }
-                      className={`min-h-12 w-full rounded-lg border text-base font-medium disabled:cursor-not-allowed disabled:opacity-50 ${REMINDER_TIER_BUTTON_CLASS[row.reminder_recommended]}`}
-                    >
-                      <EasyModeCtaIcon name="remind" />
-                      {reminderDisabled
-                        ? t("owner.reminder.sending")
-                        : remindedTenantId === row.tenant_id
-                          ? t("owner.reminder.sent")
-                          : t(reminderTierMessageKey(row.reminder_recommended))}
-                    </button>
-                  ) : row.reminder_days_until_soft != null ? (
-                    <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-                      {t("owner.reminder.availableInDays", {
-                        days: row.reminder_days_until_soft,
-                      })}
-                    </p>
-                  ) : null}
-                </div>
+                <RoomBillingReminderPanelSkin
+                  row={row}
+                  billingMonth={billingMonth}
+                  billingDay={billingDay}
+                  settings={reminderSettings}
+                  disabled={disabled}
+                  canRemind={canRemind}
+                  reminderDisabled={reminderDisabled}
+                  remindedTenantId={remindedTenantId}
+                  onRemind={onRemind}
+                />
               )}
 
               {pendingInvoice && (

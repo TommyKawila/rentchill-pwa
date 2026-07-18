@@ -39,7 +39,9 @@ function namesMatch(expected: string, slipName: string) {
 }
 
 export function hasPaymentAccountConfigured(account: PropertyPaymentAccount) {
-  return Boolean(account.prompt_pay?.trim() || account.bank_account?.trim());
+  if (account.prompt_pay?.trim()) return true;
+  if (account.bank_accounts.some((entry) => entry.bank_account?.trim())) return true;
+  return Boolean(account.bank_account?.trim());
 }
 
 export function matchSlipReceiver(
@@ -50,9 +52,16 @@ export function matchSlipReceiver(
     return { matched: true, message: "ไม่ได้ตั้งบัญชีรับเงิน — ข้ามการเช็คผู้รับ" };
   }
 
-  const expectedAccounts = [account.prompt_pay, account.bank_account].filter(
-    (value): value is string => Boolean(value?.trim()),
-  );
+  const bankAccounts = account.bank_accounts.length
+    ? account.bank_accounts.map((entry) => entry.bank_account).filter((value) => value?.trim())
+    : account.bank_account
+      ? [account.bank_account]
+      : [];
+
+  const expectedAccounts = [
+    account.prompt_pay,
+    ...bankAccounts,
+  ].filter((value): value is string => Boolean(value?.trim()));
 
   const accountMatched = expectedAccounts.some((expected) =>
     receiver.accountNumbers.some((slipAccount) => accountsMatch(expected, slipAccount)),
@@ -62,7 +71,13 @@ export function matchSlipReceiver(
     return { matched: false, message: "บัญชีผู้รับไม่ตรงกับหอพัก" };
   }
 
-  if (account.receiver_name?.trim()) {
+  const receiverNames = account.bank_accounts.length
+    ? account.bank_accounts.map((entry) => entry.receiver_name).filter((value) => value?.trim())
+    : account.receiver_name
+      ? [account.receiver_name]
+      : [];
+
+  if (receiverNames.length > 0) {
     const candidates =
       receiver.nameCandidates.length > 0
         ? receiver.nameCandidates
@@ -72,7 +87,9 @@ export function matchSlipReceiver(
 
     if (
       candidates.length > 0 &&
-      !candidates.some((candidate) => namesMatch(account.receiver_name!, candidate))
+      !receiverNames.some((expectedName) =>
+        candidates.some((candidate) => namesMatch(expectedName, candidate)),
+      )
     ) {
       return { matched: false, message: "ชื่อผู้รับไม่ตรงกับหอพัก" };
     }

@@ -52,6 +52,14 @@ function tierTargetRelative(tier: ReminderTier, settings: ReminderDaySettings) {
   return settings.final;
 }
 
+export function daysSinceReminderTierSent(
+  tierSent: ReminderTier,
+  daysRelativeToDue: number,
+  settings: ReminderDaySettings,
+): number {
+  return Math.max(0, daysRelativeToDue - tierTargetRelative(tierSent, settings));
+}
+
 export function recommendedReminderTier(
   daysRelative: number,
   settings: ReminderDaySettings,
@@ -120,12 +128,16 @@ export function resolveReminderState(input: {
 
   const recommended = recommendedReminderTier(daysRelative, input.settings);
   let daysUntilSoft: number | null = null;
-  if (!isTierReady("soft", daysRelative, input.settings)) {
-    daysUntilSoft = daysUntilNextReminderTier(
+  if (
+    !input.tierSent &&
+    !isTierReady("soft", daysRelative, input.settings)
+  ) {
+    const days = daysUntilNextReminderTier(
       daysRelative,
       "soft",
       input.settings,
     );
+    daysUntilSoft = days != null && days > 0 ? days : null;
   }
 
   return {
@@ -165,14 +177,7 @@ export function buildReminderTimeline(input: {
   if (daysRelative === null) return null;
 
   const allTiersSent = input.tierSent === "final";
-
-  let nextTier: ReminderTier | null = null;
-  for (const tier of REMINDER_TIER_ORDER) {
-    if (!isTierSent(tier, input.tierSent)) {
-      nextTier = tier;
-      break;
-    }
-  }
+  const recommended = recommendedReminderTier(daysRelative, input.settings);
 
   const steps = {} as Record<ReminderTier, ReminderStepStatus>;
   for (const tier of REMINDER_TIER_ORDER) {
@@ -180,22 +185,49 @@ export function buildReminderTimeline(input: {
       steps[tier] = "done";
       continue;
     }
-    if (tier === nextTier) {
-      steps[tier] = isTierReady(tier, daysRelative, input.settings)
-        ? "ready"
-        : "countdown";
+    if (isTierReady(tier, daysRelative, input.settings)) {
+      steps[tier] = "ready";
+      continue;
+    }
+    const daysUntil = daysUntilNextReminderTier(
+      daysRelative,
+      tier,
+      input.settings,
+    );
+    if (daysUntil != null && daysUntil > 0) {
+      steps[tier] = "countdown";
       continue;
     }
     steps[tier] = "upcoming";
   }
 
+  let nextTier: ReminderTier | null = null;
   let daysUntilNext: number | null = null;
-  if (nextTier && !allTiersSent) {
-    daysUntilNext = daysUntilNextReminderTier(
-      daysRelative,
-      nextTier,
-      input.settings,
-    );
+
+  if (!allTiersSent) {
+    for (const tier of REMINDER_TIER_ORDER) {
+      if (isTierSent(tier, input.tierSent)) continue;
+      const daysUntil = daysUntilNextReminderTier(
+        daysRelative,
+        tier,
+        input.settings,
+      );
+      if (daysUntil != null && daysUntil > 0) {
+        nextTier = tier;
+        daysUntilNext = daysUntil;
+        break;
+      }
+    }
+
+    if (
+      !nextTier &&
+      recommended &&
+      !isTierSent(recommended, input.tierSent) &&
+      isTierReady(recommended, daysRelative, input.settings)
+    ) {
+      nextTier = recommended;
+      daysUntilNext = null;
+    }
   }
 
   return {

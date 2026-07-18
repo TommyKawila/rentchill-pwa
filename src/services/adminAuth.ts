@@ -99,6 +99,7 @@ export function isSuperadminOnlyPath(pathname: string) {
 }
 
 export function isOwnerOnlyPath(pathname: string) {
+  if (/^\/api\/tenants\/[^/]+\/profile$/.test(pathname)) return true;
   return OWNER_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 

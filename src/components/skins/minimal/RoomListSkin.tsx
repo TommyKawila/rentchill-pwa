@@ -6,9 +6,11 @@ import { DashboardSearchChipsSkin } from "@/components/skins/minimal/DashboardSe
 import { AddRoomButton } from "@/components/rooms/AddRoomButton";
 import { useLocale } from "@/components/LocaleProvider";
 import { useDashboardRoomListView } from "@/hooks/useDashboardRoomListView";
-import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
+import type { AddRoomForm } from "@/hooks/useAddRoomTenant";
 import type { VacantRoomRow } from "@/services/vacantRoomService";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
+import type { ReminderDaySettings } from "@/services/paymentReminderTier";
+import { getRoomReminderCardMeta } from "@/services/roomReminderCardService";
 
 export type RoomListRow = MonthlyBillingRow & {
   no: number;
@@ -19,13 +21,18 @@ interface RoomListSkinProps {
   propertyName: string;
   coverUrl?: string | null;
   billingDay: number;
+  reminderSettings: ReminderDaySettings;
   includeUtilities: boolean;
   rows: RoomListRow[];
   vacantRooms: VacantRoomRow[];
   meters: Record<string, { water: string; electric: string }>;
+  listHash?: string;
+  filterBanner?: string | null;
+  onClearListHash?: () => void;
   disabled?: boolean;
   onSelect: (tenantId: string) => void;
-  onAddRoom?: (form: AddRoomTenantForm) => void;
+  onSelectVacant?: (room: VacantRoomRow) => void;
+  onAddRoom?: (form: AddRoomForm) => void;
   addRoomSaving?: boolean;
   addRoomError?: string | null;
   roomsLoading?: boolean;
@@ -37,12 +44,17 @@ export function RoomListSkin({
   propertyName,
   coverUrl,
   billingDay,
+  reminderSettings,
   includeUtilities,
   rows,
   vacantRooms,
   meters,
+  listHash,
+  filterBanner,
+  onClearListHash,
   disabled,
   onSelect,
+  onSelectVacant,
   onAddRoom,
   addRoomSaving,
   addRoomError,
@@ -55,13 +67,27 @@ export function RoomListSkin({
     vacantRooms,
     { meters, includeUtilities },
     propertyName,
+    listHash,
   );
 
   const showList = rows.length > 0 || vacantRooms.length > 0;
-  const isVacantView = listView.filter === "vacant";
+  const isVacantView = listView.filter === "vacant" && !listHash;
 
   return (
     <section id="owner-rooms" className="space-y-4">
+      {filterBanner && listHash && onClearListHash && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-rc-green/30 bg-rc-green-soft px-4 py-3">
+          <p className="text-sm font-medium text-rc-green-ink">{filterBanner}</p>
+          <button
+            type="button"
+            onClick={onClearListHash}
+            className="shrink-0 text-sm font-medium text-rc-green-ink underline underline-offset-2"
+          >
+            {t("owner.rooms.clearFilters")}
+          </button>
+        </div>
+      )}
+
       {rows.length === 0 && onAddRoom && (
         <AddRoomButton
           propertySlug={propertySlug}
@@ -82,10 +108,16 @@ export function RoomListSkin({
       {showList && (
         <DashboardSearchChipsSkin
           query={listView.query}
-          filter={listView.filter}
+          filter={listView.chipFilter}
           counts={listView.counts}
-          onQueryChange={listView.setQuery}
-          onFilterChange={listView.setFilter}
+          onQueryChange={(value) => {
+            onClearListHash?.();
+            listView.setQuery(value);
+          }}
+          onFilterChange={(value) => {
+            onClearListHash?.();
+            listView.setFilter(value);
+          }}
         />
       )}
 
@@ -94,7 +126,10 @@ export function RoomListSkin({
           <p className="text-zinc-600">{t("owner.rooms.noMatch")}</p>
           <button
             type="button"
-            onClick={listView.clearFilters}
+            onClick={() => {
+              onClearListHash?.();
+              listView.clearFilters();
+            }}
             className="mt-3 min-h-12 rounded-lg border border-zinc-200 bg-white px-4 text-base font-medium text-zinc-700"
           >
             {t("owner.rooms.clearFilters")}
@@ -126,6 +161,7 @@ export function RoomListSkin({
                 slipRejectionNote={row.slip_rejection_note}
                 slipSubmittedAt={row.slip_submitted_at}
                 slipEvaluating={slipEvaluating && row.invoice_status === "scanning"}
+                reminderMeta={getRoomReminderCardMeta(row, reminderSettings)}
                 onClick={() => onSelect(row.tenant_id)}
               />
             </li>
@@ -144,6 +180,7 @@ export function RoomListSkin({
                 coverUrl={coverUrl}
                 invoiceStatus={null}
                 vacant
+                onClick={onSelectVacant ? () => onSelectVacant(room) : undefined}
               />
             </li>
           ))}

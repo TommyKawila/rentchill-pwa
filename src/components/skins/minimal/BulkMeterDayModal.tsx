@@ -5,12 +5,17 @@ import { useLocale } from "@/components/LocaleProvider";
 import { useBillingMonthDisplayFormat } from "@/hooks/useBillingMonthDisplayFormat";
 import { MeterReadCard } from "@/components/skins/minimal/MeterReadCard";
 import type { MeterUtilityType } from "@/services/meterPhotoService";
+import {
+  isFlatWaterBilling,
+  type WaterBillingMode,
+} from "@/services/propertyBillingSettingsService";
 import type { RoomListRow } from "@/components/skins/minimal/RoomListSkin";
 
 interface BulkMeterDayModalProps {
   rows: RoomListRow[];
   billingMonth: string;
   includeUtilities: boolean;
+  waterBillingMode?: WaterBillingMode;
   waterRate: number;
   electricRate: number;
   meters: Record<string, { water: string; electric: string }>;
@@ -29,6 +34,7 @@ export function BulkMeterDayModal({
   rows,
   billingMonth,
   includeUtilities,
+  waterBillingMode = "flat",
   waterRate,
   electricRate,
   meters,
@@ -77,6 +83,8 @@ export function BulkMeterDayModal({
 
         {includeUtilities && (
           <div className="mt-4 space-y-3">
+            {!isFlatWaterBilling(waterBillingMode) && (
+              <>
             <MeterReadCard
               kind="water"
               prev={row.water_prev}
@@ -109,6 +117,8 @@ export function BulkMeterDayModal({
                 if (file) void upload("water", file);
               }}
             />
+              </>
+            )}
             <MeterReadCard
               kind="electric"
               prev={row.electric_prev}

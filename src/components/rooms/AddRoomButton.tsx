@@ -5,7 +5,7 @@ import { ContactAdminOverflowModalSkin } from "@/components/skins/minimal/Contac
 import { EmptyProjectOnboardingSkin } from "@/components/skins/minimal/EmptyProjectOnboardingSkin";
 import { UpgradePremiumModalSkin } from "@/components/skins/minimal/UpgradePremiumModalSkin";
 import { useLocale } from "@/components/LocaleProvider";
-import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
+import type { AddRoomForm } from "@/hooks/useAddRoomTenant";
 import { useSubscription } from "@/hooks/useSubscription";
 
 interface AddRoomButtonProps {
@@ -15,7 +15,7 @@ interface AddRoomButtonProps {
   saving?: boolean;
   error?: string | null;
   formKey?: string;
-  onSubmit: (form: AddRoomTenantForm) => void;
+  onSubmit: (form: AddRoomForm) => void;
 }
 
 export function AddRoomButton({

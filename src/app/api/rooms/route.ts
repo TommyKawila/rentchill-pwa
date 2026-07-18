@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireOwnerProperty } from "@/services/ownerApiGuard";
-import { createRoomWithTenant } from "@/services/roomTenantService";
+import { createRoomWithTenant, createVacantRoom } from "@/services/roomTenantService";
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       property_slug?: string;
+      vacant?: boolean;
       room_number?: string;
       base_rent_price?: number;
       tenant_name?: string;
@@ -22,6 +23,15 @@ export async function POST(request: Request) {
 
     const auth = await requireOwnerProperty(request, body.property_slug);
     if ("error" in auth) return auth.error;
+
+    if (body.vacant) {
+      const result = await createVacantRoom(auth.ownerId, {
+        property_slug: body.property_slug,
+        room_number: body.room_number ?? "",
+        base_rent_price: Number(body.base_rent_price ?? 0),
+      });
+      return NextResponse.json({ ok: true, result, vacant: true });
+    }
 
     const result = await createRoomWithTenant(auth.ownerId, {
       property_slug: body.property_slug,

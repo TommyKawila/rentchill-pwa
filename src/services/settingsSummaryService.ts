@@ -37,8 +37,12 @@ export function buildPaymentAccountSummary(
   if (account.prompt_pay?.trim()) {
     parts.push(`PromptPay ${maskDigits(account.prompt_pay)}`);
   }
-  if (account.bank_account?.trim()) {
-    parts.push(maskBankAccount(account.bank_account));
+  const activeBank = account.bank_account?.trim();
+  if (activeBank) {
+    parts.push(maskBankAccount(activeBank));
+  }
+  if (account.bank_accounts.length > 1) {
+    parts.push(`${account.bank_accounts.length} บัญชี`);
   }
   if (parts.length === 0) {
     return account.receiver_name?.trim() || "";

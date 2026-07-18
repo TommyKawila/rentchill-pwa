@@ -10,6 +10,7 @@ import { OwnerPushNotificationPrompts } from "@/components/skins/minimal/OwnerPu
 import { ProjectManageSkin } from "@/components/skins/minimal/ProjectManageSkin";
 import { ProjectSelectorSkin } from "@/components/skins/minimal/ProjectSelectorSkin";
 import { SettingsBillingModalSkin } from "@/components/skins/minimal/SettingsBillingModalSkin";
+import { SettingsUtilitiesModalSkin } from "@/components/skins/minimal/SettingsUtilitiesModalSkin";
 import { SettingsContactModalSkin } from "@/components/skins/minimal/SettingsContactModalSkin";
 import { SettingsDisplayModalSkin } from "@/components/skins/minimal/SettingsDisplayModalSkin";
 import { SettingsMarketingModalSkin } from "@/components/skins/minimal/SettingsMarketingModalSkin";
@@ -24,6 +25,7 @@ import {
 } from "@/components/skins/minimal/ProjectSlugEditorSkin";
 import { useBillingMonthDisplayFormat } from "@/hooks/useBillingMonthDisplayFormat";
 import { useCreateProject } from "@/hooks/useCreateProject";
+import { useCsvExport } from "@/hooks/useCsvExport";
 import { useOwnerProperties } from "@/hooks/useOwnerProperties";
 import { useProjectManage } from "@/hooks/useProjectManage";
 import { usePropertyMarketing } from "@/hooks/usePropertyMarketing";
@@ -45,6 +47,7 @@ type SettingsSectionId =
   | "payment"
   | "display"
   | "billing"
+  | "utilities"
   | "marketing"
   | "contact"
   | "technician"
@@ -58,6 +61,7 @@ function SettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const slugFromUrl = searchParams.get("property");
+  const addFromUrl = searchParams.get("add") === "1";
 
   const { properties, status: propertiesStatus, reload: reloadProperties } =
     useOwnerProperties();
@@ -77,6 +81,7 @@ function SettingsContent() {
   const { account, status, error, save, reload: reloadSettings } =
     usePropertyPaymentSettings(propertySlug);
   const marketing = usePropertyMarketing(propertySlug);
+  const csvExport = useCsvExport(propertySlug ?? "");
   const push = usePushNotificationPrompt();
   const monthDisplay = useBillingMonthDisplayFormat();
   const { easyMode, setEasyMode } = useEasyMode();
@@ -88,6 +93,10 @@ function SettingsContent() {
   const [createSlugPayload, setCreateSlugPayload] = useState<ProjectSlugPayload>({
     manualSlug: null,
   });
+
+  useEffect(() => {
+    if (addFromUrl) setShowAddForm(true);
+  }, [addFromUrl]);
 
   useEffect(() => {
     if (propertiesStatus !== "idle" || properties.length === 0) return;
@@ -214,6 +223,38 @@ function SettingsContent() {
   })();
 
   const handleSave = save;
+
+  const csvSummary = useMemo(() => {
+    if (csvExport.status === "loading" && !csvExport.quota) {
+      return t("common.loading");
+    }
+    if (csvExport.quota?.csv_limit === null) {
+      return t("settings.summary.csvUnlimited");
+    }
+    if (csvExport.quota) {
+      return t("owner.csv.quota", {
+        remaining: csvExport.quota.csv_remaining ?? 0,
+        limit: csvExport.quota.csv_limit ?? 0,
+      });
+    }
+    return t("settings.summary.csvExport");
+  }, [csvExport.quota, csvExport.status, t]);
+
+  const csvErrorMessage = useMemo(() => {
+    if (!csvExport.error) return null;
+    if (csvExport.error === "QUOTA_EXCEEDED") return t("owner.csv.quotaExceeded");
+    if (csvExport.error === "NO_DATA") return t("owner.csv.noData");
+    return csvExport.error;
+  }, [csvExport.error, t]);
+
+  const handleLogout = () => {
+    void fetch("/api/admin/login", { method: "DELETE" }).then(() => {
+      router.replace("/admin/login");
+    });
+  };
+
+  const csvBusy =
+    csvExport.status === "loading" || csvExport.status === "exporting";
 
   return (
     <main className="min-h-screen bg-rc-bg px-4 py-4 pb-24 text-rc-text">
@@ -375,6 +416,26 @@ function SettingsContent() {
                     onOpen={() => setOpenSection("billing")}
                   />
                   <SettingsSectionRowSkin
+                    title={t("settings.row.utilities")}
+                    summary={
+                      account.include_utilities
+                        ? `${
+                            account.water_billing_mode === "flat"
+                              ? t("settings.summary.waterFlat", {
+                                  amount: String(account.water_flat_baht),
+                                })
+                              : t("settings.summary.waterMeter", {
+                                  rate: String(account.water_rate_per_unit),
+                                })
+                          } · ${t("settings.summary.electricRate", {
+                            rate: String(account.electric_rate_per_unit),
+                          })}`
+                        : t("settings.includeUtilitiesOff")
+                    }
+                    disabled={status === "loading"}
+                    onOpen={() => setOpenSection("utilities")}
+                  />
+                  <SettingsSectionRowSkin
                     title={t("settings.marketingTitle")}
                     summary={marketingSummary}
                     disabled={marketing.status === "loading"}
@@ -399,7 +460,24 @@ function SettingsContent() {
                     summary={notifySummary}
                     onOpen={() => setOpenSection("notify")}
                   />
+                  <SettingsSectionRowSkin
+                    title={t("settings.row.csvExport")}
+                    summary={csvSummary}
+                    actionLabel={
+                      csvExport.status === "exporting"
+                        ? t("owner.csv.exporting")
+                        : t("owner.csv.export")
+                    }
+                    disabled={!csvExport.canExport || csvBusy}
+                    onOpen={() => void csvExport.exportCsv()}
+                  />
                 </div>
+              )}
+
+              {csvErrorMessage && (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {csvErrorMessage}
+                </p>
               )}
 
               <a
@@ -417,14 +495,22 @@ function SettingsContent() {
               </a>
             </>
           )}
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex min-h-12 w-full items-center justify-center rounded-lg border border-zinc-200 bg-white text-base font-medium text-red-600 hover:bg-red-50"
+          >
+            {t("owner.nav.logout")}
+          </button>
         </section>
       </div>
 
       {openSection === "payment" && account && (
         <SettingsPaymentAccountModalSkin
           promptPay={account.prompt_pay ?? ""}
-          bankAccount={account.bank_account ?? ""}
-          receiverName={account.receiver_name ?? ""}
+          bankAccounts={account.bank_accounts}
+          activeBankAccountId={account.active_bank_account_id}
           saving={status === "saving"}
           onClose={() => setOpenSection(null)}
           onSave={(input) => handleSave(input)}
@@ -452,7 +538,17 @@ function SettingsContent() {
           reminderTemplateSoft={account.reminder_template_soft}
           reminderTemplateFirm={account.reminder_template_firm}
           reminderTemplateFinal={account.reminder_template_final}
+          saving={status === "saving"}
+          onClose={() => setOpenSection(null)}
+          onSave={(input) => handleSave(input)}
+        />
+      )}
+
+      {openSection === "utilities" && account && (
+        <SettingsUtilitiesModalSkin
           includeUtilities={account.include_utilities}
+          waterBillingMode={account.water_billing_mode}
+          waterFlatBaht={account.water_flat_baht}
           waterRate={account.water_rate_per_unit}
           electricRate={account.electric_rate_per_unit}
           saving={status === "saving"}

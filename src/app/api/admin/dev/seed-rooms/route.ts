@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       room_count?: number;
       mode?: "replace" | "append";
       line_mode?: "none" | "synthetic";
-      status_mix?: "fresh" | "mixed";
+      status_mix?: "fresh" | "mixed" | "random";
       with_meters?: boolean;
     };
 

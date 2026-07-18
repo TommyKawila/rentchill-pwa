@@ -1,14 +1,15 @@
-import { randomBytes, randomUUID } from "crypto";
+import { randomBytes, randomInt, randomUUID } from "crypto";
 import { assertDevToolsEnabled } from "@/services/devToolsGuard";
 import { getCurrentBillingMonth } from "@/services/invoiceCalculator";
 import { getOwnerQuota } from "@/services/ownerQuotaService";
 import { createMoveInReadings } from "@/services/meterReadingService";
 import { createAdminClient } from "@/services/supabase/admin";
 import type { PlanTier } from "@/services/propertyQuotaService";
+import type { ReminderTier } from "@/services/paymentReminderTier";
 
 export type SeedLineMode = "none" | "synthetic";
 export type SeedMode = "replace" | "append";
-export type SeedStatusMix = "fresh" | "mixed";
+export type SeedStatusMix = "fresh" | "mixed" | "random";
 
 export type SeedPropertyRoomsInput = {
   property_slug: string;
@@ -69,6 +70,108 @@ function pickInvoiceStatus(index: number): "paid" | "pending" | "scanning" | nul
   return null;
 }
 
+function randBetween(min: number, max: number) {
+  return randomInt(min, max + 1);
+}
+
+function randomInvoiceStatus(): "paid" | "pending" | "scanning" | null {
+  const roll = Math.random();
+  if (roll < 0.2) return null;
+  if (roll < 0.32) return "paid";
+  if (roll < 0.78) return "pending";
+  return "scanning";
+}
+
+function randomReminderTier(): ReminderTier | null {
+  const roll = Math.random();
+  if (roll < 0.35) return null;
+  if (roll < 0.5) return "soft";
+  if (roll < 0.72) return "firm";
+  return "final";
+}
+
+function issuedAtForBillingMonth(billingMonth: string, day = 10) {
+  const [year, month] = billingMonth.split("-").map(Number);
+  const issuedDay = randBetween(1, Math.min(15, day + 5));
+  return new Date(Date.UTC(year, month - 1, issuedDay, 9, 0, 0)).toISOString();
+}
+
+type CreatedSeedRow = {
+  roomId: string;
+  tenantId: string;
+  roomNumber: string;
+  rent: number;
+  lineLinked: boolean;
+};
+
+async function insertRandomInvoices(
+  supabase: ReturnType<typeof createAdminClient>,
+  propertyId: string,
+  billingMonth: string,
+  rows: CreatedSeedRow[],
+  waterRate: number,
+  electricRate: number,
+  waterFlatBaht: number,
+  waterBillingMode: "flat" | "meter",
+) {
+  for (const row of rows) {
+    const status = randomInvoiceStatus();
+    if (!status) continue;
+
+    const waterPrev = randBetween(900, 1800);
+    const waterUnit =
+      waterBillingMode === "flat" ? 0 : randBetween(8, 140);
+    const waterCurr =
+      waterBillingMode === "flat" ? waterPrev : waterPrev + waterUnit;
+    const electricPrev = randBetween(4800, 6200);
+    const electricUnit = randBetween(35, 420);
+    const electricCurr = electricPrev + electricUnit;
+    const waterAmount =
+      waterBillingMode === "flat"
+        ? waterFlatBaht
+        : waterUnit * waterRate;
+    const electricAmount = electricUnit * electricRate;
+    const total = row.rent + waterAmount + electricAmount;
+    const nowIso = new Date().toISOString();
+    const reminderTier =
+      status === "pending" && row.lineLinked ? randomReminderTier() : null;
+    const reminderSentAt =
+      reminderTier != null
+        ? new Date(
+            Date.now() - randBetween(1, 12) * 86_400_000,
+          ).toISOString()
+        : null;
+
+    await supabase.from("invoices").insert({
+      property_id: propertyId,
+      tenant_id: row.tenantId,
+      room_id: row.roomId,
+      billing_month: billingMonth,
+      water_unit: waterUnit,
+      electric_unit: electricUnit,
+      water_prev: waterPrev,
+      water_curr: waterCurr,
+      electric_prev: electricPrev,
+      electric_curr: electricCurr,
+      water_recorded_at: nowIso,
+      electric_recorded_at: nowIso,
+      water_rate_locked: waterRate,
+      electric_rate_locked: electricRate,
+      base_rent_amount: row.rent,
+      water_amount: waterAmount,
+      electric_amount: electricAmount,
+      total_amount: total,
+      status,
+      issued_at: issuedAtForBillingMonth(billingMonth),
+      reminder_tier_sent: reminderTier,
+      reminder_sent_at: reminderSentAt,
+      ...(status === "scanning"
+        ? { slip_image_url: "/brand/logo.png", slip_submitted_at: nowIso }
+        : {}),
+    });
+  }
+}
+
 export async function seedPropertyRooms(input: SeedPropertyRoomsInput) {
   assertDevToolsEnabled();
 
@@ -84,7 +187,9 @@ export async function seedPropertyRooms(input: SeedPropertyRoomsInput) {
   const supabase = createAdminClient();
   const { data: property, error: propertyError } = await supabase
     .from("properties")
-    .select("id, slug, owner_id")
+    .select(
+      "id, slug, owner_id, water_rate_per_unit, electric_rate_per_unit, water_billing_mode, water_flat_baht",
+    )
     .eq("slug", propertySlug)
     .maybeSingle();
 
@@ -116,17 +221,27 @@ export async function seedPropertyRooms(input: SeedPropertyRoomsInput) {
   const billingMonth = getCurrentBillingMonth();
   const moveInDate = new Date().toISOString().slice(0, 10);
   let syntheticLineCount = 0;
-  const createdRoomIds: Array<{
-    roomId: string;
-    tenantId: string;
-    roomNumber: string;
-    rent: number;
-  }> = [];
+  let vacantCount = 0;
+  const createdRoomIds: CreatedSeedRow[] = [];
+  const waterRate = Number(property.water_rate_per_unit ?? 10);
+  const electricRate = Number(property.electric_rate_per_unit ?? 7);
+  const waterFlatBaht = Number(property.water_flat_baht ?? 0);
+  const waterBillingMode =
+    property.water_billing_mode === "flat" ? "flat" : "meter";
 
   for (let i = 0; i < toCreate; i++) {
     const roomNumber = String(startNum + i);
-    const rent = 3000 + (i % 7) * 500;
-    const inviteCode = await uniqueInviteCode(supabase);
+    const rent =
+      statusMix === "random"
+        ? randBetween(25, 85) * 100
+        : 3000 + (i % 7) * 500;
+
+    let roomStatus: "occupied" | "available" | "maintenance" = "occupied";
+    if (statusMix === "random") {
+      const roll = Math.random();
+      if (roll < 0.14) roomStatus = "available";
+      else if (roll < 0.18) roomStatus = "maintenance";
+    }
 
     const { data: room, error: roomError } = await supabase
       .from("rooms")
@@ -134,16 +249,24 @@ export async function seedPropertyRooms(input: SeedPropertyRoomsInput) {
         property_id: propertyId,
         room_number: roomNumber,
         base_rent_price: rent,
-        status: "occupied",
+        status: roomStatus,
       })
       .select("id")
       .single();
 
     if (roomError || !room) throw roomError ?? new Error("ROOM_CREATE_FAILED");
 
+    if (roomStatus !== "occupied") {
+      vacantCount++;
+      continue;
+    }
+
+    const inviteCode = await uniqueInviteCode(supabase);
     const tenantId = randomUUID().slice(0, 8);
-    const lineUserId =
-      lineMode === "synthetic" ? `U_DEV_${tenantId}` : null;
+    const useLine =
+      lineMode === "synthetic" &&
+      (statusMix !== "random" || Math.random() < 0.82);
+    const lineUserId = useLine ? `U_DEV_${tenantId}` : null;
     if (lineUserId) syntheticLineCount++;
 
     const { data: tenant, error: tenantError } = await supabase
@@ -166,8 +289,8 @@ export async function seedPropertyRooms(input: SeedPropertyRoomsInput) {
     }
 
     if (withMeters) {
-      const waterBase = 1000 + i * 10;
-      const electricBase = 5000 + i * 15;
+      const waterBase = randBetween(950, 1600);
+      const electricBase = randBetween(4900, 5800);
       await createMoveInReadings({
         propertyId,
         roomId: String(room.id),
@@ -182,10 +305,22 @@ export async function seedPropertyRooms(input: SeedPropertyRoomsInput) {
       tenantId: String(tenant.id),
       roomNumber,
       rent,
+      lineLinked: Boolean(lineUserId),
     });
   }
 
-  if (statusMix === "mixed") {
+  if (statusMix === "random") {
+    await insertRandomInvoices(
+      supabase,
+      propertyId,
+      billingMonth,
+      createdRoomIds,
+      waterRate,
+      electricRate,
+      waterFlatBaht,
+      waterBillingMode,
+    );
+  } else if (statusMix === "mixed") {
     for (let i = 0; i < createdRoomIds.length; i++) {
       const status = pickInvoiceStatus(i);
       if (!status) continue;
@@ -215,6 +350,8 @@ export async function seedPropertyRooms(input: SeedPropertyRoomsInput) {
     rooms_requested: roomCount,
     rooms_capped: toCreate < roomCount,
     synthetic_line_count: syntheticLineCount,
+    vacant_or_maintenance: vacantCount,
+    tenants_created: createdRoomIds.length,
     mode,
     status_mix: statusMix,
     with_meters: withMeters,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AlertCircle, Bell, TriangleAlert, type LucideIcon } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
 import { SettingsReminderPresetSkin } from "@/components/skins/minimal/SettingsReminderPresetSkin";
 import { SettingsSectionModalShell } from "@/components/skins/minimal/SettingsSectionModalShell";
@@ -34,6 +35,55 @@ const TIER_DAY_LABEL: Record<ReminderTier, string> = {
   final: "settings.reminderFinalDays",
 };
 
+const TIER_TEMPLATE_VISUAL: Record<
+  ReminderTier,
+  {
+    Icon: LucideIcon;
+    cardBorder: string;
+    cardBg: string;
+    iconWrap: string;
+    iconColor: string;
+    labelColor: string;
+    previewBorder: string;
+    previewBg: string;
+    resetColor: string;
+  }
+> = {
+  soft: {
+    Icon: Bell,
+    cardBorder: "border-rc-green/30",
+    cardBg: "bg-rc-green-soft/60",
+    iconWrap: "bg-rc-green-soft",
+    iconColor: "text-rc-green-ink",
+    labelColor: "text-rc-green-ink",
+    previewBorder: "border-rc-green/20",
+    previewBg: "bg-white",
+    resetColor: "text-rc-green-ink",
+  },
+  firm: {
+    Icon: AlertCircle,
+    cardBorder: "border-rc-warning/40",
+    cardBg: "bg-orange-50",
+    iconWrap: "bg-orange-100",
+    iconColor: "text-rc-warning",
+    labelColor: "text-orange-900",
+    previewBorder: "border-rc-warning/20",
+    previewBg: "bg-white",
+    resetColor: "text-orange-800",
+  },
+  final: {
+    Icon: TriangleAlert,
+    cardBorder: "border-rc-danger/30",
+    cardBg: "bg-red-50",
+    iconWrap: "bg-red-100",
+    iconColor: "text-rc-danger",
+    labelColor: "text-red-900",
+    previewBorder: "border-rc-danger/20",
+    previewBg: "bg-white",
+    resetColor: "text-red-800",
+  },
+};
+
 interface SettingsBillingModalSkinProps {
   billingDay: number;
   meterReminderDays: number;
@@ -44,9 +94,6 @@ interface SettingsBillingModalSkinProps {
   reminderTemplateSoft: string | null;
   reminderTemplateFirm: string | null;
   reminderTemplateFinal: string | null;
-  includeUtilities: boolean;
-  waterRate: number;
-  electricRate: number;
   saving: boolean;
   onClose: () => void;
   onSave: (input: Pick<
@@ -60,9 +107,6 @@ interface SettingsBillingModalSkinProps {
     | "reminder_template_soft"
     | "reminder_template_firm"
     | "reminder_template_final"
-    | "include_utilities"
-    | "water_rate_per_unit"
-    | "electric_rate_per_unit"
   >) => Promise<boolean>;
 }
 
@@ -76,12 +120,23 @@ function ReminderTemplateBlock({
   onTemplateChange: (value: string) => void;
 }) {
   const { t } = useLocale();
+  const visual = TIER_TEMPLATE_VISUAL[tier];
+  const { Icon } = visual;
 
   return (
-    <div className="space-y-3 rounded-xl border border-zinc-100 bg-white p-4">
-      <span className="block text-sm font-medium text-zinc-900">
-        {t(TIER_DAY_LABEL[tier] as Parameters<typeof t>[0])}
-      </span>
+    <div
+      className={`space-y-3 rounded-xl border p-4 ${visual.cardBorder} ${visual.cardBg}`}
+    >
+      <div className="flex items-center gap-2">
+        <div
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${visual.iconWrap}`}
+        >
+          <Icon className={`h-4 w-4 ${visual.iconColor}`} strokeWidth={2} aria-hidden />
+        </div>
+        <span className={`text-sm font-medium ${visual.labelColor}`}>
+          {t(TIER_DAY_LABEL[tier] as Parameters<typeof t>[0])}
+        </span>
+      </div>
       <div className="space-y-2">
         <span className="block text-sm font-medium text-zinc-900">
           {t("settings.reminderTemplateLabel")}
@@ -96,11 +151,13 @@ function ReminderTemplateBlock({
         <button
           type="button"
           onClick={() => onTemplateChange(DEFAULT_REMINDER_TEMPLATES[tier])}
-          className="inline-flex min-h-12 items-center text-base text-rc-green-ink underline"
+          className={`inline-flex min-h-12 items-center text-base underline ${visual.resetColor}`}
         >
           {t("settings.reminderTemplateReset")}
         </button>
-        <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3">
+        <div
+          className={`rounded-lg border p-3 ${visual.previewBorder} ${visual.previewBg}`}
+        >
           <p className="text-sm font-medium text-zinc-700">
             {t("settings.reminderTemplatePreview")}
           </p>
@@ -123,9 +180,6 @@ export function SettingsBillingModalSkin({
   reminderTemplateSoft: initialTemplateSoft,
   reminderTemplateFirm: initialTemplateFirm,
   reminderTemplateFinal: initialTemplateFinal,
-  includeUtilities: initialIncludeUtilities,
-  waterRate: initialWaterRate,
-  electricRate: initialElectricRate,
   saving,
   onClose,
   onSave,
@@ -163,9 +217,6 @@ export function SettingsBillingModalSkin({
   const [templateFinal, setTemplateFinal] = useState(
     getReminderTemplate("final", initialTemplateFinal),
   );
-  const [includeUtilities, setIncludeUtilities] = useState(initialIncludeUtilities);
-  const [waterRate, setWaterRate] = useState(String(initialWaterRate));
-  const [electricRate, setElectricRate] = useState(String(initialElectricRate));
   const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -184,9 +235,6 @@ export function SettingsBillingModalSkin({
     setTemplateSoft(getReminderTemplate("soft", initialTemplateSoft));
     setTemplateFirm(getReminderTemplate("firm", initialTemplateFirm));
     setTemplateFinal(getReminderTemplate("final", initialTemplateFinal));
-    setIncludeUtilities(initialIncludeUtilities);
-    setWaterRate(String(initialWaterRate));
-    setElectricRate(String(initialElectricRate));
     setValidationError(null);
   }, [
     initialBillingDay,
@@ -198,9 +246,6 @@ export function SettingsBillingModalSkin({
     initialTemplateSoft,
     initialTemplateFirm,
     initialTemplateFinal,
-    initialIncludeUtilities,
-    initialWaterRate,
-    initialElectricRate,
   ]);
 
   const applyDays = (soft: string, firm: string, final: string) => {
@@ -255,9 +300,6 @@ export function SettingsBillingModalSkin({
       reminder_template_soft: sanitizeReminderTemplate("soft", templateSoft),
       reminder_template_firm: sanitizeReminderTemplate("firm", templateFirm),
       reminder_template_final: sanitizeReminderTemplate("final", templateFinal),
-      include_utilities: includeUtilities,
-      water_rate_per_unit: Number(waterRate),
-      electric_rate_per_unit: Number(electricRate),
     }).then((ok) => {
       if (ok) onClose();
     });
@@ -368,61 +410,6 @@ export function SettingsBillingModalSkin({
 
         {validationError && (
           <p className="text-sm text-red-600">{validationError}</p>
-        )}
-
-        <label className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-4 text-base">
-          <span className="font-medium text-zinc-900">{t("settings.includeUtilities")}</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={includeUtilities}
-            onClick={() => setIncludeUtilities((prev) => !prev)}
-            className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full px-1 transition ${
-              includeUtilities ? "bg-rc-green" : "bg-zinc-300"
-            }`}
-          >
-            <span
-              className={`h-6 w-6 rounded-full bg-white transition ${
-                includeUtilities ? "translate-x-6" : "translate-x-0"
-              }`}
-            />
-          </button>
-        </label>
-        <p className="text-sm text-zinc-500">
-          {includeUtilities
-            ? t("settings.includeUtilitiesOn")
-            : t("settings.includeUtilitiesOff")}
-        </p>
-
-        {includeUtilities && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block space-y-1 text-sm text-zinc-500">
-              <span className="font-medium text-zinc-900">{t("settings.waterRate")}</span>
-              <input
-                type="number"
-                min={0}
-                max={999}
-                step={0.01}
-                inputMode="decimal"
-                value={waterRate}
-                onChange={(event) => setWaterRate(event.target.value)}
-                className={inputClass}
-              />
-            </label>
-            <label className="block space-y-1 text-sm text-zinc-500">
-              <span className="font-medium text-zinc-900">{t("settings.electricRate")}</span>
-              <input
-                type="number"
-                min={0}
-                max={999}
-                step={0.01}
-                inputMode="decimal"
-                value={electricRate}
-                onChange={(event) => setElectricRate(event.target.value)}
-                className={inputClass}
-              />
-            </label>
-          </div>
         )}
       </div>
     </SettingsSectionModalShell>

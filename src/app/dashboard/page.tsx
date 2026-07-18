@@ -14,7 +14,9 @@ import { RoomListSkin } from "@/components/skins/minimal/RoomListSkin";
 import { RoomDetailModal } from "@/components/skins/minimal/RoomDetailModal";
 import { SubscriptionBannerSkin } from "@/components/skins/minimal/SubscriptionBannerSkin";
 import { useAddRoomTenant } from "@/hooks/useAddRoomTenant";
-import { useCsvExport } from "@/hooks/useCsvExport";
+import { VacantRoomManageModalSkin } from "@/components/skins/minimal/VacantRoomManageModalSkin";
+import { useMoveOutTenant, useDeleteVacantRoom, useAssignVacantRoomTenant } from "@/hooks/useRoomLifecycle";
+import type { VacantRoomRow } from "@/services/vacantRoomService";
 import { useInvoiceOverride } from "@/hooks/useInvoiceOverride";
 import { useMagicLink } from "@/hooks/useMagicLink";
 import { useMaintenanceTickets } from "@/hooks/useMaintenanceTickets";
@@ -53,11 +55,18 @@ import { AuditLogSkin } from "@/components/skins/minimal/AuditLogSkin";
 import { BulkMeterDayModal } from "@/components/skins/minimal/BulkMeterDayModal";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useSubscription } from "@/hooks/useSubscription";
-import { canAutoVerifySlip, canUseBulkMeterDay } from "@/services/planLimits";
+import {
+  canAutoVerifySlip,
+  canUseBulkMeterDay,
+  getProjectLimit,
+} from "@/services/planLimits";
 import { resolveOwnerPropertySlug } from "@/services/resolveOwnerPropertySlug";
 import {
+  getFirstPendingMeterRoom,
   getNextPendingMeterRoom,
+  isAccountingHubHash,
   isRoomListScrollHash,
+  roomFilterFromHash,
 } from "@/services/roomListFilterService";
 import { saveBillingDraft } from "@/services/billingDraftService";
 import type { RoomDetailSavingAction } from "@/components/skins/minimal/RoomDetailBillingFooterSkin";
@@ -111,13 +120,7 @@ function DashboardContent() {
     };
   }, []);
 
-  const activeTab =
-    hash === "#billing" ||
-    hash === "#billing-notBilled" ||
-    hash === "#billing-pendingMeter" ||
-    hash === "#billing-unpaid"
-      ? "accounting"
-      : "home";
+  const activeTab = isAccountingHubHash(hash) ? "accounting" : "home";
 
   const ownerProfile = useOwnerProfile();
   const vacantRooms = useVacantRooms(propertySlug);
@@ -125,22 +128,46 @@ function DashboardContent() {
   const { formatMonth } = useBillingMonthDisplayFormat();
 
   useEffect(() => {
+    if (activeTab !== "home") return;
     if (!isRoomListScrollHash(hash)) return;
-    const el = document.getElementById("owner-rooms");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [hash, billing.rows.length]);
+
+    let cancelled = false;
+    let attempts = 0;
+
+    const scrollToRooms = () => {
+      if (cancelled || attempts > 24) return;
+      attempts += 1;
+      const el = document.getElementById("owner-rooms");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      window.requestAnimationFrame(scrollToRooms);
+    };
+
+    scrollToRooms();
+    return () => {
+      cancelled = true;
+    };
+  }, [hash, activeTab, billing.rows.length]);
 
   const override = useInvoiceOverride(propertySlug);
   const reminder = usePaymentReminder(propertySlug);
-  const csvExport = useCsvExport(propertySlug);
   const magicLink = useMagicLink(propertySlug);
   const propertyPlan = usePropertyPlan(propertySlug);
   const subscription = useSubscription(propertySlug ?? "");
+  const moveOutTenant = useMoveOutTenant(propertySlug ?? "");
+  const deleteVacantRoom = useDeleteVacantRoom(propertySlug ?? "");
+  const assignVacantTenant = useAssignVacantRoomTenant(propertySlug ?? "");
   const ownerSubscription = useOwnerSubscription();
   const addRoomTenant = useAddRoomTenant(propertySlug);
   const planTier = propertyPlan.plan?.plan_tier ?? "free";
+  const canAddProjectOnChip = useMemo(
+    () =>
+      properties.length > 1 &&
+      properties.length < getProjectLimit(planTier),
+    [properties.length, planTier],
+  );
   const overRoomLimit =
     propertyPlan.plan && propertyPlan.plan.room_count > propertyPlan.plan.room_limit
       ? {
@@ -152,6 +179,7 @@ function DashboardContent() {
   const trial = useTrialStatus();
 
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  const [vacantManageTarget, setVacantManageTarget] = useState<VacantRoomRow | null>(null);
   const [approveSuccessTenantId, setApproveSuccessTenantId] = useState<string | null>(
     null,
   );
@@ -189,13 +217,16 @@ function DashboardContent() {
   }, [billing.rows]);
 
   const billingReadiness = useMemo(
-    () =>
-      computeBillingReadiness(
-        billing.rows,
-        meters,
-        billing.settings.include_utilities,
-      ),
-    [billing.rows, meters, billing.settings.include_utilities],
+    () => computeBillingReadiness(billing.rows, meters, billing.settings),
+    [billing.rows, meters, billing.settings],
+  );
+
+  const billingReadinessOptions = useMemo(
+    () => ({
+      water_billing_mode: billing.settings.water_billing_mode,
+      water_flat_baht: billing.settings.water_flat_baht,
+    }),
+    [billing.settings.water_billing_mode, billing.settings.water_flat_baht],
   );
 
   const { readyCount, pendingMeterCount } = billingReadiness;
@@ -241,10 +272,11 @@ function DashboardContent() {
         !isRowReadyToBill(
           row,
           meters[row.tenant_id] ?? { water: "", electric: "" },
-          true,
+          billing.settings.include_utilities,
+          billingReadinessOptions,
         ),
     );
-  }, [billing.rows, billing.settings, meters]);
+  }, [billing.rows, billing.settings, meters, billingReadinessOptions]);
 
   const chillMode = useMemo(
     () => isChillMode(overview, showMeterReminder),
@@ -286,8 +318,9 @@ function DashboardContent() {
     () => ({
       meters,
       includeUtilities: billing.settings.include_utilities,
+      billingSettings: billingReadinessOptions,
     }),
-    [meters, billing.settings.include_utilities],
+    [meters, billing.settings.include_utilities, billingReadinessOptions],
   );
 
   const nextPendingMeterRoom = useMemo(() => {
@@ -302,13 +335,48 @@ function DashboardContent() {
     window.history.pushState(null, "", `${base}${target}`);
     setHash(target);
     setSelectedTenantId(null);
-    requestAnimationFrame(() => {
-      document.getElementById("owner-rooms")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
   }, [propertySlug]);
+
+  const listFilterBanner = useMemo(() => {
+    const filter = roomFilterFromHash(hash);
+    if (filter === "pendingMeter") {
+      return t("owner.command.pendingMeterStat", { count: pendingMeterCount });
+    }
+    if (filter === "notBilled") {
+      return t("owner.command.notIssuedStat", { count: overview.notIssued });
+    }
+    if (filter === "unpaid") {
+      return t("owner.command.unpaidStat");
+    }
+    return null;
+  }, [hash, pendingMeterCount, overview.notIssued, t]);
+
+  useEffect(() => {
+    if (activeTab !== "home") return;
+    if (hash !== "#billing-pendingMeter") return;
+    if (billing.status === "loading" || listRows.length === 0) return;
+    if (selectedTenantId) return;
+
+    const first = getFirstPendingMeterRoom(listRows, roomListCtx);
+    if (first) {
+      setSelectedTenantId(first.tenant_id);
+    }
+  }, [
+    activeTab,
+    hash,
+    billing.status,
+    listRows,
+    roomListCtx,
+    selectedTenantId,
+  ]);
+
+  const clearListHash = useCallback(() => {
+    if (!propertySlug) return;
+    if (!roomFilterFromHash(hash)) return;
+    const base = `/dashboard?property=${encodeURIComponent(propertySlug)}`;
+    window.history.replaceState(null, "", base);
+    setHash("");
+  }, [hash, propertySlug]);
 
   const bulkMeterRows = useMemo(
     () => listRows.filter((row) => isRowEditable(row)),
@@ -355,7 +423,6 @@ function DashboardContent() {
     addRoomTenant.status === "saving" ||
     override.status === "saving" ||
     reminder.status === "sending" ||
-    csvExport.status === "exporting" ||
     magicLink.status === "creating";
 
   const lineQuotaHint = useMemo(() => {
@@ -369,13 +436,6 @@ function DashboardContent() {
     });
   }, [reminder.quota, t]);
 
-  const exportErrorMessage = useMemo(() => {
-    if (!csvExport.error) return null;
-    if (csvExport.error === "QUOTA_EXCEEDED") return t("owner.csv.quotaExceeded");
-    if (csvExport.error === "NO_DATA") return t("owner.csv.noData");
-    return csvExport.error;
-  }, [csvExport.error, t]);
-
   const operationError = useMemo(() => {
     if (!propertySlug) return null;
     if (billing.error === "METER_REQUIRED") return t("owner.billing.meterRequired");
@@ -386,7 +446,6 @@ function DashboardContent() {
       billing.error ??
       override.error ??
       reminder.error ??
-      exportErrorMessage ??
       magicLink.error
     );
   }, [
@@ -394,7 +453,6 @@ function DashboardContent() {
     billing.error,
     override.error,
     reminder.error,
-    exportErrorMessage,
     magicLink.error,
     t,
   ]);
@@ -406,18 +464,26 @@ function DashboardContent() {
           row,
           meters[row.tenant_id] ?? { water: "", electric: "" },
           billing.settings.include_utilities,
+          billingReadinessOptions,
         ),
       )
-      .map((row) => ({
-        tenant_id: row.tenant_id,
-        room_id: row.room_id,
-        water_curr: billing.settings.include_utilities
-          ? Number(meters[row.tenant_id]?.water ?? 0)
-          : 0,
-        electric_curr: billing.settings.include_utilities
-          ? Number(meters[row.tenant_id]?.electric ?? 0)
-          : 0,
-      }));
+      .map((row) => {
+        const entry: BillingEntry = {
+          tenant_id: row.tenant_id,
+          room_id: row.room_id,
+          electric_curr: billing.settings.include_utilities
+            ? Number(meters[row.tenant_id]?.electric ?? 0)
+            : 0,
+        };
+        if (billing.settings.include_utilities) {
+          if (billing.settings.water_billing_mode === "flat") {
+            entry.water_flat_baht = billing.settings.water_flat_baht;
+          } else {
+            entry.water_curr = Number(meters[row.tenant_id]?.water ?? 0);
+          }
+        }
+        return entry;
+      });
 
     void billing.generate(entries).then(() => {
       void override.reload();
@@ -433,6 +499,7 @@ function DashboardContent() {
         selectedRow,
         rowMeters,
         billing.settings.include_utilities,
+        billingReadinessOptions,
       )
     ) {
       return;
@@ -456,7 +523,10 @@ function DashboardContent() {
       roomId: selectedRow.room_id,
       tenantId: selectedRow.tenant_id,
       billingMonth: billing.billingMonth,
-      water: Number(rowMeters.water),
+      water:
+        billing.settings.water_billing_mode === "meter"
+          ? Number(rowMeters.water)
+          : (selectedRow.water_prev?.value ?? 0),
       electric: Number(rowMeters.electric),
     })
       .then(() => billing.reload())
@@ -474,7 +544,10 @@ function DashboardContent() {
         selectedRow,
         rowMeters,
         billing.settings.include_utilities,
-        { waterFlatBaht: input.waterFlatBaht },
+        {
+          ...billingReadinessOptions,
+          waterFlatBaht: input.waterFlatBaht,
+        },
       )
     ) {
       return false;
@@ -493,7 +566,11 @@ function DashboardContent() {
         include_promptpay_qr: input.includePromptPayQr,
       };
       if (billing.settings.include_utilities) {
-        entry.water_flat_baht = input.waterFlatBaht;
+        if (billing.settings.water_billing_mode === "flat") {
+          entry.water_flat_baht = input.waterFlatBaht;
+        } else {
+          entry.water_curr = Number(rowMeters.water);
+        }
       }
       const ok = await billing.generate([entry], { deferLineNotify: true });
       if (!ok) return false;
@@ -517,8 +594,14 @@ function DashboardContent() {
     void addRoomTenant
       .add(form)
       .then(async (result) => {
-        await billing.reload();
-        setSelectedTenantId(result.tenant_id);
+        await Promise.all([
+          billing.reload(),
+          vacantRooms.reload(),
+          propertyPlan.reload(),
+        ]);
+        if ("tenant_id" in result) {
+          setSelectedTenantId(result.tenant_id);
+        }
       })
       .catch(() => {});
   };
@@ -569,7 +652,6 @@ function DashboardContent() {
         <>
           <DashboardHeaderSkin
             ownerName={ownerProfile.profile?.name ?? t("owner.dashboard.roleBadge")}
-            addPropertyHref={`/settings?property=${encodeURIComponent(propertySlug)}`}
           />
 
           {properties.length > 1 && (
@@ -580,6 +662,15 @@ function DashboardContent() {
               loading={propertiesStatus === "loading"}
               onChange={(slug) =>
                 router.replace(`/dashboard?property=${encodeURIComponent(slug)}`)
+              }
+              onAddClick={
+                canAddProjectOnChip
+                  ? () => {
+                      router.push(
+                        `/settings?property=${encodeURIComponent(propertySlug)}&add=1`,
+                      );
+                    }
+                  : undefined
               }
             />
           )}
@@ -593,30 +684,10 @@ function DashboardContent() {
         </>
       )}
 
-      <OwnerDashboardAlertsSkin
-        propertiesError={propertiesError}
-        meterReminder={
-          propertySlug && showMeterReminder && activeTab === "home"
-            ? t("owner.billing.meterReminder", {
-                day: billing.settings.billing_day,
-              })
-            : null
-        }
-        lineQuotaHint={propertySlug ? lineQuotaHint : null}
-        operationError={operationError}
-        maintenanceWaitingCount={
-          activeTab === "home" ? maintenance.waitingCount : 0
-        }
-        maintenanceHref={
-          propertySlug
-            ? `/maintenance?property=${encodeURIComponent(propertySlug)}`
-            : null
-        }
-      />
-
       {propertySlug && activeTab === "accounting" && (
         <AccountingHubSkin
           propertySlug={propertySlug}
+          properties={properties}
           billingMonth={billing.billingMonth}
           overview={overview}
           chillMode={chillMode}
@@ -648,18 +719,43 @@ function DashboardContent() {
         propertyName={currentProperty?.name ?? propertySlug}
         coverUrl={coverUrl}
         billingDay={billing.settings.billing_day}
+        reminderSettings={{
+          soft: billing.settings.reminder_soft_days,
+          firm: billing.settings.reminder_firm_days,
+          final: billing.settings.reminder_final_days,
+        }}
         includeUtilities={billing.settings.include_utilities}
         rows={listRows}
         vacantRooms={vacantRooms.rooms}
         meters={meters}
+        listHash={hash}
+        filterBanner={listFilterBanner}
+        onClearListHash={clearListHash}
         disabled={isSaving}
         roomsLoading={billing.status === "loading" && billing.rows.length === 0}
         slipEvaluating={billing.isRefreshing && billing.hasScanningRows}
         onSelect={setSelectedTenantId}
+        onSelectVacant={setVacantManageTarget}
         onAddRoom={handleAddRoom}
         addRoomSaving={addRoomTenant.status === "saving"}
         addRoomError={addRoomTenant.error}
       />
+
+      <OwnerDashboardAlertsSkin
+        propertiesError={propertiesError}
+        meterReminder={
+          showMeterReminder
+            ? t("owner.billing.meterReminder", {
+                day: billing.settings.billing_day,
+              })
+            : null
+        }
+        lineQuotaHint={lineQuotaHint}
+        operationError={operationError}
+        maintenanceWaitingCount={maintenance.waitingCount}
+        maintenanceHref={`/maintenance?property=${encodeURIComponent(propertySlug)}`}
+      />
+
       <AuditLogSkin
         planTier={planTier}
         entries={auditLog.entries}
@@ -667,6 +763,14 @@ function DashboardContent() {
         error={auditLog.error}
       />
       </>
+      )}
+
+      {propertySlug && activeTab === "accounting" && (
+        <OwnerDashboardAlertsSkin
+          propertiesError={propertiesError}
+          lineQuotaHint={lineQuotaHint}
+          operationError={operationError}
+        />
       )}
 
       {propertySlug && selectedRow && (
@@ -677,9 +781,17 @@ function DashboardContent() {
           coverUrl={coverUrl}
           planTier={propertyPlan.plan?.plan_tier ?? "free"}
           billingMonth={billing.billingMonth}
+          billingDay={billing.settings.billing_day}
           includeUtilities={billing.settings.include_utilities}
+          waterBillingMode={billing.settings.water_billing_mode}
+          defaultWaterFlatBaht={billing.settings.water_flat_baht}
           waterRate={billing.settings.water_rate_per_unit}
           electricRate={billing.settings.electric_rate_per_unit}
+          reminderSettings={{
+            soft: billing.settings.reminder_soft_days,
+            firm: billing.settings.reminder_firm_days,
+            final: billing.settings.reminder_final_days,
+          }}
           pendingInvoice={pendingInvoice}
           scanningAnomalyInvoice={scanningAnomalyInvoice}
           scanningInvoice={scanningInvoice}
@@ -749,6 +861,44 @@ function DashboardContent() {
           onSaveAndNext={handleRoomSaveAndNext}
           onIssueRoom={handleRoomIssue}
           paymentAccount={paymentSettings.account}
+          moveOutSaving={moveOutTenant.status === "saving"}
+          moveOutErrorKey={moveOutTenant.errorKey}
+          onMoveOut={async () => {
+            await moveOutTenant.moveOut(selectedRow.room_id);
+            setSelectedTenantId(null);
+            await Promise.all([
+              billing.reload(),
+              vacantRooms.reload(),
+              propertyPlan.reload(),
+            ]);
+          }}
+        />
+      )}
+
+      {propertySlug && vacantManageTarget && (
+        <VacantRoomManageModalSkin
+          room={vacantManageTarget}
+          roomLimit={subscription.roomLimit}
+          roomsRemaining={subscription.roomsRemaining}
+          assignSaving={assignVacantTenant.status === "saving"}
+          deleteSaving={deleteVacantRoom.status === "saving"}
+          assignError={assignVacantTenant.error}
+          assignErrorKey={assignVacantTenant.errorKey}
+          deleteErrorKey={deleteVacantRoom.errorKey}
+          onClose={() => setVacantManageTarget(null)}
+          onAssign={async (input) => {
+            const result = await assignVacantTenant.assign(
+              vacantManageTarget.room_id,
+              input,
+            );
+            setVacantManageTarget(null);
+            await Promise.all([billing.reload(), vacantRooms.reload()]);
+            if (result?.tenant_id) setSelectedTenantId(result.tenant_id);
+          }}
+          onDelete={async () => {
+            await deleteVacantRoom.remove(vacantManageTarget.room_id);
+            await Promise.all([vacantRooms.reload(), propertyPlan.reload()]);
+          }}
         />
       )}
 
@@ -757,6 +907,7 @@ function DashboardContent() {
           rows={bulkMeterRows}
           billingMonth={billing.billingMonth}
           includeUtilities={billing.settings.include_utilities}
+          waterBillingMode={billing.settings.water_billing_mode}
           waterRate={billing.settings.water_rate_per_unit}
           electricRate={billing.settings.electric_rate_per_unit}
           meters={meters}

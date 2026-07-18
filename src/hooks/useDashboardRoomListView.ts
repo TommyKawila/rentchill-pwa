@@ -7,8 +7,10 @@ import {
   ROOM_LIST_PAGE_SIZE,
   countByFilter,
   dashboardQuickCounts,
+  dashboardQuickFilterFromHash,
   filterRoomRows,
   matchesVacantRoomQuery,
+  roomFilterFromHash,
   type DashboardQuickFilter,
   type RoomListFilter,
   type RoomListFilterContext,
@@ -25,10 +27,16 @@ export function useDashboardRoomListView<T extends MonthlyBillingRow>(
   vacantRooms: VacantRoomRow[],
   ctx: RoomListFilterContext,
   propertyName?: string,
+  listHash?: string,
 ) {
   const [query, setQueryState] = useState("");
   const [filter, setFilterState] = useState<DashboardQuickFilter>("all");
   const [visibleCount, setVisibleCount] = useState(ROOM_LIST_PAGE_SIZE);
+
+  const hashRoomFilter = useMemo(
+    () => roomFilterFromHash(listHash ?? ""),
+    [listHash],
+  );
 
   const counts = useMemo(
     () => dashboardQuickCounts(rows, ctx, vacantRooms.length),
@@ -37,21 +45,28 @@ export function useDashboardRoomListView<T extends MonthlyBillingRow>(
 
   useEffect(() => {
     setQueryState("");
-    setFilterState("all");
+    setFilterState(dashboardQuickFilterFromHash(listHash ?? "") ?? "all");
     setVisibleCount(ROOM_LIST_PAGE_SIZE);
-  }, [rows, vacantRooms]);
+  }, [rows, vacantRooms, listHash]);
 
-  const roomFilter = quickToRoomFilter(filter);
+  const roomFilter = hashRoomFilter ?? quickToRoomFilter(filter);
+
+  const chipFilter = useMemo((): DashboardQuickFilter | null => {
+    if (hashRoomFilter === "unpaid") return "unpaid";
+    if (hashRoomFilter) return null;
+    return filter;
+  }, [hashRoomFilter, filter]);
 
   const filteredRows = useMemo(
     () =>
-      filter === "vacant"
+      filter === "vacant" && !hashRoomFilter
         ? []
         : filterRoomRows(rows, roomFilter, query, ctx, propertyName),
-    [rows, roomFilter, filter, query, ctx, propertyName],
+    [rows, roomFilter, filter, hashRoomFilter, query, ctx, propertyName],
   );
 
   const filteredVacant = useMemo(() => {
+    if (hashRoomFilter) return [];
     if (filter !== "vacant" && filter !== "all") return [];
     const list =
       filter === "vacant"
@@ -63,7 +78,7 @@ export function useDashboardRoomListView<T extends MonthlyBillingRow>(
     return vacantRooms.filter((room) =>
       matchesVacantRoomQuery(room.room_number, query, propertyName),
     );
-  }, [filter, vacantRooms, query, propertyName]);
+  }, [filter, hashRoomFilter, vacantRooms, query, propertyName]);
 
   const visibleRows = useMemo(
     () => filteredRows.slice(0, visibleCount),
@@ -76,9 +91,11 @@ export function useDashboardRoomListView<T extends MonthlyBillingRow>(
   );
 
   const totalFiltered =
-    filter === "vacant" ? filteredVacant.length : filteredRows.length;
+    filter === "vacant" && !hashRoomFilter
+      ? filteredVacant.length
+      : filteredRows.length;
   const hasMore =
-    filter === "vacant"
+    filter === "vacant" && !hashRoomFilter
       ? visibleVacant.length < filteredVacant.length
       : visibleCount < filteredRows.length;
 
@@ -105,6 +122,7 @@ export function useDashboardRoomListView<T extends MonthlyBillingRow>(
   return {
     query,
     filter,
+    chipFilter,
     counts,
     fullCounts: countByFilter(rows, ctx),
     filteredRows,

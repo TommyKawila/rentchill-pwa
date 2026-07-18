@@ -55,10 +55,10 @@ export function AnalyticsFilterSkin({
               key={value}
               type="button"
               onClick={() => onTimeframeChange(value)}
-              className={`min-h-12 rounded-full border px-4 text-sm font-medium ${
+              className={`min-h-12 rounded-full border px-4 text-sm font-medium transition-colors ${
                 active
                   ? "border-rc-green bg-rc-green text-white"
-                  : "border-zinc-100 bg-zinc-50 text-zinc-700"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
               }`}
             >
               {label}
@@ -75,7 +75,7 @@ export function AnalyticsFilterSkin({
           <select
             value={propertySlug}
             onChange={(event) => onPropertyChange(event.target.value)}
-            className="min-h-12 w-full rounded-lg border border-zinc-200 px-3 text-base"
+            className="min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900"
           >
             <option value="portfolio">{t("owner.analytics.filter.portfolio")}</option>
             {properties.map((property) => (
@@ -94,7 +94,7 @@ export function AnalyticsFilterSkin({
             <select
               value={roomId}
               onChange={(event) => onRoomChange(event.target.value)}
-              className="min-h-12 w-full rounded-lg border border-zinc-200 px-3 text-base"
+              className="min-h-12 w-full rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900"
             >
               <option value="">{t("owner.analytics.filter.allRooms")}</option>
               {rooms.map((room) => (

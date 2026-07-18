@@ -1,11 +1,10 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
+import { LocaleToggleSkin } from "@/components/skins/minimal/LocaleToggleSkin";
 
 interface DashboardHeaderSkinProps {
   ownerName: string;
-  addPropertyHref: string;
 }
 
 function ownerInitials(name: string) {
@@ -15,10 +14,7 @@ function ownerInitials(name: string) {
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
 }
 
-export function DashboardHeaderSkin({
-  ownerName,
-  addPropertyHref,
-}: DashboardHeaderSkinProps) {
+export function DashboardHeaderSkin({ ownerName }: DashboardHeaderSkinProps) {
   const { t } = useLocale();
 
   return (
@@ -35,13 +31,7 @@ export function DashboardHeaderSkin({
           <p className="truncate text-base font-bold text-rc-text">{ownerName}</p>
         </div>
       </div>
-      <a
-        href={addPropertyHref}
-        aria-label={t("owner.addProject")}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rc-primary text-white hover:bg-rc-primary-dark"
-      >
-        <Plus className="h-5 w-5" strokeWidth={2} aria-hidden />
-      </a>
+      <LocaleToggleSkin compact />
     </header>
   );
 }

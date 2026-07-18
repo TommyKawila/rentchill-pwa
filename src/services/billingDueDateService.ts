@@ -54,3 +54,55 @@ export function daysRelativeToDue(
   const todayUtc = Date.UTC(today.year, today.month - 1, today.day);
   return Math.round((todayUtc - dueUtc) / 86_400_000);
 }
+
+export function formatBangkokLocaleDate(
+  input: string | Date,
+  locale: Locale = "th",
+) {
+  const date = typeof input === "string" ? new Date(input) : input;
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString(locale === "th" ? "th-TH" : "en-US", {
+    timeZone: BANGKOK,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/** Next cycle bill date on property billing_day (month after billingMonth when invoiced). */
+export function nextBillCycleDate(
+  billingMonth: string,
+  billingDay: number,
+  hasCurrentCycleInvoice: boolean,
+  now = new Date(),
+) {
+  const [year, month] = billingMonth.split("-").map(Number);
+  if (!year || !month) return null;
+
+  if (!hasCurrentCycleInvoice) {
+    const day = clampBillingDay(year, month, billingDay);
+    const cycleUtc = Date.UTC(year, month - 1, day);
+    const today = bangkokYmd(now);
+    const todayUtc = Date.UTC(today.year, today.month - 1, today.day);
+    if (todayUtc <= cycleUtc) {
+      return new Date(year, month - 1, day);
+    }
+  }
+
+  let nextYear = year;
+  let nextMonth = month + 1;
+  if (nextMonth > 12) {
+    nextMonth = 1;
+    nextYear += 1;
+  }
+  const day = clampBillingDay(nextYear, nextMonth, billingDay);
+  return new Date(nextYear, nextMonth - 1, day);
+}
+
+export function daysUntilBangkokDate(target: Date, now = new Date()) {
+  const today = bangkokYmd(now);
+  const todayUtc = Date.UTC(today.year, today.month - 1, today.day);
+  const end = bangkokYmd(target);
+  const targetUtc = Date.UTC(end.year, end.month - 1, end.day);
+  return Math.round((targetUtc - todayUtc) / 86_400_000);
+}

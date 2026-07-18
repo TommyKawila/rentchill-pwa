@@ -23,6 +23,8 @@ const defaultSettings: PropertyBillingSettings = {
   reminder_firm_days: 3,
   reminder_final_days: 7,
   include_utilities: true,
+  water_billing_mode: "flat",
+  water_flat_baht: 0,
   water_rate_per_unit: 10,
   electric_rate_per_unit: 7,
 };

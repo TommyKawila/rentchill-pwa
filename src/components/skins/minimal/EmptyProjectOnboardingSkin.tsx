@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
-import type { AddRoomTenantForm } from "@/hooks/useAddRoomTenant";
+import type { AddRoomForm } from "@/hooks/useAddRoomTenant";
 
 interface EmptyProjectOnboardingSkinProps {
   propertySlug: string;
@@ -12,7 +12,7 @@ interface EmptyProjectOnboardingSkinProps {
   variant?: "first" | "additional";
   formKey?: string;
   onCancel?: () => void;
-  onSubmit: (form: AddRoomTenantForm) => void;
+  onSubmit: (form: AddRoomForm) => void;
 }
 
 function todayIso() {
@@ -32,6 +32,7 @@ function AddRoomForm({
   onSubmit,
 }: EmptyProjectOnboardingSkinProps) {
   const { t } = useLocale();
+  const [addMode, setAddMode] = useState<"tenant" | "vacant">("vacant");
   const [step, setStep] = useState<1 | 2>(1);
   const [roomNumber, setRoomNumber] = useState("");
   const [rent, setRent] = useState("");
@@ -43,7 +44,8 @@ function AddRoomForm({
   const isAdditional = variant === "additional";
 
   const stepOneValid =
-    roomNumber.trim() && tenantName.trim() && phone.trim();
+    roomNumber.trim() &&
+    (addMode === "vacant" || (tenantName.trim() && phone.trim()));
   const stepTwoValid =
     moveInDate.trim() &&
     waterReading.trim() !== "" &&
@@ -52,7 +54,17 @@ function AddRoomForm({
     Number(electricReading) >= 0;
 
   const handleSubmit = () => {
+    if (addMode === "vacant") {
+      onSubmit({
+        mode: "vacant",
+        room_number: roomNumber.trim(),
+        base_rent_price: Number(rent || 0),
+      });
+      return;
+    }
+
     onSubmit({
+      mode: "tenant",
       room_number: roomNumber.trim(),
       base_rent_price: Number(rent || 0),
       tenant_name: tenantName.trim(),
@@ -90,6 +102,36 @@ function AddRoomForm({
         )}
       </div>
 
+      <div className="mt-4 flex gap-2">
+        {(["vacant", "tenant"] as const).map((mode) => {
+          const active = addMode === mode;
+          return (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => {
+                setAddMode(mode);
+                setStep(1);
+              }}
+              className={`min-h-12 flex-1 rounded-lg border px-3 text-sm font-medium ${
+                active
+                  ? "border-rc-green bg-rc-green text-white"
+                  : "border-zinc-200 bg-white text-zinc-700"
+              }`}
+            >
+              {mode === "vacant"
+                ? t("owner.rooms.addModeVacant")
+                : t("owner.rooms.addModeTenant")}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-sm text-zinc-500">
+        {addMode === "vacant"
+          ? t("owner.rooms.addModeVacantDesc")
+          : t("owner.rooms.addModeTenantDesc")}
+      </p>
+
       {step === 1 ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="block space-y-1 text-sm text-zinc-500">
@@ -114,25 +156,29 @@ function AddRoomForm({
               className={inputClass}
             />
           </label>
-          <label className="block space-y-1 text-sm text-zinc-500 sm:col-span-2">
-            <span className="font-medium text-zinc-900">{t("owner.onboarding.tenantName")}</span>
-            <input
-              value={tenantName}
-              onChange={(e) => setTenantName(e.target.value)}
-              placeholder={t("owner.onboarding.tenantPlaceholder")}
-              className={inputClass}
-            />
-          </label>
-          <label className="block space-y-1 text-sm text-zinc-500">
-            <span className="font-medium text-zinc-900">{t("owner.onboarding.phone")}</span>
-            <input
-              value={phone}
-              inputMode="numeric"
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="0812345678"
-              className={inputClass}
-            />
-          </label>
+          {addMode === "tenant" ? (
+            <>
+              <label className="block space-y-1 text-sm text-zinc-500 sm:col-span-2">
+                <span className="font-medium text-zinc-900">{t("owner.onboarding.tenantName")}</span>
+                <input
+                  value={tenantName}
+                  onChange={(e) => setTenantName(e.target.value)}
+                  placeholder={t("owner.onboarding.tenantPlaceholder")}
+                  className={inputClass}
+                />
+              </label>
+              <label className="block space-y-1 text-sm text-zinc-500">
+                <span className="font-medium text-zinc-900">{t("owner.onboarding.phone")}</span>
+                <input
+                  value={phone}
+                  inputMode="numeric"
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="0812345678"
+                  className={inputClass}
+                />
+              </label>
+            </>
+          ) : null}
         </div>
       ) : (
         <div className="mt-4 space-y-3">
@@ -178,14 +224,25 @@ function AddRoomForm({
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
       {step === 1 ? (
-        <button
-          type="button"
-          disabled={disabled || saving || !stepOneValid}
-          onClick={() => setStep(2)}
-          className="mt-4 flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {t("owner.onboarding.nextStep")}
-        </button>
+        addMode === "vacant" ? (
+          <button
+            type="button"
+            disabled={disabled || saving || !stepOneValid}
+            onClick={handleSubmit}
+            className="mt-4 flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? t("owner.onboarding.saving") : t("owner.rooms.addVacantSubmit")}
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={disabled || saving || !stepOneValid}
+            onClick={() => setStep(2)}
+            className="mt-4 flex min-h-[52px] w-full items-center justify-center rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {t("owner.onboarding.nextStep")}
+          </button>
+        )
       ) : (
         <div className="mt-4 flex gap-3">
           <button

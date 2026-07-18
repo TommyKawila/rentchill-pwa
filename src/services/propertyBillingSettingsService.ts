@@ -2,6 +2,8 @@ import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
 
 const BANGKOK = "Asia/Bangkok";
 
+export type WaterBillingMode = "flat" | "meter";
+
 export type PropertyBillingSettings = {
   billing_day: number;
   meter_reminder_days_before: number;
@@ -9,8 +11,16 @@ export type PropertyBillingSettings = {
   reminder_firm_days: number;
   reminder_final_days: number;
   include_utilities: boolean;
+  water_billing_mode: WaterBillingMode;
+  water_flat_baht: number;
   water_rate_per_unit: number;
   electric_rate_per_unit: number;
+};
+
+export type BillingReadinessOptions = {
+  water_billing_mode?: WaterBillingMode;
+  water_flat_baht?: number;
+  waterFlatBaht?: number;
 };
 
 export function getBangkokDayOfMonth(date = new Date()) {
@@ -85,6 +95,19 @@ export function clampUtilityRate(value: number) {
   return Math.min(999, Math.round(value * 100) / 100);
 }
 
+export function clampWaterFlatBaht(value: number) {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.min(99999, Math.round(value * 100) / 100);
+}
+
+export function parseWaterBillingMode(value: unknown): WaterBillingMode {
+  return value === "meter" ? "meter" : "flat";
+}
+
+export function isFlatWaterBilling(mode: WaterBillingMode | undefined) {
+  return (mode ?? "flat") === "flat";
+}
+
 export function isRowEditable(row: MonthlyBillingRow) {
   return !row.invoice_id;
 }
@@ -97,30 +120,49 @@ export function isRowReadyToBill(
   row: MonthlyBillingRow,
   meters: { water: string; electric: string },
   includeUtilities: boolean,
-  options?: { waterFlatBaht?: number },
+  options?: BillingReadinessOptions,
 ) {
   if (!isRowEditable(row)) return false;
   if (!includeUtilities) return true;
   if (!row.electric_prev) return false;
   if (!isElectricDialComplete(meters.electric)) return false;
-  const water = options?.waterFlatBaht ?? 0;
+
+  if (isFlatWaterBilling(options?.water_billing_mode)) {
+    const flat = options?.waterFlatBaht ?? options?.water_flat_baht ?? 0;
+    return Number.isFinite(flat) && flat >= 0;
+  }
+
+  if (!row.water_prev) return false;
+  const water = Number(meters.water);
   return Number.isFinite(water) && water >= 0;
 }
 
 export function computeBillingReadiness(
   rows: MonthlyBillingRow[],
   meters: Record<string, { water: string; electric: string }>,
-  includeUtilities: boolean,
+  settings: PropertyBillingSettings,
 ) {
   let readyCount = 0;
   let pendingMeterCount = 0;
+
+  const readinessOptions: BillingReadinessOptions = {
+    water_billing_mode: settings.water_billing_mode,
+    water_flat_baht: settings.water_flat_baht,
+  };
 
   for (const row of rows) {
     if (row.invoice_id) continue;
     if (!isRowEditable(row)) continue;
 
     const rowMeters = meters[row.tenant_id] ?? { water: "", electric: "" };
-    if (isRowReadyToBill(row, rowMeters, includeUtilities)) {
+    if (
+      isRowReadyToBill(
+        row,
+        rowMeters,
+        settings.include_utilities,
+        readinessOptions,
+      )
+    ) {
       readyCount++;
     } else {
       pendingMeterCount++;

@@ -7,6 +7,7 @@ interface SettingsSectionRowSkinProps {
   id?: string;
   title: string;
   summary: string;
+  actionLabel?: string;
   disabled?: boolean;
   highlighted?: boolean;
   onOpen: () => void;
@@ -16,6 +17,7 @@ export function SettingsSectionRowSkin({
   id,
   title,
   summary,
+  actionLabel,
   disabled,
   highlighted,
   onOpen,
@@ -41,7 +43,7 @@ export function SettingsSectionRowSkin({
         </p>
       </div>
       <span className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-zinc-600">
-        {t("settings.row.edit")}
+        {actionLabel ?? t("settings.row.edit")}
         <ChevronRight className="h-4 w-4" aria-hidden />
       </span>
     </button>

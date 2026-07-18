@@ -75,7 +75,7 @@ async function getPropertyContext(propertySlug: string) {
   const { data, error } = await supabase
     .from("properties")
     .select(
-      "id, billing_day, meter_reminder_days_before, reminder_soft_days, reminder_firm_days, reminder_final_days, include_utilities, water_rate_per_unit, electric_rate_per_unit",
+      "id, billing_day, meter_reminder_days_before, reminder_soft_days, reminder_firm_days, reminder_final_days, include_utilities, water_billing_mode, water_flat_baht, water_rate_per_unit, electric_rate_per_unit",
     )
     .eq("slug", propertySlug)
     .maybeSingle();
@@ -96,6 +96,9 @@ async function getPropertyContext(propertySlug: string) {
     reminder_firm_days: reminder.firm,
     reminder_final_days: reminder.final,
     include_utilities: data.include_utilities !== false,
+    water_billing_mode:
+      data.water_billing_mode === "meter" ? "meter" : "flat",
+    water_flat_baht: Number(data.water_flat_baht ?? 0),
     water_rate_per_unit: Number(data.water_rate_per_unit ?? 10),
     electric_rate_per_unit: Number(data.electric_rate_per_unit ?? 7),
   };

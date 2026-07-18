@@ -1,7 +1,16 @@
 import {
+  getActiveBankAccount,
+  legacyPaymentFromActive,
+  normalizePaymentBankAccounts,
+  resolveActiveBankAccountId,
+  sanitizeBankAccountEntry,
+} from "@/services/propertyBankAccountService";
+import {
   clampBillingDay,
   clampReminderDays,
   clampUtilityRate,
+  clampWaterFlatBaht,
+  parseWaterBillingMode,
 } from "@/services/propertyBillingSettingsService";
 import {
   DEFAULT_REMINDER_DAYS,
@@ -18,6 +27,7 @@ import { createServerClient } from "@/services/supabase/server";
 import { normalizeTechnicianContacts } from "@/services/settingsSummaryService";
 import { normalizeLineChatUrl } from "@/services/technicianLineService";
 import type {
+  PropertyBankAccount,
   PropertyPaymentAccount,
   PropertyPaymentInput,
   TechnicianContacts,
@@ -47,13 +57,32 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
     final: Number(row.reminder_final_days ?? DEFAULT_REMINDER_DAYS.final),
   });
 
+  const legacyBank = row.payment_bank_account ? String(row.payment_bank_account) : null;
+  const legacyReceiver = row.payment_receiver_name
+    ? String(row.payment_receiver_name)
+    : null;
+  const bank_accounts = normalizePaymentBankAccounts(
+    row.payment_bank_accounts,
+    legacyBank,
+    legacyReceiver,
+  );
+  const active_bank_account_id = resolveActiveBankAccountId(
+    bank_accounts,
+    row.active_payment_bank_account_id
+      ? String(row.active_payment_bank_account_id)
+      : null,
+  );
+  const active = getActiveBankAccount(bank_accounts, active_bank_account_id);
+
   return {
     property_id: String(row.id),
     property_name: String(row.name),
     property_slug: String(row.slug),
     prompt_pay: row.payment_prompt_pay ? String(row.payment_prompt_pay) : null,
-    bank_account: row.payment_bank_account ? String(row.payment_bank_account) : null,
-    receiver_name: row.payment_receiver_name ? String(row.payment_receiver_name) : null,
+    bank_accounts,
+    active_bank_account_id,
+    bank_account: active?.bank_account?.trim() || legacyBank,
+    receiver_name: active?.receiver_name?.trim() || legacyReceiver,
     contact_line_url: row.contact_line_url ? String(row.contact_line_url) : null,
     contact_line_qr_url: row.contact_line_qr_url ? String(row.contact_line_qr_url) : null,
     contact_phone: row.contact_phone ? String(row.contact_phone) : null,
@@ -82,13 +111,23 @@ function mapPaymentAccount(row: Record<string, unknown>): PropertyPaymentAccount
       ? String(row.reminder_template_final)
       : null,
     include_utilities: row.include_utilities !== false,
+    water_billing_mode: parseWaterBillingMode(row.water_billing_mode),
+    water_flat_baht: Number(row.water_flat_baht ?? 0),
     water_rate_per_unit: Number(row.water_rate_per_unit ?? 10),
     electric_rate_per_unit: Number(row.electric_rate_per_unit ?? 7),
   };
 }
 
 const paymentSelect =
-  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, contact_line_url, contact_line_qr_url, contact_phone, technician_phone, technician_contacts, owner_line_user_id, billing_day, meter_reminder_days_before, reminder_preset, reminder_soft_days, reminder_firm_days, reminder_final_days, reminder_template_soft, reminder_template_firm, reminder_template_final, include_utilities, water_rate_per_unit, electric_rate_per_unit";
+  "id, name, slug, payment_prompt_pay, payment_bank_account, payment_receiver_name, payment_bank_accounts, active_payment_bank_account_id, contact_line_url, contact_line_qr_url, contact_phone, technician_phone, technician_contacts, owner_line_user_id, billing_day, meter_reminder_days_before, reminder_preset, reminder_soft_days, reminder_firm_days, reminder_final_days, reminder_template_soft, reminder_template_firm, reminder_template_final, include_utilities, water_billing_mode, water_flat_baht, water_rate_per_unit, electric_rate_per_unit";
+
+function sanitizeBankAccountsInput(
+  input: PropertyBankAccount[],
+): PropertyBankAccount[] {
+  return input
+    .map((entry) => sanitizeBankAccountEntry(entry))
+    .filter((entry): entry is PropertyBankAccount => Boolean(entry));
+}
 
 export async function getPropertyPaymentBySlug(
   slug: string,
@@ -124,18 +163,72 @@ export async function updatePropertyPayment(
 ): Promise<PropertyPaymentAccount> {
   const supabase = createAdminClient();
 
+  let bankAccountsPatch: Record<string, unknown> = {};
+  if (
+    input.bank_accounts !== undefined ||
+    input.active_bank_account_id !== undefined
+  ) {
+    const current = await getPropertyPaymentBySlug(slug);
+    const accounts = sanitizeBankAccountsInput(
+      input.bank_accounts ?? current?.bank_accounts ?? [],
+    );
+    const activeId = resolveActiveBankAccountId(
+      accounts,
+      input.active_bank_account_id ?? current?.active_bank_account_id ?? null,
+    );
+    const legacy = legacyPaymentFromActive(accounts, activeId);
+    bankAccountsPatch = {
+      payment_bank_accounts: accounts,
+      active_payment_bank_account_id: legacy.active_bank_account_id,
+      payment_bank_account: legacy.bank_account,
+      payment_receiver_name: legacy.receiver_name,
+    };
+  } else if (input.bank_account !== undefined || input.receiver_name !== undefined) {
+    const current = await getPropertyPaymentBySlug(slug);
+    const active = getActiveBankAccount(
+      current?.bank_accounts ?? [],
+      current?.active_bank_account_id ?? null,
+    );
+    const nextBank =
+      input.bank_account !== undefined
+        ? input.bank_account?.trim() || null
+        : active?.bank_account ?? current?.bank_account ?? null;
+    const nextReceiver =
+      input.receiver_name !== undefined
+        ? input.receiver_name?.trim() || null
+        : active?.receiver_name ?? current?.receiver_name ?? null;
+    const accounts =
+      current?.bank_accounts.length && active
+        ? current.bank_accounts.map((entry) =>
+            entry.id === active.id
+              ? {
+                  ...entry,
+                  bank_account: nextBank ?? "",
+                  receiver_name: nextReceiver ?? "",
+                }
+              : entry,
+          )
+        : normalizePaymentBankAccounts([], nextBank, nextReceiver);
+    const activeId = resolveActiveBankAccountId(
+      accounts,
+      current?.active_bank_account_id ?? null,
+    );
+    const legacy = legacyPaymentFromActive(accounts, activeId);
+    bankAccountsPatch = {
+      payment_bank_accounts: accounts,
+      active_payment_bank_account_id: legacy.active_bank_account_id,
+      payment_bank_account: legacy.bank_account,
+      payment_receiver_name: legacy.receiver_name,
+    };
+  }
+
   const { data, error } = await supabase
     .from("properties")
     .update({
       ...(input.prompt_pay !== undefined
         ? { payment_prompt_pay: input.prompt_pay?.trim() || null }
         : {}),
-      ...(input.bank_account !== undefined
-        ? { payment_bank_account: input.bank_account?.trim() || null }
-        : {}),
-      ...(input.receiver_name !== undefined
-        ? { payment_receiver_name: input.receiver_name?.trim() || null }
-        : {}),
+      ...bankAccountsPatch,
       ...(input.contact_line_url !== undefined
         ? { contact_line_url: input.contact_line_url?.trim() || null }
         : {}),
@@ -218,6 +311,12 @@ export async function updatePropertyPayment(
         : {}),
       ...(input.include_utilities !== undefined
         ? { include_utilities: input.include_utilities }
+        : {}),
+      ...(input.water_billing_mode !== undefined
+        ? { water_billing_mode: parseWaterBillingMode(input.water_billing_mode) }
+        : {}),
+      ...(input.water_flat_baht !== undefined
+        ? { water_flat_baht: clampWaterFlatBaht(input.water_flat_baht) }
         : {}),
       ...(input.water_rate_per_unit !== undefined
         ? { water_rate_per_unit: clampUtilityRate(input.water_rate_per_unit) }

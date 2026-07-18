@@ -6,6 +6,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { statusMessageKey } from "@/services/i18n/translate";
 import type { MessageKey } from "@/services/i18n/messages";
 import type { InvoiceStatus } from "@/services/types";
+import type { RoomReminderCardMeta } from "@/services/roomReminderCardService";
 
 interface DashboardRoomCardSkinProps {
   propertyName: string;
@@ -18,6 +19,7 @@ interface DashboardRoomCardSkinProps {
   slipSubmittedAt?: string | null;
   slipEvaluating?: boolean;
   vacant?: boolean;
+  reminderMeta?: RoomReminderCardMeta | null;
   onClick?: () => void;
 }
 
@@ -69,9 +71,19 @@ export function DashboardRoomCardSkin({
   slipSubmittedAt,
   slipEvaluating,
   vacant,
+  reminderMeta,
   onClick,
 }: DashboardRoomCardSkinProps) {
   const { t } = useLocale();
+
+  const reminderLine =
+    reminderMeta &&
+    (reminderMeta.tierKey
+      ? t(reminderMeta.lineKey, {
+          tier: t(reminderMeta.tierKey),
+          ...reminderMeta.lineParams,
+        })
+      : t(reminderMeta.lineKey, reminderMeta.lineParams));
 
   const { label: badgeLabel, tone: badgeTone } = resolveBadge(
     invoiceStatus,
@@ -111,6 +123,13 @@ export function DashboardRoomCardSkin({
                 day: billingDay,
               })}
         </p>
+        {reminderLine && (
+          <p
+            className={`mt-0.5 truncate text-xs font-medium ${reminderMeta!.toneClass}`}
+          >
+            {reminderLine}
+          </p>
+        )}
         {slipEvaluating && invoiceStatus === "scanning" && (
           <div className="mt-1.5 h-2 w-full max-w-[140px] animate-pulse rounded bg-zinc-100" />
         )}
@@ -125,7 +144,7 @@ export function DashboardRoomCardSkin({
 
   if (!onClick) {
     return (
-      <div className="flex h-[88px] items-center gap-3 rounded-xl border border-zinc-100 bg-white px-3">
+      <div className="flex min-h-[88px] items-center gap-3 rounded-xl border border-zinc-100 bg-white px-3">
         {content}
       </div>
     );
@@ -135,7 +154,7 @@ export function DashboardRoomCardSkin({
     <button
       type="button"
       onClick={onClick}
-      className="flex h-[88px] w-full items-center gap-3 rounded-xl border border-zinc-100 bg-white px-3 text-left transition-transform hover:bg-zinc-50 active:scale-[0.98]"
+      className="flex min-h-[88px] w-full items-center gap-3 rounded-xl border border-zinc-100 bg-white px-3 py-2 text-left transition-transform hover:bg-zinc-50 active:scale-[0.98]"
     >
       {content}
     </button>

@@ -6,8 +6,9 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ tenantId: string }> },
 ) {
+  const { tenantId } = await context.params;
+
   try {
-    const { tenantId } = await context.params;
     const body = (await request.json()) as {
       property_slug?: string;
       tenant_name?: string;
@@ -39,6 +40,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    console.error("[tenants.profile.PATCH]", { tenantId }, error);
     const message =
       error instanceof Error ? error.message : "อัปเดตข้อมูลลูกบ้านไม่สำเร็จ";
     return NextResponse.json({ error: message }, { status: 400 });

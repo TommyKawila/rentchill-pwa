@@ -231,12 +231,13 @@ export function AdminQaLabSkin() {
             <select
               value={qa.statusMix}
               onChange={(e) =>
-                qa.setStatusMix(e.target.value as "fresh" | "mixed")
+                qa.setStatusMix(e.target.value as "fresh" | "mixed" | "random")
               }
               className={selectClass}
             >
               <option value="fresh">{t("admin.qa.seed.statusFresh")}</option>
               <option value="mixed">{t("admin.qa.seed.statusMixed")}</option>
+              <option value="random">{t("admin.qa.seed.statusRandom")}</option>
             </select>
           </div>
           <label className="flex min-h-12 items-end gap-2 pb-1 text-base text-zinc-700">

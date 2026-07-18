@@ -3,6 +3,8 @@ import {
   isRowEditable,
   isRowReadyToBill,
   isElectricDialComplete,
+  isFlatWaterBilling,
+  type BillingReadinessOptions,
 } from "@/services/propertyBillingSettingsService";
 
 export type RoomListFilter =
@@ -41,10 +43,15 @@ export const ROOM_LIST_TOOLBAR_MIN = 8;
 export type RoomListFilterContext = {
   meters: Record<string, { water: string; electric: string }>;
   includeUtilities: boolean;
+  billingSettings?: BillingReadinessOptions;
 };
 
 function rowMeters(ctx: RoomListFilterContext, tenantId: string) {
   return ctx.meters[tenantId] ?? { water: "", electric: "" };
+}
+
+function readinessOptions(ctx: RoomListFilterContext): BillingReadinessOptions | undefined {
+  return ctx.billingSettings;
 }
 
 export function isRoomTodo(
@@ -55,7 +62,12 @@ export function isRoomTodo(
   if (row.invoice_status === "scanning") return true;
   if (
     isRowEditable(row) &&
-    !isRowReadyToBill(row, rowMeters(ctx, row.tenant_id), ctx.includeUtilities)
+    !isRowReadyToBill(
+      row,
+      rowMeters(ctx, row.tenant_id),
+      ctx.includeUtilities,
+      readinessOptions(ctx),
+    )
   ) {
     return true;
   }
@@ -66,8 +78,13 @@ export function isPendingMeter(row: MonthlyBillingRow, ctx: RoomListFilterContex
   if (row.invoice_id) return false;
   if (!isRowEditable(row)) return false;
   if (!ctx.includeUtilities) return false;
+  const meters = rowMeters(ctx, row.tenant_id);
   if (!row.electric_prev) return true;
-  return !isElectricDialComplete(rowMeters(ctx, row.tenant_id).electric);
+  if (!isElectricDialComplete(meters.electric)) return true;
+  if (isFlatWaterBilling(ctx.billingSettings?.water_billing_mode)) return false;
+  if (!row.water_prev) return true;
+  const water = Number(meters.water);
+  return !Number.isFinite(water) || water < 0;
 }
 
 function matchesFilter(
@@ -181,12 +198,32 @@ export function roomFilterFromHash(hash: string): RoomListFilter | null {
   return null;
 }
 
+export function dashboardQuickFilterFromHash(
+  hash: string,
+): DashboardQuickFilter | null {
+  const roomFilter = roomFilterFromHash(hash);
+  if (roomFilter === "unpaid") return "unpaid";
+  return null;
+}
+
+export function isAccountingHubHash(hash: string): boolean {
+  return hash === "#billing";
+}
+
+export function isRoomListFilterHash(hash: string): boolean {
+  return roomFilterFromHash(hash) !== null;
+}
+
+export function roomListFilterHash(filter: RoomListFilter): string | null {
+  if (filter === "notBilled") return "#billing-notBilled";
+  if (filter === "pendingMeter") return "#billing-pendingMeter";
+  if (filter === "unpaid") return "#billing-unpaid";
+  return null;
+}
+
 export function isRoomListScrollHash(hash: string): boolean {
   return (
-    hash === "#billing" ||
-    hash === "#billing-notBilled" ||
-    hash === "#billing-pendingMeter" ||
-    hash === "#billing-unpaid" ||
+    isRoomListFilterHash(hash) ||
     hash === "#rooms" ||
     hash === "#owner-rooms"
   );
