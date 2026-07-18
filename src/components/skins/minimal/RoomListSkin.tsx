@@ -11,6 +11,10 @@ import type { VacantRoomRow } from "@/services/vacantRoomService";
 import type { MonthlyBillingRow } from "@/services/monthlyBillingService";
 import type { ReminderDaySettings } from "@/services/paymentReminderTier";
 import { getRoomReminderCardMeta } from "@/services/roomReminderCardService";
+import {
+  resolveDashboardRoomAmountDue,
+  resolveDashboardRoomCardAction,
+} from "@/services/dashboardRoomCardActionService";
 
 export type RoomListRow = MonthlyBillingRow & {
   no: number;
@@ -32,6 +36,8 @@ interface RoomListSkinProps {
   disabled?: boolean;
   onSelect: (tenantId: string) => void;
   onSelectVacant?: (room: VacantRoomRow) => void;
+  onRemind?: (tenantId: string) => void;
+  remindDisabled?: boolean;
   onAddRoom?: (form: AddRoomForm) => void;
   addRoomSaving?: boolean;
   addRoomError?: string | null;
@@ -55,6 +61,8 @@ export function RoomListSkin({
   disabled,
   onSelect,
   onSelectVacant,
+  onRemind,
+  remindDisabled,
   onAddRoom,
   addRoomSaving,
   addRoomError,
@@ -149,23 +157,40 @@ export function RoomListSkin({
 
       {!isVacantView && listView.visibleRows.length > 0 && (
         <ul className="space-y-3">
-          {listView.visibleRows.map((row) => (
-            <li key={row.tenant_id}>
-              <DashboardRoomCardSkin
-                propertyName={propertyName}
-                roomNumber={row.room_number}
-                tenantName={row.tenant_name}
-                billingDay={billingDay}
-                coverUrl={coverUrl}
-                invoiceStatus={row.invoice_status}
-                slipRejectionNote={row.slip_rejection_note}
-                slipSubmittedAt={row.slip_submitted_at}
-                slipEvaluating={slipEvaluating && row.invoice_status === "scanning"}
-                reminderMeta={getRoomReminderCardMeta(row, reminderSettings)}
-                onClick={() => onSelect(row.tenant_id)}
-              />
-            </li>
-          ))}
+          {listView.visibleRows.map((row) => {
+            const cardAction = resolveDashboardRoomCardAction(row);
+            return (
+              <li key={row.tenant_id}>
+                <DashboardRoomCardSkin
+                  propertyName={propertyName}
+                  roomNumber={row.room_number}
+                  tenantName={row.tenant_name}
+                  billingDay={billingDay}
+                  coverUrl={coverUrl}
+                  invoiceStatus={row.invoice_status}
+                  slipRejectionNote={row.slip_rejection_note}
+                  slipSubmittedAt={row.slip_submitted_at}
+                  slipEvaluating={
+                    slipEvaluating && row.invoice_status === "scanning"
+                  }
+                  reminderMeta={getRoomReminderCardMeta(row, reminderSettings)}
+                  amountDue={resolveDashboardRoomAmountDue(row)}
+                  cardAction={cardAction}
+                  actionDisabled={
+                    cardAction === "remind" ? remindDisabled : disabled
+                  }
+                  onClick={() => onSelect(row.tenant_id)}
+                  onAction={
+                    cardAction === "remind" && onRemind
+                      ? () => onRemind(row.tenant_id)
+                      : cardAction === "review"
+                        ? () => onSelect(row.tenant_id)
+                        : undefined
+                  }
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -180,7 +205,9 @@ export function RoomListSkin({
                 coverUrl={coverUrl}
                 invoiceStatus={null}
                 vacant
+                cardAction="manage_vacant"
                 onClick={onSelectVacant ? () => onSelectVacant(room) : undefined}
+                onAction={onSelectVacant ? () => onSelectVacant(room) : undefined}
               />
             </li>
           ))}

@@ -4,12 +4,18 @@ import { useLocale } from "@/components/LocaleProvider";
 import { AnalyticsReportPanelSkin } from "@/components/skins/minimal/AnalyticsReportPanelSkin";
 import { BillingOverviewSkin } from "@/components/skins/minimal/BillingOverviewSkin";
 import { BillingCommandCenterSkin } from "@/components/skins/minimal/BillingCommandCenterSkin";
+import {
+  BillingRoomIssueListSkin,
+  type BillingRoomIssueCard,
+} from "@/components/skins/minimal/BillingRoomIssueCardSkin";
 import { CashFlowBentoSkin } from "@/components/skins/minimal/CashFlowBentoSkin";
 import { RentFollowUpStatusSkin } from "@/components/skins/minimal/RentFollowUpStatusSkin";
+import { SlipReviewQueueSkin } from "@/components/skins/minimal/SlipReviewQueueSkin";
 import type { CashFlowBentoMetrics } from "@/services/dashboardMetricsService";
 import type { BillingOverview } from "@/services/billingOverviewService";
 import type { UnpaidReminderSummary } from "@/services/unpaidReminderSummaryService";
 import type { OwnerPropertyOption } from "@/services/ownerPropertyService";
+import type { SlipQueueItem } from "@/services/slipQueueService";
 
 interface AccountingHubSkinProps {
   propertySlug: string;
@@ -31,6 +37,11 @@ interface AccountingHubSkinProps {
   unpaidSummary: UnpaidReminderSummary;
   bentoMetrics?: CashFlowBentoMetrics;
   bentoLoading?: boolean;
+  issueCards?: BillingRoomIssueCard[];
+  onSendBill?: (tenantId: string) => void;
+  sendingBillTenantId?: string | null;
+  slipQueue?: SlipQueueItem[];
+  onSelectSlipRoom?: (tenantId: string) => void;
 }
 
 export function AccountingHubSkin({
@@ -53,6 +64,11 @@ export function AccountingHubSkin({
   unpaidSummary,
   bentoMetrics,
   bentoLoading,
+  issueCards = [],
+  onSendBill,
+  sendingBillTenantId,
+  slipQueue = [],
+  onSelectSlipRoom,
 }: AccountingHubSkinProps) {
   const { t } = useLocale();
 
@@ -81,6 +97,19 @@ export function AccountingHubSkin({
         onBulkIssue={onBulkIssue}
         result={result}
       />
+
+      {onSendBill && (
+        <BillingRoomIssueListSkin
+          cards={issueCards}
+          disabled={disabled}
+          savingTenantId={sendingBillTenantId}
+          onSendBill={onSendBill}
+        />
+      )}
+
+      {onSelectSlipRoom && (
+        <SlipReviewQueueSkin items={slipQueue} onSelect={onSelectSlipRoom} />
+      )}
 
       <RentFollowUpStatusSkin
         summary={unpaidSummary}

@@ -44,6 +44,8 @@ import {
   computeOccupancyMetrics,
   computeRevenueMetrics,
 } from "@/services/dashboardMetricsService";
+import { buildBillingRoomIssueCards } from "@/services/billingIssueCardService";
+import { listSlipReviewQueue } from "@/services/slipQueueService";
 import { computeUnpaidReminderSummary } from "@/services/unpaidReminderSummaryService";
 import {
   isChillMode,
@@ -257,6 +259,35 @@ function DashboardContent() {
 
   const unpaidReminderSummary = useMemo(
     () => computeUnpaidReminderSummary(billing.rows),
+    [billing.rows],
+  );
+
+  const issueCards = useMemo(
+    () =>
+      buildBillingRoomIssueCards({
+        rows: billing.rows,
+        meters,
+        includeUtilities: billing.settings.include_utilities,
+        waterBillingMode: billing.settings.water_billing_mode,
+        defaultWaterFlatBaht: billing.settings.water_flat_baht,
+        waterRate: billing.settings.water_rate_per_unit,
+        electricRate: billing.settings.electric_rate_per_unit,
+        readinessOptions: billingReadinessOptions,
+      }),
+    [
+      billing.rows,
+      meters,
+      billing.settings.include_utilities,
+      billing.settings.water_billing_mode,
+      billing.settings.water_flat_baht,
+      billing.settings.water_rate_per_unit,
+      billing.settings.electric_rate_per_unit,
+      billingReadinessOptions,
+    ],
+  );
+
+  const slipQueue = useMemo(
+    () => listSlipReviewQueue(billing.rows),
     [billing.rows],
   );
 
@@ -680,6 +711,7 @@ function DashboardContent() {
             revenue={revenueMetrics}
             occupancy={occupancyMetrics}
             maintenanceWaiting={maintenance.waitingCount}
+            maintenanceHref={`/maintenance?property=${encodeURIComponent(propertySlug)}`}
           />
         </>
       )}
@@ -709,6 +741,10 @@ function DashboardContent() {
           unpaidSummary={unpaidReminderSummary}
           bentoMetrics={cashFlowBento.metrics}
           bentoLoading={cashFlowBento.loading}
+          issueCards={issueCards}
+          onSendBill={setSelectedTenantId}
+          slipQueue={slipQueue}
+          onSelectSlipRoom={setSelectedTenantId}
         />
       )}
 
@@ -736,6 +772,18 @@ function DashboardContent() {
         slipEvaluating={billing.isRefreshing && billing.hasScanningRows}
         onSelect={setSelectedTenantId}
         onSelectVacant={setVacantManageTarget}
+        onRemind={(tenantId) => {
+          void (async () => {
+            const ok = await reminder.remind(tenantId);
+            if (ok) await billing.reload();
+          })();
+        }}
+        remindDisabled={
+          Boolean(overRoomLimit) ||
+          !reminder.canRemind ||
+          reminder.status === "loading" ||
+          reminder.status === "sending"
+        }
         onAddRoom={handleAddRoom}
         addRoomSaving={addRoomTenant.status === "saving"}
         addRoomError={addRoomTenant.error}

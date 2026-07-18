@@ -105,12 +105,12 @@ export function BillingCommandCenterSkin({
                 type="button"
                 disabled={disabled || readyCount === 0 || saving}
                 onClick={onBulkIssue}
-                className="flex min-h-[52px] w-full items-center justify-center gap-x-2 rounded-lg bg-rc-green text-base font-medium text-white hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[52px] w-full items-center justify-center gap-x-2 rounded-xl bg-rc-green text-base font-bold text-white shadow-[0_4px_14px_-4px_rgba(13,148,136,0.45)] hover:bg-rc-green-dark disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <EasyModeCtaIcon name="bill" />
                 {saving
                   ? t("common.saving")
-                  : t("owner.billing.issueReadyCta", { count: readyCount })}
+                  : t("owner.billing.issueAllCta", { count: readyCount })}
               </button>
               {readyCount === 0 && includeUtilities && pendingMeterCount > 0 && (
                 <p className="text-sm text-zinc-500">{t("owner.billing.meterRequired")}</p>

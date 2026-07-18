@@ -3,10 +3,14 @@
 import Image from "next/image";
 import { Building2 } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
+import { formatMoney } from "@/services/formatMoney";
 import { statusMessageKey } from "@/services/i18n/translate";
 import type { MessageKey } from "@/services/i18n/messages";
 import type { InvoiceStatus } from "@/services/types";
 import type { RoomReminderCardMeta } from "@/services/roomReminderCardService";
+import type { DashboardRoomCardAction } from "@/services/dashboardRoomCardActionService";
+
+export type { DashboardRoomCardAction };
 
 interface DashboardRoomCardSkinProps {
   propertyName: string;
@@ -20,7 +24,11 @@ interface DashboardRoomCardSkinProps {
   slipEvaluating?: boolean;
   vacant?: boolean;
   reminderMeta?: RoomReminderCardMeta | null;
+  amountDue?: number | null;
+  cardAction?: DashboardRoomCardAction | null;
+  actionDisabled?: boolean;
   onClick?: () => void;
+  onAction?: () => void;
 }
 
 function statusTone(status: InvoiceStatus | null, vacant?: boolean) {
@@ -60,6 +68,15 @@ function resolveBadge(
   return { label: t("status.noBill"), tone: statusTone(null, vacant) };
 }
 
+function actionLabel(
+  action: DashboardRoomCardAction,
+  t: (key: MessageKey) => string,
+) {
+  if (action === "remind") return t("owner.rooms.action.remind");
+  if (action === "review") return t("owner.rooms.action.review");
+  return t("owner.rooms.action.manageVacant");
+}
+
 export function DashboardRoomCardSkin({
   propertyName,
   roomNumber,
@@ -72,9 +89,13 @@ export function DashboardRoomCardSkin({
   slipEvaluating,
   vacant,
   reminderMeta,
+  amountDue,
+  cardAction,
+  actionDisabled,
   onClick,
+  onAction,
 }: DashboardRoomCardSkinProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   const reminderLine =
     reminderMeta &&
@@ -93,70 +114,91 @@ export function DashboardRoomCardSkin({
     t,
   );
 
-  const content = (
-    <>
-      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-zinc-100">
-        {coverUrl ? (
-          <Image
-            src={coverUrl}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="56px"
-            unoptimized
-          />
-        ) : (
-          <span className="flex h-full w-full items-center justify-center text-zinc-400">
-            <Building2 className="h-6 w-6" aria-hidden />
+  const actionTone =
+    cardAction === "remind"
+      ? "bg-red-50 text-rc-danger"
+      : "bg-rc-green-soft text-rc-green-ink";
+
+  const showAction = Boolean(cardAction && onAction);
+
+  return (
+    <div className="flex min-h-[88px] items-center gap-2 rounded-xl border border-zinc-100 bg-white px-3 py-2 shadow-sm">
+      <button
+        type="button"
+        disabled={!onClick}
+        onClick={onClick}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-default"
+      >
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-zinc-100">
+          {coverUrl ? (
+            <Image
+              src={coverUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="56px"
+              unoptimized
+            />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-zinc-400">
+              <Building2 className="h-6 w-6" aria-hidden />
+            </span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <p className="truncate text-base font-bold text-rc-text">
+              {propertyName} - {t("common.room", { number: roomNumber })}
+            </p>
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${badgeTone}`}
+            >
+              {badgeLabel}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-sm text-zinc-500">
+            {vacant
+              ? t("owner.rooms.vacantLine")
+              : t("owner.rooms.tenantDueLine", {
+                  name: tenantName?.trim() || "—",
+                  day: billingDay,
+                })}
+          </p>
+          {reminderLine && (
+            <p
+              className={`mt-0.5 truncate text-xs font-medium ${reminderMeta!.toneClass}`}
+            >
+              {reminderLine}
+            </p>
+          )}
+          {slipEvaluating && invoiceStatus === "scanning" && (
+            <div className="mt-1.5 h-2 w-full max-w-[140px] animate-pulse rounded bg-zinc-100" />
+          )}
+        </div>
+      </button>
+
+      <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+        {!vacant && amountDue != null && (
+          <p className="text-sm font-extrabold tabular-nums text-rc-text">
+            {formatMoney(amountDue, "THB", locale)}
+          </p>
+        )}
+        {showAction && cardAction && (
+          <button
+            type="button"
+            disabled={actionDisabled}
+            onClick={onAction}
+            className={`inline-flex min-h-8 items-center rounded-full px-2.5 text-[10px] font-bold disabled:cursor-not-allowed disabled:opacity-50 ${actionTone}`}
+          >
+            {actionLabel(cardAction, t)}
+          </button>
+        )}
+        {vacant && !showAction && (
+          <span className="text-[10px] font-semibold text-rc-green">
+            {t("owner.rooms.action.manageVacant")}
           </span>
         )}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-bold text-rc-text">
-          {propertyName} - {t("common.room", { number: roomNumber })}
-        </p>
-        <p className="mt-0.5 truncate text-sm text-zinc-500">
-          {vacant
-            ? t("owner.rooms.vacantLine")
-            : t("owner.rooms.tenantDueLine", {
-                name: tenantName?.trim() || "—",
-                day: billingDay,
-              })}
-        </p>
-        {reminderLine && (
-          <p
-            className={`mt-0.5 truncate text-xs font-medium ${reminderMeta!.toneClass}`}
-          >
-            {reminderLine}
-          </p>
-        )}
-        {slipEvaluating && invoiceStatus === "scanning" && (
-          <div className="mt-1.5 h-2 w-full max-w-[140px] animate-pulse rounded bg-zinc-100" />
-        )}
-      </div>
-      <span
-        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${badgeTone}`}
-      >
-        {badgeLabel}
-      </span>
-    </>
-  );
-
-  if (!onClick) {
-    return (
-      <div className="flex min-h-[88px] items-center gap-3 rounded-xl border border-zinc-100 bg-white px-3">
-        {content}
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-[88px] w-full items-center gap-3 rounded-xl border border-zinc-100 bg-white px-3 py-2 text-left transition-transform hover:bg-zinc-50 active:scale-[0.98]"
-    >
-      {content}
-    </button>
+    </div>
   );
 }

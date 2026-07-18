@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Film, ImageIcon, Send } from "lucide-react";
+import { Film, ImageIcon, Send, Wrench } from "lucide-react";
 import { useLocale } from "@/components/LocaleProvider";
 import { formatMaintenanceReportedAt } from "@/services/maintenanceDisplayService";
 import type { MaintenanceTicketRow } from "@/services/types";
@@ -12,6 +12,13 @@ interface MaintenanceTicketCardSkinProps {
   onDispatch?: () => void;
 }
 
+function statusDotClass(status: MaintenanceTicketRow["status"]) {
+  if (status === "waiting") return "bg-rc-warning";
+  if (status === "in_progress") return "bg-sky-500";
+  if (status === "done") return "bg-rc-success";
+  return "bg-zinc-400";
+}
+
 function TicketThumb({ ticket }: { ticket: MaintenanceTicketRow }) {
   const { t } = useLocale();
 
@@ -21,22 +28,26 @@ function TicketThumb({ ticket }: { ticket: MaintenanceTicketRow }) {
       <img
         src={ticket.photo_url}
         alt={t("owner.maintenance.photoAlt")}
-        className="h-16 w-16 shrink-0 rounded-md object-cover"
+        className="h-16 w-16 shrink-0 rounded-xl object-cover"
       />
     );
   }
 
   if (ticket.video_url) {
     return (
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-zinc-500">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500">
         <Film className="h-6 w-6" strokeWidth={1.5} />
       </div>
     );
   }
 
   return (
-    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-zinc-50 text-zinc-400">
-      <ImageIcon className="h-6 w-6" strokeWidth={1.5} />
+    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-rc-bg text-rc-green">
+      {ticket.description ? (
+        <Wrench className="h-5 w-5" strokeWidth={1.5} />
+      ) : (
+        <ImageIcon className="h-6 w-6" strokeWidth={1.5} />
+      )}
     </div>
   );
 }
@@ -53,7 +64,7 @@ export function MaintenanceTicketCardSkin({
     onDispatch && (ticket.status === "waiting" || ticket.status === "in_progress");
 
   return (
-    <div className="flex h-24 items-center gap-2 rounded-xl bg-white px-3 shadow-sm">
+    <div className="flex h-24 items-center gap-2 rounded-2xl border border-zinc-100/60 bg-white px-3 shadow-sm">
       <button
         type="button"
         onClick={onOpen}
@@ -71,9 +82,10 @@ export function MaintenanceTicketCardSkin({
             {t("owner.maintenance.reportedAt", { when: reportedWhen })}
           </p>
         </div>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-300">
-          <ChevronRight className="h-5 w-5" strokeWidth={1.5} aria-hidden />
-        </span>
+        <span
+          className={`h-2 w-2 shrink-0 rounded-full ${statusDotClass(ticket.status)}`}
+          aria-hidden
+        />
       </button>
       {showDispatch && (
         <button
